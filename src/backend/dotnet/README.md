@@ -1,0 +1,114 @@
+# Todo API — ASP.NET Core / Entity Framework Core
+
+A RESTful API for managing todo items built with **ASP.NET Core**, **Entity Framework Core**, and **SQLite** (swappable to SQL Server or PostgreSQL).
+
+## Tech stack
+
+| Concern | Technology |
+|---|---|
+| Web framework | ASP.NET Core 10 Web API |
+| ORM | Entity Framework Core 10 |
+| Database (default) | SQLite (via `Microsoft.EntityFrameworkCore.Sqlite`) |
+| Migrations | EF Core Migrations (`dotnet ef`) |
+| API docs | Built-in OpenAPI + **Scalar** UI |
+| Dependency Injection | Built-in ASP.NET Core DI |
+
+## Project structure
+
+```
+src/backend/dotnet/
+├── TodoApi.sln
+└── TodoApi/
+    ├── Program.cs                          # App bootstrap & DI registration
+    ├── appsettings.json                    # Connection string & logging
+    ├── Controllers/
+    │   └── TodoItemsController.cs          # REST endpoints
+    ├── Data/
+    │   ├── AppDbContext.cs                 # EF Core DbContext
+    │   └── Migrations/                     # EF Core migrations
+    ├── DTOs/
+    │   └── TodoItemDtos.cs                 # Request / response models
+    ├── Models/
+    │   └── TodoItem.cs                     # EF Core entity
+    ├── Repositories/
+    │   ├── IRepository.cs                  # Generic IRepository<T>
+    │   ├── BaseRepository.cs               # Generic BaseRepository<T>
+    │   ├── ITodoItemRepository.cs
+    │   └── TodoItemRepository.cs
+    └── Services/
+        ├── ITodoItemService.cs
+        └── TodoItemService.cs
+```
+
+## Getting started
+
+### Prerequisites
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- EF Core CLI tools: `dotnet tool install --global dotnet-ef`
+
+### 1. Restore dependencies
+
+```bash
+cd src/backend/dotnet
+dotnet restore
+```
+
+### 2. Apply database migrations
+
+```bash
+cd TodoApi
+dotnet ef database update
+```
+
+### 3. Run the API
+
+```bash
+dotnet run
+```
+
+The API starts on `https://localhost:7xxx` / `http://localhost:5xxx`.  
+Scalar API reference UI: `https://localhost:7xxx/scalar/v1`  
+OpenAPI JSON: `https://localhost:7xxx/openapi/v1.json`
+
+## API endpoints
+
+| Method | URL | Description |
+|--------|-----|-------------|
+| `GET` | `/api/todo-items` | List all todo items (paginated) |
+| `GET` | `/api/todo-items/incomplete` | List incomplete items (paginated) |
+| `GET` | `/api/todo-items/{id}` | Get a single todo item |
+| `POST` | `/api/todo-items` | Create a todo item |
+| `PUT` | `/api/todo-items/{id}` | Update a todo item |
+| `PATCH` | `/api/todo-items/{id}/complete` | Mark a todo item as complete |
+| `DELETE` | `/api/todo-items/{id}` | Delete a todo item |
+
+### Pagination query parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `page` | `1` | Page number (1-based) |
+| `pageSize` | `20` | Items per page |
+
+## EF Core migration commands
+
+```bash
+# Add a new migration
+dotnet ef migrations add <MigrationName> --output-dir Data/Migrations
+
+# Apply migrations
+dotnet ef database update
+
+# Revert last migration
+dotnet ef migrations remove
+```
+
+## Switching databases
+
+Update `ConnectionStrings:DefaultConnection` in `appsettings.json` and swap the EF provider package:
+
+| Database | Package | Connection string |
+|----------|---------|-------------------|
+| SQLite (default) | `Microsoft.EntityFrameworkCore.Sqlite` | `Data Source=todo.db` |
+| SQL Server | `Microsoft.EntityFrameworkCore.SqlServer` | `Server=.;Database=TodoDb;Trusted_Connection=True` |
+| PostgreSQL | `Npgsql.EntityFrameworkCore.PostgreSQL` | `Host=localhost;Database=todo_db;Username=user;Password=pass` |
