@@ -1,0 +1,22 @@
+// Prisma schema — analogous to EF Core entity configuration + DbContext
+// Run: npx prisma migrate dev --name InitialCreate
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"           // swap to "postgresql" or "mysql" for production
+  url      = env("DATABASE_URL")
+}
+
+model TodoItem {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  isCompleted Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime? @updatedAt
+
+  @@map("todo_items")
+}
