@@ -115,3 +115,43 @@ Then re-run:
 ```bash
 npx prisma migrate dev
 ```
+
+## Docker
+
+### Build the image
+
+```bash
+# Run from src/backend/nodejs/
+docker build -t todo-api-nodejs .
+```
+
+### Run the container
+
+Provide the `DATABASE_URL` environment variable (SQLite path inside the container):
+
+```bash
+docker run -d -p 3000:3000 \
+  -e DATABASE_URL="file:/app/data/todo.db" \
+  --name todo-api-nodejs todo-api-nodejs
+```
+
+The API is available at <http://localhost:3000>.  
+Swagger UI: <http://localhost:3000/swagger>
+
+### Persist the SQLite database
+
+Mount a volume so the database survives container restarts:
+
+```bash
+docker run -d -p 3000:3000 \
+  -e DATABASE_URL="file:/app/data/todo.db" \
+  -v todo-nodejs-data:/app/data \
+  --name todo-api-nodejs todo-api-nodejs
+```
+
+### Stop and remove the container
+
+```bash
+docker stop todo-api-nodejs
+docker rm todo-api-nodejs
+```

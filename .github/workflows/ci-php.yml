@@ -1,0 +1,69 @@
+name: CI — PHP
+
+on:
+  push:
+    paths:
+      - 'src/backend/php/**'
+      - '.github/workflows/ci-php.yml'
+  pull_request:
+    paths:
+      - 'src/backend/php/**'
+      - '.github/workflows/ci-php.yml'
+
+defaults:
+  run:
+    working-directory: src/backend/php
+
+jobs:
+  build:
+    name: Install & Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_sqlite, sqlite3, opcache
+          coverage: none
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: src/backend/php/vendor
+          key: php-composer-${{ hashFiles('src/backend/php/composer.lock') }}
+          restore-keys: php-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: src/backend/php
+          push: false
+          tags: todo-api-php:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

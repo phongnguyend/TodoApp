@@ -1,0 +1,57 @@
+name: CI — .NET
+
+on:
+  push:
+    paths:
+      - 'src/backend/dotnet/**'
+      - '.github/workflows/ci-dotnet.yml'
+  pull_request:
+    paths:
+      - 'src/backend/dotnet/**'
+      - '.github/workflows/ci-dotnet.yml'
+
+defaults:
+  run:
+    working-directory: src/backend/dotnet
+
+jobs:
+  build:
+    name: Restore & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Publish
+        run: dotnet publish TodoApi/TodoApi.csproj --no-restore --configuration Release --output ./publish
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: src/backend/dotnet
+          push: false
+          tags: todo-api-dotnet:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

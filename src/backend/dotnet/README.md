@@ -112,3 +112,37 @@ Update `ConnectionStrings:DefaultConnection` in `appsettings.json` and swap the 
 | SQLite (default) | `Microsoft.EntityFrameworkCore.Sqlite` | `Data Source=todo.db` |
 | SQL Server | `Microsoft.EntityFrameworkCore.SqlServer` | `Server=.;Database=TodoDb;Trusted_Connection=True` |
 | PostgreSQL | `Npgsql.EntityFrameworkCore.PostgreSQL` | `Host=localhost;Database=todo_db;Username=user;Password=pass` |
+
+## Docker
+
+### Build the image
+
+```bash
+# Run from src/backend/dotnet/
+docker build -t todo-api-dotnet .
+```
+
+### Run the container
+
+```bash
+docker run -d -p 8080:8080 --name todo-api-dotnet todo-api-dotnet
+```
+
+The API is available at <http://localhost:8080>.  
+Scalar API reference UI: <http://localhost:8080/scalar/v1>  
+OpenAPI JSON: <http://localhost:8080/openapi/v1.json>
+
+### Persist the SQLite database
+
+Mount a volume so the database survives container restarts:
+
+```bash
+docker run -d -p 8080:8080 -v todo-dotnet-data:/app --name todo-api-dotnet todo-api-dotnet
+```
+
+### Stop and remove the container
+
+```bash
+docker stop todo-api-dotnet
+docker rm todo-api-dotnet
+```

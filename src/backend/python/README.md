@@ -116,3 +116,39 @@ Update `DATABASE_URL` in `.env`:
   Install: `pip install psycopg2-binary`
 - **MySQL**: `mysql+pymysql://user:password@localhost:3306/todo_db`  
   Install: `pip install pymysql`
+
+## Docker
+
+### Build the image
+
+```bash
+# Run from src/backend/python/
+docker build -t todo-api-python .
+```
+
+### Run the container
+
+```bash
+docker run -d -p 8000:8000 --name todo-api-python todo-api-python
+```
+
+The API is available at <http://localhost:8000>.  
+Swagger UI: <http://localhost:8000/swagger>
+
+### Persist the SQLite database
+
+Mount a volume so the database survives container restarts:
+
+```bash
+docker run -d -p 8000:8000 \
+  -e DATABASE_URL="sqlite:////app/data/todo.db" \
+  -v todo-python-data:/app/data \
+  --name todo-api-python todo-api-python
+```
+
+### Stop and remove the container
+
+```bash
+docker stop todo-api-python
+docker rm todo-api-python
+```

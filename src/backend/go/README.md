@@ -53,7 +53,25 @@ src/backend/go/
 
 ### 1. Install Go
 
-Ensure Go 1.23+ is installed: <https://go.dev/dl/>
+**Windows (winget):**
+```powershell
+winget install GoLang.Go
+```
+
+**macOS (Homebrew):**
+```bash
+brew install go
+```
+
+**Linux:**
+```bash
+sudo apt install golang-go        # Debian/Ubuntu
+sudo dnf install golang           # Fedora/RHEL
+```
+
+Or download the installer directly: <https://go.dev/dl/>
+
+Ensure Go 1.23+ is installed (`go version` to verify).
 
 ### 2. Install dependencies
 
@@ -134,4 +152,37 @@ db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 ```
 ```bash
 go get gorm.io/driver/mysql
+```
+
+## Docker
+
+### Build the image
+
+```bash
+# Run from src/backend/go/
+docker build -t todo-api-go .
+```
+
+### Run the container
+
+```bash
+docker run -d -p 8080:8080 --name todo-api-go todo-api-go
+```
+
+The API is available at <http://localhost:8080>.  
+Swagger UI: <http://localhost:8080/swagger/index.html>
+
+### Persist the SQLite database
+
+Mount a volume so the database survives container restarts:
+
+```bash
+docker run -d -p 8080:8080 -v todo-go-data:/app --name todo-api-go todo-api-go
+```
+
+### Stop and remove the container
+
+```bash
+docker stop todo-api-go
+docker rm todo-api-go
 ```

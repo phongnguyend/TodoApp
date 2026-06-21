@@ -123,3 +123,37 @@ mvn spring-boot:run -Dspring-boot.run.profiles=postgres \
 1. Uncomment the MySQL driver in `pom.xml`.
 2. Change `V1__create_todo_items.sql` — `BIGINT AUTO_INCREMENT` is already MySQL-compatible.
 3. Add a MySQL datasource profile to `application.yml`.
+
+## Docker
+
+### Build the image
+
+```bash
+# Run from src/backend/java/
+docker build -t todo-api-java .
+```
+
+### Run the container
+
+```bash
+docker run -d -p 8080:8080 --name todo-api-java todo-api-java
+```
+
+The API is available at <http://localhost:8080>.  
+Swagger UI: <http://localhost:8080/swagger>  
+H2 Console (embedded DB): <http://localhost:8080/h2-console>
+
+### Persist the H2 database
+
+Mount a volume so the database survives container restarts:
+
+```bash
+docker run -d -p 8080:8080 -v todo-java-data:/app --name todo-api-java todo-api-java
+```
+
+### Stop and remove the container
+
+```bash
+docker stop todo-api-java
+docker rm todo-api-java
+```

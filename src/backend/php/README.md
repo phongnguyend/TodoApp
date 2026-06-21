@@ -59,6 +59,58 @@ src/backend/php/
 
 ## Getting started
 
+### Prerequisites: Install PHP & Composer
+
+#### Windows
+
+Using [Scoop](https://scoop.sh/):
+
+```powershell
+scoop install php composer
+```
+
+Using [Chocolatey](https://chocolatey.org/):
+
+```powershell
+choco install php composer
+```
+
+Or download manually:
+- PHP: <https://windows.php.net/download/> (grab a **Thread Safe** x64 zip, extract, and add to `PATH`)
+- Composer: <https://getcomposer.org/Composer-Setup.exe>
+
+#### macOS
+
+```bash
+brew install php composer
+```
+
+#### Linux (Debian / Ubuntu)
+
+```bash
+sudo apt update
+sudo apt install php php-cli php-mbstring php-xml php-sqlite3 unzip curl
+curl -sS https://getcomposer.org/installer | php
+sudo mv composer.phar /usr/local/bin/composer
+```
+
+#### Linux (Fedora / RHEL)
+
+```bash
+sudo dnf install php php-cli php-mbstring php-xml php-pdo
+curl -sS https://getcomposer.org/installer | php
+sudo mv composer.phar /usr/local/bin/composer
+```
+
+Verify the installation:
+
+```bash
+php --version
+composer --version
+```
+
+---
+
 ### 1. Install dependencies
 
 ```bash
@@ -134,3 +186,41 @@ Update `DB_CONNECTION` and related variables in `.env`:
 - **MySQL**: `DB_CONNECTION=mysql` + install nothing (included in Laravel)
 - **PostgreSQL**: `DB_CONNECTION=pgsql` + `composer require doctrine/dbal`
 - **SQLite** (default, dev only): `DB_CONNECTION=sqlite`
+
+## Docker
+
+### Build the image
+
+```bash
+# Run from src/backend/php/
+docker build -t todo-api-php .
+```
+
+### Run the container
+
+```bash
+docker run -d -p 8080:8080 \
+  -e APP_KEY=base64:$(openssl rand -base64 32) \
+  --name todo-api-php todo-api-php
+```
+
+The API is available at <http://localhost:8080>.  
+Swagger UI: <http://localhost:8080/api/documentation>
+
+### Persist the SQLite database
+
+Mount a volume so the database survives container restarts:
+
+```bash
+docker run -d -p 8080:8080 \
+  -e APP_KEY=base64:$(openssl rand -base64 32) \
+  -v todo-php-data:/var/www/html/database \
+  --name todo-api-php todo-api-php
+```
+
+### Stop and remove the container
+
+```bash
+docker stop todo-api-php
+docker rm todo-api-php
+```
