@@ -1,12 +1,12 @@
 # Todo API — PHP / Laravel
 
-A RESTful API for managing todo items built with **Laravel 11**, **Eloquent ORM**, and Laravel's built-in migration system — the PHP equivalent of an ASP.NET Core + Entity Framework project.
+A RESTful API for managing todo items built with **Laravel 12**, **Eloquent ORM**, and Laravel's built-in migration system — the PHP equivalent of an ASP.NET Core + Entity Framework project.
 
 ## Tech-stack mapping
 
 | ASP.NET Core + EF | PHP equivalent |
 |---|---|
-| ASP.NET Core | **Laravel 11** |
+| ASP.NET Core | **Laravel 12** |
 | Entity Framework Core | **Eloquent ORM** |
 | EF Migrations (`dotnet ef migrations add`) | **Laravel Migrations** (`php artisan make:migration`) |
 | `DbContext` | Eloquent `Model` / `DB` facade |
@@ -18,6 +18,7 @@ A RESTful API for managing todo items built with **Laravel 11**, **Eloquent ORM*
 | Dependency Injection (constructor DI) | Laravel **Service Container** (`AppServiceProvider`) |
 | Swagger / OpenAPI | **L5-Swagger** (`darkaonline/l5-swagger`) |
 | Global exception handler / ProblemDetails | `app/Exceptions/Handler.php` |
+| Unit tests (xUnit / NUnit) | **PHPUnit 11** + **Mockery** |
 
 ## Project structure
 
@@ -49,10 +50,23 @@ src/backend/php/
 │       │   └── TodoItemServiceInterface.php     # ITodoItemService
 │       └── TodoItemService.php                  # Business logic
 ├── database/
+│   ├── factories/
+│   │   └── TodoItemFactory.php                  # Model factory for tests
 │   └── migrations/
 │       └── 2024_01_01_000000_create_todo_items_table.php
 ├── routes/
 │   └── api.php                                  # Route definitions
+├── tests/
+│   ├── TestCase.php                             # Base test case
+│   ├── Unit/
+│   │   ├── Requests/
+│   │   │   ├── CreateTodoItemRequestTest.php    # Validation rule tests
+│   │   │   └── UpdateTodoItemRequestTest.php    # Validation rule tests
+│   │   └── Services/
+│   │       └── TodoItemServiceTest.php          # Service unit tests (Mockery)
+│   └── Feature/
+│       └── TodoItemApiTest.php                  # HTTP integration tests
+├── phpunit.xml
 ├── composer.json
 └── .env.example
 ```
@@ -186,6 +200,40 @@ Update `DB_CONNECTION` and related variables in `.env`:
 - **MySQL**: `DB_CONNECTION=mysql` + install nothing (included in Laravel)
 - **PostgreSQL**: `DB_CONNECTION=pgsql` + `composer require doctrine/dbal`
 - **SQLite** (default, dev only): `DB_CONNECTION=sqlite`
+
+## Running tests
+
+The test suite uses **PHPUnit 11** with an in-memory SQLite database — no extra setup required.
+
+> **Missing PHP extensions — Windows gotcha**  
+> The in-memory SQLite test database requires the `pdo_sqlite` and `sqlite3` extensions.  
+> On a default Windows PHP installation both extensions are present but **commented out** in `php.ini`.  
+> Open your active `php.ini` (run `php --ini` to find it) and uncomment the two lines:
+> ```ini
+> extension=pdo_sqlite
+> extension=sqlite3
+> ```
+> Without these, PHPUnit will fail with a `could not find driver` (PDO) error.
+
+```bash
+# All suites
+./vendor/bin/phpunit
+
+# Unit tests only
+./vendor/bin/phpunit --testsuite Unit
+
+# Feature (HTTP) tests only
+./vendor/bin/phpunit --testsuite Feature
+```
+
+### Test coverage
+
+| Suite | File | What is tested |
+|---|---|---|
+| Unit | `TodoItemServiceTest` | All service methods; repository mocked via Mockery |
+| Unit | `CreateTodoItemRequestTest` | `title` required/length, `description` optional/length |
+| Unit | `UpdateTodoItemRequestTest` | All fields optional, type/length constraints |
+| Feature | `TodoItemApiTest` | All 7 endpoints — status codes, response shape, database state |
 
 ## Docker
 

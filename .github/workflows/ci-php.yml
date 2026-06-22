@@ -48,6 +48,9 @@ jobs:
       - name: Generate application key
         run: php artisan key:generate
 
+      - name: Run unit tests
+        run: ./vendor/bin/phpunit
+
   docker:
     name: Docker Build
     runs-on: ubuntu-latest

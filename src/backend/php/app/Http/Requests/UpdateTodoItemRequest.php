@@ -18,7 +18,7 @@ class UpdateTodoItemRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title'        => ['sometimes', 'string', 'min:1', 'max:200'],
+            'title'        => ['sometimes', 'filled', 'string', 'max:200'],
             'description'  => ['sometimes', 'nullable', 'string', 'max:2000'],
             'is_completed' => ['sometimes', 'boolean'],
         ];
