@@ -3,7 +3,7 @@ fastapi==0.115.6
 uvicorn[standard]==0.34.0
 
 # ORM & migrations (analogous to EF Core + EF Core Tools)
-sqlalchemy==2.0.36
+sqlalchemy==2.0.51
 alembic==1.14.0
 
 # Settings management (analogous to appsettings.json / IConfiguration)
@@ -16,3 +16,7 @@ pydantic-settings==2.7.0
 # psycopg2-binary==2.9.10   # PostgreSQL (sync)
 # asyncpg==0.30.0            # PostgreSQL (async)
 # pymysql==1.1.1             # MySQL (sync)
+
+# Testing
+pytest==8.3.5
+httpx==0.28.1

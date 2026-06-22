@@ -17,6 +17,7 @@ A RESTful API for managing todo items built with **FastAPI**, **SQLAlchemy**, an
 | `appsettings.json` / `IConfiguration` | `pydantic-settings` + `.env` |
 | Dependency Injection | FastAPI `Depends()` |
 | Swagger / OpenAPI | Built-in at `/swagger` |
+| Unit tests (`xUnit` / `NUnit`) | **pytest** + `unittest.mock` |
 
 ## Project structure
 
@@ -37,11 +38,18 @@ src/backend/python/
 │   │   └── todo_item_service.py       # ITodoItemService + impl
 │   └── routers/
 │       └── todo_items.py              # TodoItemsController equivalent
+├── tests/
+│   └── unit/
+│       ├── services/
+│       │   └── test_todo_item_service.py  # Service layer unit tests
+│       └── routers/
+│           └── test_todo_items.py         # Router / HTTP endpoint tests
 ├── alembic/
 │   ├── env.py
 │   ├── script.py.mako
 │   └── versions/
 ├── alembic.ini
+├── pytest.ini
 ├── requirements.txt
 └── .env.example
 ```
@@ -81,7 +89,21 @@ alembic revision --autogenerate -m "InitialCreate"
 alembic upgrade head
 ```
 
-### 5. Start the API server
+### 5. Run unit tests
+
+```bash
+# Run all unit tests
+python -m pytest tests/ -v
+
+# Run with summary (no verbose output)
+python -m pytest tests/
+
+# Run a specific layer
+python -m pytest tests/unit/services/ -v
+python -m pytest tests/unit/routers/ -v
+```
+
+### 6. Start the API server
 
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
