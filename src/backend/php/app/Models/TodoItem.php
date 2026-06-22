@@ -32,6 +32,13 @@ class TodoItem extends Model
     ];
 
     /**
+     * Default attribute values (mirrors the DB column defaults).
+     */
+    protected $attributes = [
+        'is_completed' => false,
+    ];
+
+    /**
      * Attribute type casts (analogous to EF value converters / column types).
      */
     protected $casts = [
