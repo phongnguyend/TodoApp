@@ -18,6 +18,7 @@ A RESTful API for managing todo items built with **NestJS**, **Prisma**, and **T
 | Dependency Injection | NestJS DI container |
 | Swagger / OpenAPI | `@nestjs/swagger` at `/swagger` |
 | Startup.cs / Program.cs | `main.ts` + `AppModule` |
+| xUnit / Moq | **Jest** + `@nestjs/testing` |
 
 ## Project structure
 
@@ -35,10 +36,13 @@ src/backend/nodejs/
 │   │   └── dto/
 │   │       └── paginated-response.dto.ts
 │   └── todo-items/
-│       ├── todo-items.module.ts       # Feature module
-│       ├── todo-items.controller.ts   # Controller (route handlers)
-│       ├── todo-items.service.ts      # Business logic
-│       ├── todo-items.repository.ts   # Data access (Prisma queries)
+│       ├── todo-items.module.ts           # Feature module
+│       ├── todo-items.controller.ts       # Controller (route handlers)
+│       ├── todo-items.controller.spec.ts  # Controller unit tests
+│       ├── todo-items.service.ts          # Business logic
+│       ├── todo-items.service.spec.ts     # Service unit tests
+│       ├── todo-items.repository.ts       # Data access (Prisma queries)
+│       ├── todo-items.repository.spec.ts  # Repository unit tests
 │       └── dto/
 │           ├── create-todo-item.dto.ts
 │           ├── update-todo-item.dto.ts
@@ -76,7 +80,20 @@ npx prisma migrate dev --name InitialCreate
 npx prisma generate
 ```
 
-### 4. Start the development server
+### 4. Run unit tests
+
+```bash
+# Run all unit tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:cov
+```
+
+### 5. Start the development server
 
 ```bash
 npm run start:dev
