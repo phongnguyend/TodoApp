@@ -12,32 +12,38 @@ A RESTful API for managing todo items built with **ASP.NET Core**, **Entity Fram
 | Migrations | EF Core Migrations (`dotnet ef`) |
 | API docs | Built-in OpenAPI + **Scalar** UI |
 | Dependency Injection | Built-in ASP.NET Core DI |
+| Unit testing | xUnit + Moq |
 
 ## Project structure
 
 ```
 src/backend/dotnet/
-├── TodoApi.sln
-└── TodoApi/
-    ├── Program.cs                          # App bootstrap & DI registration
-    ├── appsettings.json                    # Connection string & logging
+├── TodoApi.slnx
+├── TodoApi/
+│   ├── Program.cs                          # App bootstrap & DI registration
+│   ├── appsettings.json                    # Connection string & logging
+│   ├── Controllers/
+│   │   └── TodoItemsController.cs          # REST endpoints
+│   ├── Data/
+│   │   ├── AppDbContext.cs                 # EF Core DbContext
+│   │   └── Migrations/                     # EF Core migrations
+│   ├── DTOs/
+│   │   └── TodoItemDtos.cs                 # Request / response models
+│   ├── Models/
+│   │   └── TodoItem.cs                     # EF Core entity
+│   ├── Repositories/
+│   │   ├── IRepository.cs                  # Generic IRepository<T>
+│   │   ├── BaseRepository.cs               # Generic BaseRepository<T>
+│   │   ├── ITodoItemRepository.cs
+│   │   └── TodoItemRepository.cs
+│   └── Services/
+│       ├── ITodoItemService.cs
+│       └── TodoItemService.cs
+└── TodoApi.Tests/
     ├── Controllers/
-    │   └── TodoItemsController.cs          # REST endpoints
-    ├── Data/
-    │   ├── AppDbContext.cs                 # EF Core DbContext
-    │   └── Migrations/                     # EF Core migrations
-    ├── DTOs/
-    │   └── TodoItemDtos.cs                 # Request / response models
-    ├── Models/
-    │   └── TodoItem.cs                     # EF Core entity
-    ├── Repositories/
-    │   ├── IRepository.cs                  # Generic IRepository<T>
-    │   ├── BaseRepository.cs               # Generic BaseRepository<T>
-    │   ├── ITodoItemRepository.cs
-    │   └── TodoItemRepository.cs
+    │   └── TodoItemsControllerTests.cs     # Controller unit tests
     └── Services/
-        ├── ITodoItemService.cs
-        └── TodoItemService.cs
+        └── TodoItemServiceTests.cs         # Service unit tests
 ```
 
 ## Getting started
@@ -70,6 +76,19 @@ dotnet run
 The API starts on `https://localhost:7xxx` / `http://localhost:5xxx`.  
 Scalar API reference UI: `https://localhost:7xxx/scalar/v1`  
 OpenAPI JSON: `https://localhost:7xxx/openapi/v1.json`
+
+### 4. Run unit tests
+
+```bash
+# Run all tests
+dotnet test
+
+# Run with detailed output
+dotnet test --verbosity normal
+
+# Run with code coverage
+dotnet test --collect:"XPlat Code Coverage"
+```
 
 ## API endpoints
 
