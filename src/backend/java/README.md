@@ -18,6 +18,7 @@ A RESTful API for managing todo items built with **Spring Boot**, **Spring Data 
 | Swagger / OpenAPI | **SpringDoc OpenAPI** at `/swagger` |
 | `ProblemDetails` middleware | `@RestControllerAdvice` + `ProblemDetail` |
 | `Program.cs` / `Startup.cs` | `TodoApplication.java` + auto-configuration |
+| xUnit / NUnit | **JUnit 5** + **Mockito** + **Spring Boot Test** (`@WebMvcTest`, `@DataJpaTest`) |
 
 ## Project structure
 
@@ -51,8 +52,16 @@ src/backend/java/
     │       └── db/migration/
     │           └── V1__create_todo_items.sql      # Flyway migration
     └── test/
-        └── java/com/example/todo/
-            └── TodoApplicationTests.java
+        ├── java/com/example/todo/
+        │   ├── TodoApplicationTests.java              # context load smoke test
+        │   ├── controller/
+        │   │   └── TodoItemControllerTest.java        # @WebMvcTest — HTTP layer
+        │   ├── repository/
+        │   │   └── TodoItemRepositoryTest.java        # @DataJpaTest — JPA slice
+        │   └── service/
+        │       └── TodoItemServiceImplTest.java       # Mockito — pure unit tests
+        └── resources/
+            └── application.yml                        # test config (H2 in-memory)
 ```
 
 ## Getting started
@@ -69,7 +78,20 @@ cd src/backend/java
 mvn clean package -DskipTests
 ```
 
-### 2. Run the application
+### 2. Run unit tests
+
+```bash
+# Run all tests
+mvn test
+
+# Run a specific test class
+mvn test -Dtest=TodoItemServiceImplTest
+
+# Run tests matching a pattern
+mvn test -Dtest="*ServiceImpl*,*Controller*"
+```
+
+### 3. Run the application
 
 ```bash
 mvn spring-boot:run
