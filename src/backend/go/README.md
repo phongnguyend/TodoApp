@@ -18,6 +18,7 @@ A RESTful API for managing todo items built with **Gin**, **GORM**, and Go — t
 | Dependency Injection | Manual constructor injection (composition root in `main.go`) |
 | Swagger / OpenAPI | `swaggo/gin-swagger` at `/swagger/index.html` |
 | `Program.cs` | `cmd/api/main.go` |
+| xUnit + Moq | `testing` (stdlib) + `testify` (hand-written interface mocks) |
 
 ## Project structure
 
@@ -28,7 +29,8 @@ src/backend/go/
 │       └── main.go                        # Entry point (Program.cs)
 ├── internal/
 │   ├── config/
-│   │   └── config.go                      # Settings (appsettings.json)
+│   │   ├── config.go                      # Settings (appsettings.json)
+│   │   └── config_test.go                 # Config unit tests
 │   ├── database/
 │   │   └── database.go                    # GORM setup (DbContext)
 │   ├── models/
@@ -39,9 +41,11 @@ src/backend/go/
 │   │   ├── repository.go                  # Repository interface
 │   │   └── todo_item_repository.go        # GORM implementation
 │   ├── service/
-│   │   └── todo_item_service.go           # Business logic
+│   │   ├── todo_item_service.go           # Business logic
+│   │   └── todo_item_service_test.go      # Service unit tests
 │   ├── handler/
-│   │   └── todo_item_handler.go           # HTTP handlers (Controller)
+│   │   ├── todo_item_handler.go           # HTTP handlers (Controller)
+│   │   └── todo_item_handler_test.go      # Handler unit tests
 │   └── router/
 │       └── router.go                      # Route registration
 ├── go.mod
@@ -94,7 +98,23 @@ go install github.com/swaggo/swag/cmd/swag@latest
 swag init -g cmd/api/main.go -o docs
 ```
 
-### 5. Run the server
+### 5. Run unit tests
+
+```bash
+# Run all unit tests
+go test ./...
+
+# Verbose output
+go test -v ./...
+
+# With coverage report
+go test -cover ./...
+```
+
+> **Note:** The `internal/database` package uses CGO (SQLite). Ensure `gcc` is available, or
+> target only pure-Go packages: `go test ./internal/config/... ./internal/service/... ./internal/handler/...`
+
+### 6. Run the server
 
 ```bash
 go run ./cmd/api

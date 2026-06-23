@@ -37,6 +37,9 @@ jobs:
       - name: Build
         run: CGO_ENABLED=1 go build -v ./cmd/api
 
+      - name: Run unit tests
+        run: CGO_ENABLED=1 go test -v -cover ./...
+
   docker:
     name: Docker Build
     runs-on: ubuntu-latest
