@@ -16,7 +16,7 @@ defaults:
 
 jobs:
   build:
-    name: Build & Package
+    name: Build & Test
     runs-on: ubuntu-latest
 
     steps:
@@ -29,8 +29,11 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Run unit tests
+        run: mvn test -B
+
       - name: Build with Maven
-        run: mvn clean package -DskipTests -B
+        run: mvn package -DskipTests -B
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
