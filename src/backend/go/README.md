@@ -132,22 +132,7 @@ go build -o todo-api ./cmd/api
 
 ## API endpoints
 
-| Method | URL | Description |
-|--------|-----|-------------|
-| `GET` | `/api/todo-items` | List all todo items (paginated) |
-| `GET` | `/api/todo-items/incomplete` | List incomplete items (paginated) |
-| `GET` | `/api/todo-items/:id` | Get a single todo item |
-| `POST` | `/api/todo-items` | Create a todo item |
-| `PUT` | `/api/todo-items/:id` | Update a todo item |
-| `PATCH` | `/api/todo-items/:id/complete` | Mark a todo item as complete |
-| `DELETE` | `/api/todo-items/:id` | Delete a todo item |
-
-### Pagination query parameters
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `page` | `1` | Page number (1-based) |
-| `pageSize` | `20` | Items per page |
+See the [shared API contract](../README.md#api-endpoints) in the backend README.
 
 ## Switching databases
 
