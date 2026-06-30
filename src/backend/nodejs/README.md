@@ -27,7 +27,7 @@ src/backend/nodejs/
 ├── prisma/
 │   └── schema.prisma                  # Prisma schema (EF model + DbContext)
 ├── src/
-│   ├── main.ts                        # Bootstrap (Program.cs)
+│   ├── main.ts                        # API bootstrap (Program.cs)
 │   ├── app.module.ts                  # Root module (Startup.cs)
 │   ├── prisma/
 │   │   ├── prisma.service.ts          # PrismaClient wrapper (DbContext)
@@ -35,18 +35,24 @@ src/backend/nodejs/
 │   ├── common/
 │   │   └── dto/
 │   │       └── paginated-response.dto.ts
-│   └── todo-items/
-│       ├── todo-items.module.ts           # Feature module
-│       ├── todo-items.controller.ts       # Controller (route handlers)
-│       ├── todo-items.controller.spec.ts  # Controller unit tests
-│       ├── todo-items.service.ts          # Business logic
-│       ├── todo-items.service.spec.ts     # Service unit tests
-│       ├── todo-items.repository.ts       # Data access (Prisma queries)
-│       ├── todo-items.repository.spec.ts  # Repository unit tests
-│       └── dto/
-│           ├── create-todo-item.dto.ts
-│           ├── update-todo-item.dto.ts
-│           └── todo-item-response.dto.ts
+│   ├── todo-items/
+│   │   ├── todo-items.module.ts           # Feature module
+│   │   ├── todo-items.controller.ts       # Controller (route handlers)
+│   │   ├── todo-items.controller.spec.ts  # Controller unit tests
+│   │   ├── todo-items.service.ts          # Business logic
+│   │   ├── todo-items.service.spec.ts     # Service unit tests
+│   │   ├── todo-items.repository.ts       # Data access (Prisma queries)
+│   │   ├── todo-items.repository.spec.ts  # Repository unit tests
+│   │   └── dto/
+│   │       ├── create-todo-item.dto.ts
+│   │       ├── update-todo-item.dto.ts
+│   │       └── todo-item-response.dto.ts
+│   └── worker/
+│       ├── main.ts                        # Worker entry-point (plain Node.js process)
+│       └── jobs/
+│           └── incomplete-todos-email.job.ts  # Email digest job
+├── Dockerfile                         # API container image
+├── Dockerfile.worker                  # Background worker container image
 ├── package.json
 ├── tsconfig.json
 ├── nest-cli.json
@@ -101,9 +107,53 @@ npm run start:dev
 
 The Swagger UI is available at <http://localhost:3000/swagger>.
 
+### 6. Run the background worker locally
+
+```bash
+# Build first (compiles worker/main.ts → dist/worker/main.js)
+npm run build
+
+# Then start the worker process
+npm run start:worker
+```
+
+The worker reads SMTP settings and `WORKER_INTERVAL_MINUTES` from `.env`.
+
+The Swagger UI is available at <http://localhost:3000/swagger>.
+
 ## API endpoints
 
 See the [shared API contract](../README.md#api-endpoints) in the backend README.
+
+## Background worker
+
+The worker runs as a **separate process / container** (`Dockerfile.worker`). It is intentionally kept outside the NestJS application context and connects to Prisma directly.
+
+### What it does
+
+On startup and then every `WORKER_INTERVAL_MINUTES` minutes (default: 60):
+
+1. Queries all incomplete todo items (`isCompleted = false`).
+2. Builds a plain-text + HTML email digest.
+3. Inserts an `email_logs` row with `status = "pending"`.
+4. Sends the email via SMTP (nodemailer — supports STARTTLS and SSL).
+5. Updates the `email_logs` row to `status = "sent"` or `"failed"` (with `errorMessage`).
+
+If there are no incomplete todos, the job is skipped and no email is sent.
+
+### Worker environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | *(required)* | Same value as the API — both containers share the same database |
+| `SMTP_HOST` | `localhost` | SMTP server hostname |
+| `SMTP_PORT` | `587` | SMTP server port |
+| `SMTP_SECURE` | `false` | `true` → implicit TLS (port 465); `false` → STARTTLS (port 587) |
+| `SMTP_USERNAME` | *(empty)* | SMTP auth username |
+| `SMTP_PASSWORD` | *(empty)* | SMTP auth password |
+| `EMAIL_SENDER` | `noreply@example.com` | From address |
+| `EMAIL_RECIPIENT` | `admin@example.com` | Destination address for digests |
+| `WORKER_INTERVAL_MINUTES` | `60` | How often the job runs |
 
 ## Switching databases
 
@@ -120,40 +170,46 @@ npx prisma migrate dev
 
 ## Docker
 
-### Build the image
+### Build and run the API
 
 ```bash
-# Run from src/backend/nodejs/
+# Build the API image
 docker build -t todo-api-nodejs .
-```
 
-### Run the container
-
-Provide the `DATABASE_URL` environment variable (SQLite path inside the container):
-
-```bash
-docker run -d -p 3000:3000 \
-  -e DATABASE_URL="file:/app/data/todo.db" \
-  --name todo-api-nodejs todo-api-nodejs
-```
-
-The API is available at <http://localhost:3000>.  
-Swagger UI: <http://localhost:3000/swagger>
-
-### Persist the SQLite database
-
-Mount a volume so the database survives container restarts:
-
-```bash
+# Run the API container
 docker run -d -p 3000:3000 \
   -e DATABASE_URL="file:/app/data/todo.db" \
   -v todo-nodejs-data:/app/data \
   --name todo-api-nodejs todo-api-nodejs
 ```
 
-### Stop and remove the container
+The API is available at <http://localhost:3000>.  
+Swagger UI: <http://localhost:3000/swagger>
+
+### Build and run the background worker
 
 ```bash
-docker stop todo-api-nodejs
-docker rm todo-api-nodejs
+# Build the worker image
+docker build -f Dockerfile.worker -t todo-worker-nodejs .
+
+# Run the worker container (shares the same database volume as the API)
+docker run -d \
+  -e DATABASE_URL="file:/app/data/todo.db" \
+  -e SMTP_HOST=smtp.example.com \
+  -e SMTP_PORT=587 \
+  -e SMTP_SECURE=false \
+  -e SMTP_USERNAME=user@example.com \
+  -e SMTP_PASSWORD=secret \
+  -e EMAIL_SENDER=noreply@example.com \
+  -e EMAIL_RECIPIENT=admin@example.com \
+  -e WORKER_INTERVAL_MINUTES=60 \
+  -v todo-nodejs-data:/app/data \
+  --name todo-worker-nodejs todo-worker-nodejs
+```
+
+### Stop and remove containers
+
+```bash
+docker stop todo-api-nodejs todo-worker-nodejs
+docker rm  todo-api-nodejs todo-worker-nodejs
 ```
