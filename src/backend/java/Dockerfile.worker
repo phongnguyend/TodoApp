@@ -1,0 +1,23 @@
+# Build stage — identical to Dockerfile; reuses the same JAR
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /src
+
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+
+COPY src ./src
+RUN mvn package -DskipTests -B
+
+# Runtime stage
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+
+COPY --from=build /src/target/*.jar app.jar
+
+# Activate the "worker" Spring profile:
+#   - disables the embedded web server (spring.main.web-application-type=none)
+#   - starts the IncompleteTodosEmailJob loop via WorkerRunner
+#
+# The worker shares the same database as the API container.
+# Mount the same volume or point DB_URL at the shared database.
+ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=worker"]

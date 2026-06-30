@@ -24,6 +24,8 @@ A RESTful API for managing todo items built with **Spring Boot**, **Spring Data 
 
 ```
 src/backend/java/
+├── Dockerfile                                     # API container image
+├── Dockerfile.worker                              # Worker container image
 ├── pom.xml                                        # Maven build (like .csproj)
 └── src/
     ├── main/
@@ -39,18 +41,25 @@ src/backend/java/
     │   │   │   ├── TodoItemResponse.java          # record with factory method
     │   │   │   └── PaginatedResponse.java         # generic record
     │   │   ├── entity/
-    │   │   │   └── TodoItem.java                  # @Entity (JPA model)
+    │   │   │   ├── TodoItem.java                  # @Entity (JPA model)
+    │   │   │   └── EmailLog.java                  # @Entity — email audit log
     │   │   ├── exception/
     │   │   │   └── GlobalExceptionHandler.java   # @RestControllerAdvice
     │   │   ├── repository/
-    │   │   │   └── TodoItemRepository.java        # JpaRepository<TodoItem, Long>
-    │   │   └── service/
-    │   │       ├── TodoItemService.java           # interface
-    │   │       └── TodoItemServiceImpl.java       # @Service implementation
+    │   │   │   ├── TodoItemRepository.java        # JpaRepository<TodoItem, Long>
+    │   │   │   └── EmailLogRepository.java        # JpaRepository<EmailLog, Long>
+    │   │   ├── service/
+    │   │   │   ├── TodoItemService.java           # interface
+    │   │   │   └── TodoItemServiceImpl.java       # @Service implementation
+    │   │   └── worker/                            # Background worker (worker profile only)
+    │   │       ├── IncompleteTodosEmailJob.java   # Job: query → build email → persist → send
+    │   │       └── WorkerRunner.java              # ApplicationRunner: scheduling loop
     │   └── resources/
-    │       ├── application.yml                    # appsettings.json equivalent
+    │       ├── application.yml                    # API config (H2 + Swagger)
+    │       ├── application-worker.yml             # Worker config (no web server, SMTP)
     │       └── db/migration/
-    │           └── V1__create_todo_items.sql      # Flyway migration
+    │           ├── V1__create_todo_items.sql      # Flyway migration
+    │           └── V2__create_email_logs.sql      # Flyway migration
     └── test/
         ├── java/com/example/todo/
         │   ├── TodoApplicationTests.java              # context load smoke test
@@ -113,6 +122,58 @@ Flyway automatically applies `V1__create_todo_items.sql` on startup (like `dotne
 
 See the [shared API contract](../README.md#api-endpoints) in the backend README.
 
+## Background worker
+
+The worker is a separate process (separate container) that periodically sends an email digest of all incomplete todo items.
+
+### How it works
+
+1. Queries all incomplete `todo_items` ordered by `created_at`.
+2. Builds a plain-text + HTML email body.
+3. Inserts an `email_logs` row with `status = 'pending'`.
+4. Sends the email via SMTP (`JavaMailSender`).
+5. Updates the `email_logs` row to `status = 'sent'` (or `'failed'` + `error_message`).
+
+The worker is activated via the `worker` Spring profile (`--spring.profiles.active=worker`), which:
+- Disables the embedded web server (`spring.main.web-application-type=none`).
+- Loads `application-worker.yml` for SMTP and scheduling configuration.
+- Activates `WorkerRunner` and `IncompleteTodosEmailJob` beans.
+
+### Environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `WORKER_INTERVAL_MINUTES` | `60` | How often the job runs |
+| `EMAIL_RECIPIENT` | `admin@example.com` | Destination address for the digest |
+| `EMAIL_SENDER` | `noreply@example.com` | From address |
+| `SMTP_HOST` | `localhost` | SMTP server hostname |
+| `SMTP_PORT` | `587` | SMTP server port |
+| `SMTP_USERNAME` | _(empty)_ | SMTP auth username |
+| `SMTP_PASSWORD` | _(empty)_ | SMTP auth password |
+| `SMTP_AUTH` | `false` | Enable SMTP authentication |
+| `SMTP_STARTTLS` | `false` | Enable STARTTLS |
+
+### Run the worker locally
+
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=worker
+```
+
+### Run with custom interval and SMTP
+
+```bash
+java -jar target/todo-api-1.0.0.jar \
+  --spring.profiles.active=worker \
+  --WORKER_INTERVAL_MINUTES=30 \
+  --SMTP_HOST=smtp.example.com \
+  --SMTP_PORT=587 \
+  --SMTP_USERNAME=user@example.com \
+  --SMTP_PASSWORD=secret \
+  --SMTP_AUTH=true \
+  --SMTP_STARTTLS=true \
+  --EMAIL_RECIPIENT=team@example.com
+```
+
 ## Switching databases
 
 ### PostgreSQL
@@ -133,14 +194,21 @@ mvn spring-boot:run -Dspring-boot.run.profiles=postgres \
 
 ## Docker
 
-### Build the image
+### Build the API image
 
 ```bash
 # Run from src/backend/java/
 docker build -t todo-api-java .
 ```
 
-### Run the container
+### Build the worker image
+
+```bash
+# Run from src/backend/java/
+docker build -f Dockerfile.worker -t todo-worker-java .
+```
+
+### Run the API container
 
 ```bash
 docker run -d -p 8080:8080 --name todo-api-java todo-api-java
@@ -150,6 +218,29 @@ The API is available at <http://localhost:8080>.
 Swagger UI: <http://localhost:8080/swagger>  
 H2 Console (embedded DB): <http://localhost:8080/h2-console>
 
+### Run the worker container
+
+The worker shares the same H2 database file as the API. Mount the same volume so both processes access the same data:
+
+```bash
+# 1. Start the API with a named volume
+docker run -d -p 8080:8080 -v todo-java-data:/app --name todo-api-java todo-api-java
+
+# 2. Start the worker pointing at the same volume and your SMTP server
+docker run -d \
+  -v todo-java-data:/app \
+  -e SMTP_HOST=smtp.example.com \
+  -e SMTP_PORT=587 \
+  -e SMTP_USERNAME=user@example.com \
+  -e SMTP_PASSWORD=secret \
+  -e SMTP_AUTH=true \
+  -e SMTP_STARTTLS=true \
+  -e EMAIL_RECIPIENT=team@example.com \
+  -e WORKER_INTERVAL_MINUTES=60 \
+  --name todo-worker-java \
+  todo-worker-java
+```
+
 ### Persist the H2 database
 
 Mount a volume so the database survives container restarts:
@@ -158,9 +249,9 @@ Mount a volume so the database survives container restarts:
 docker run -d -p 8080:8080 -v todo-java-data:/app --name todo-api-java todo-api-java
 ```
 
-### Stop and remove the container
+### Stop and remove the containers
 
 ```bash
-docker stop todo-api-java
-docker rm todo-api-java
+docker stop todo-api-java todo-worker-java
+docker rm todo-api-java todo-worker-java
 ```
