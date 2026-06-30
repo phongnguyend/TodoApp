@@ -6,6 +6,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 /**
  * TodoItemRepository extends JpaRepository — analogous to inheriting from EF's DbSet<TodoItem>
  * with built-in CRUD operations. Spring Data JPA generates the implementation at runtime.
@@ -16,4 +18,7 @@ import org.springframework.stereotype.Repository;
 public interface TodoItemRepository extends JpaRepository<TodoItem, Long> {
 
     Page<TodoItem> findByCompletedFalse(Pageable pageable);
+
+    /** Returns all incomplete todos ordered by creation date — used by the background worker. */
+    List<TodoItem> findByCompletedFalseOrderByCreatedAtAsc();
 }
