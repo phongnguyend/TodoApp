@@ -27,32 +27,34 @@ src/backend/nodejs/
 ├── prisma/
 │   └── schema.prisma                  # Prisma schema (EF model + DbContext)
 ├── src/
-│   ├── main.ts                        # API bootstrap (Program.cs)
-│   ├── app.module.ts                  # Root module (Startup.cs)
-│   ├── prisma/
-│   │   ├── prisma.service.ts          # PrismaClient wrapper (DbContext)
-│   │   └── prisma.module.ts           # Global Prisma module
-│   ├── common/
-│   │   └── dto/
-│   │       └── paginated-response.dto.ts
-│   ├── todo-items/
-│   │   ├── todo-items.module.ts           # Feature module
-│   │   ├── todo-items.controller.ts       # Controller (route handlers)
-│   │   ├── todo-items.controller.spec.ts  # Controller unit tests
-│   │   ├── todo-items.service.ts          # Business logic
-│   │   ├── todo-items.service.spec.ts     # Service unit tests
-│   │   ├── todo-items.repository.ts       # Data access (Prisma queries)
-│   │   ├── todo-items.repository.spec.ts  # Repository unit tests
-│   │   └── dto/
-│   │       ├── create-todo-item.dto.ts
-│   │       ├── update-todo-item.dto.ts
-│   │       └── todo-item-response.dto.ts
+│   ├── api/
+│   │   ├── Dockerfile                     # API container image
+│   │   ├── main.ts                        # API bootstrap (Program.cs)
+│   │   ├── app.module.ts                  # Root module (Startup.cs)
+│   │   └── todo-items/
+│   │       ├── todo-items.module.ts           # Feature module
+│   │       ├── todo-items.controller.ts       # Controller (route handlers)
+│   │       ├── todo-items.controller.spec.ts  # Controller unit tests
+│   │       ├── todo-items.service.ts          # Business logic
+│   │       ├── todo-items.service.spec.ts     # Service unit tests
+│   │       ├── todo-items.repository.ts       # Data access (Prisma queries)
+│   │       ├── todo-items.repository.spec.ts  # Repository unit tests
+│   │       └── dto/
+│   │           ├── create-todo-item.dto.ts
+│   │           ├── update-todo-item.dto.ts
+│   │           └── todo-item-response.dto.ts
+│   ├── shared/
+│   │   ├── prisma/
+│   │   │   ├── prisma.service.ts          # PrismaClient wrapper (DbContext)
+│   │   │   └── prisma.module.ts           # Global Prisma module
+│   │   └── common/
+│   │       └── dto/
+│   │           └── paginated-response.dto.ts
 │   └── worker/
+│       ├── Dockerfile                     # Background worker container image
 │       ├── main.ts                        # Worker entry-point (plain Node.js process)
 │       └── jobs/
 │           └── incomplete-todos-email.job.ts  # Email digest job
-├── Dockerfile                         # API container image
-├── Dockerfile.worker                  # Background worker container image
 ├── package.json
 ├── tsconfig.json
 ├── nest-cli.json
@@ -127,7 +129,7 @@ See the [shared API contract](../README.md#api-endpoints) in the backend README.
 
 ## Background worker
 
-The worker runs as a **separate process / container** (`Dockerfile.worker`). It is intentionally kept outside the NestJS application context and connects to Prisma directly.
+The worker runs as a **separate process / container** (`src/worker/Dockerfile`). It is intentionally kept outside the NestJS application context and connects to Prisma directly.
 
 ### What it does
 
@@ -174,7 +176,7 @@ npx prisma migrate dev
 
 ```bash
 # Build the API image
-docker build -t todo-api-nodejs .
+docker build -f src/api/Dockerfile -t todo-api-nodejs .
 
 # Run the API container
 docker run -d -p 3000:3000 \
@@ -190,7 +192,7 @@ Swagger UI: <http://localhost:3000/swagger>
 
 ```bash
 # Build the worker image
-docker build -f Dockerfile.worker -t todo-worker-nodejs .
+docker build -f src/worker/Dockerfile -t todo-worker-nodejs .
 
 # Run the worker container (shares the same database volume as the API)
 docker run -d \

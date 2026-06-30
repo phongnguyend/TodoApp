@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TodoItem } from '@prisma/client';
 
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../shared/prisma/prisma.service';
 import { TodoItemRepository } from './todo-items.repository';
 
 const makeTodoItem = (overrides: Partial<TodoItem> = {}): TodoItem => ({

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { PrismaModule } from './prisma/prisma.module';
+import { PrismaModule } from '../shared/prisma/prisma.module';
 import { TodoItemsModule } from './todo-items/todo-items.module';
 
 /**

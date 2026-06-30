@@ -20,7 +20,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { PaginatedResponseDto } from '../../shared/common/dto/paginated-response.dto';
 import { CreateTodoItemDto } from './dto/create-todo-item.dto';
 import { TodoItemResponseDto } from './dto/todo-item-response.dto';
 import { UpdateTodoItemDto } from './dto/update-todo-item.dto';

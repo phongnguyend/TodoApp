@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { PaginatedResponseDto } from '../../shared/common/dto/paginated-response.dto';
 import { TodoItemResponseDto } from './dto/todo-item-response.dto';
 import { TodoItemsController } from './todo-items.controller';
 import { TodoItemsService } from './todo-items.service';
