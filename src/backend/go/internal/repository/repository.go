@@ -18,3 +18,10 @@ type TodoItemRepository interface {
 	Update(item *models.TodoItem) (*models.TodoItem, error)
 	Delete(item *models.TodoItem) error
 }
+
+// EmailLogRepository defines the data-access contract for email audit logs.
+type EmailLogRepository interface {
+	Create(log *models.EmailLog) (*models.EmailLog, error)
+	MarkSent(log *models.EmailLog) error
+	MarkFailed(log *models.EmailLog, errMsg string) error
+}
