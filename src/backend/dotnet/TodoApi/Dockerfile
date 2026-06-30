@@ -2,11 +2,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY TodoApi/TodoApi.csproj TodoApi/
-RUN dotnet restore TodoApi/TodoApi.csproj
+COPY TodoApi.csproj .
+RUN dotnet restore TodoApi.csproj
 
 COPY . .
-RUN dotnet publish TodoApi/TodoApi.csproj -c Release -o /app/publish --no-restore
+RUN dotnet publish TodoApi.csproj -c Release -o /app/publish --no-restore
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime

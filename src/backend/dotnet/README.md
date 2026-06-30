@@ -18,7 +18,9 @@ A RESTful API for managing todo items built with **ASP.NET Core**, **Entity Fram
 
 ```
 src/backend/dotnet/
-├── TodoApi.slnx
+├── TodoApp.slnx
+├── TodoApi/
+│   ├── Dockerfile                          # API container image
 ├── TodoApi/
 │   ├── Program.cs                          # App bootstrap & DI registration
 │   ├── appsettings.json                    # Connection string & logging
@@ -30,15 +32,31 @@ src/backend/dotnet/
 │   ├── DTOs/
 │   │   └── TodoItemDtos.cs                 # Request / response models
 │   ├── Models/
-│   │   └── TodoItem.cs                     # EF Core entity
+│   │   ├── TodoItem.cs                     # EF Core entity
+│   │   └── EmailLog.cs                     # EF Core entity
 │   ├── Repositories/
 │   │   ├── IRepository.cs                  # Generic IRepository<T>
 │   │   ├── BaseRepository.cs               # Generic BaseRepository<T>
 │   │   ├── ITodoItemRepository.cs
-│   │   └── TodoItemRepository.cs
+│   │   ├── TodoItemRepository.cs
+│   │   ├── IEmailLogRepository.cs
+│   │   └── EmailLogRepository.cs
 │   └── Services/
 │       ├── ITodoItemService.cs
 │       └── TodoItemService.cs
+├── TodoWorker/
+│   ├── Dockerfile                          # Worker container image
+│   ├── Program.cs                          # Worker bootstrap & DI registration
+│   ├── appsettings.json                    # Connection string, SMTP & worker settings
+│   ├── Data/
+│   │   └── WorkerDbContext.cs              # EF Core DbContext (read-only schema, no migrations)
+│   ├── Models/
+│   │   ├── TodoItem.cs                     # Local POCO matching TodoItems table
+│   │   └── EmailLog.cs                     # Local POCO matching EmailLogs table
+│   └── Services/
+│       ├── IEmailService.cs
+│       ├── SmtpEmailService.cs             # SMTP delivery via System.Net.Mail
+│       └── WorkerService.cs               # BackgroundService — periodic email job
 └── TodoApi.Tests/
     ├── Controllers/
     │   └── TodoItemsControllerTests.cs     # Controller unit tests
@@ -77,7 +95,16 @@ The API starts on `https://localhost:7xxx` / `http://localhost:5xxx`.
 Scalar API reference UI: `https://localhost:7xxx/scalar/v1`  
 OpenAPI JSON: `https://localhost:7xxx/openapi/v1.json`
 
-### 4. Run unit tests
+### 4. Run the background worker
+
+```bash
+cd ../TodoWorker
+dotnet run
+```
+
+The worker connects to the same `todo.db` database. Configure SMTP and recipient settings in `appsettings.json` before running.
+
+### 5. Run unit tests
 
 ```bash
 # Run all tests
@@ -93,6 +120,44 @@ dotnet test --collect:"XPlat Code Coverage"
 ## API endpoints
 
 See the [shared API contract](../README.md#api-endpoints) in the backend README.
+
+## Background worker
+
+`TodoWorker` is a separate .NET Worker Service that runs as an independent process (and container). It shares the same SQLite database as the API.
+
+### What it does
+
+On startup and then on a configurable interval (default: every 5 minutes), the worker:
+
+1. Queries the `TodoItems` table for all incomplete items (`IsCompleted = false`).
+2. If none are found, it skips and waits for the next tick.
+3. Otherwise it composes a summary email and inserts an `email_logs` row with `status = pending`.
+4. Sends the email via SMTP.
+5. Updates the row to `status = sent` (with `sent_at`) on success, or `status = failed` (with `error_message`) on failure.
+
+### Configuration (`appsettings.json`)
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=todo.db"
+  },
+  "Smtp": {
+    "Host": "localhost",
+    "Port": 25,
+    "EnableSsl": false,
+    "From": "noreply@todo.app",
+    "Username": "",
+    "Password": ""
+  },
+  "Worker": {
+    "IntervalMinutes": 5,
+    "RecipientEmail": "admin@todo.app"
+  }
+}
+```
+
+All values can be overridden with environment variables (e.g. `Smtp__Host`, `Worker__RecipientEmail`).
 
 ## EF Core migration commands
 
@@ -119,14 +184,21 @@ Update `ConnectionStrings:DefaultConnection` in `appsettings.json` and swap the 
 
 ## Docker
 
-### Build the image
+### Build the API image
 
 ```bash
-# Run from src/backend/dotnet/
+# Run from src/backend/dotnet/TodoApi/
 docker build -t todo-api-dotnet .
 ```
 
-### Run the container
+### Build the Worker image
+
+```bash
+# Run from src/backend/dotnet/TodoWorker/
+docker build -t todo-worker-dotnet .
+```
+
+### Run the API container
 
 ```bash
 docker run -d -p 8080:8080 --name todo-api-dotnet todo-api-dotnet
@@ -136,6 +208,27 @@ The API is available at <http://localhost:8080>.
 Scalar API reference UI: <http://localhost:8080/scalar/v1>  
 OpenAPI JSON: <http://localhost:8080/openapi/v1.json>
 
+### Run the Worker container
+
+The worker must share the same database file as the API. Use a named volume and set SMTP settings via environment variables:
+
+```bash
+# Create a shared volume (once)
+docker volume create todo-dotnet-data
+
+# Start the API with the shared volume
+docker run -d -p 8080:8080 -v todo-dotnet-data:/app --name todo-api-dotnet todo-api-dotnet
+
+# Start the worker with the same volume and SMTP config
+docker run -d \
+  -v todo-dotnet-data:/app \
+  -e Smtp__Host=mailhog \
+  -e Smtp__Port=1025 \
+  -e Worker__RecipientEmail=you@example.com \
+  --name todo-worker-dotnet \
+  todo-worker-dotnet
+```
+
 ### Persist the SQLite database
 
 Mount a volume so the database survives container restarts:
@@ -144,9 +237,9 @@ Mount a volume so the database survives container restarts:
 docker run -d -p 8080:8080 -v todo-dotnet-data:/app --name todo-api-dotnet todo-api-dotnet
 ```
 
-### Stop and remove the container
+### Stop and remove the containers
 
 ```bash
-docker stop todo-api-dotnet
-docker rm todo-api-dotnet
+docker stop todo-api-dotnet todo-worker-dotnet
+docker rm todo-api-dotnet todo-worker-dotnet
 ```
