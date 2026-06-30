@@ -19,12 +19,16 @@ A RESTful API for managing todo items built with **Laravel 12**, **Eloquent ORM*
 | Swagger / OpenAPI | **L5-Swagger** (`darkaonline/l5-swagger`) |
 | Global exception handler / ProblemDetails | `app/Exceptions/Handler.php` |
 | Unit tests (xUnit / NUnit) | **PHPUnit 11** + **Mockery** |
+| Background / hosted service | **Artisan command** + **Laravel Scheduler** (`schedule:work`) |
 
 ## Project structure
 
 ```
 src/backend/php/
 ├── app/
+│   ├── Console/
+│   │   └── Commands/
+│   │       └── ProcessIncompleteRemindersCommand.php  # Background job (Artisan command)
 │   ├── Exceptions/
 │   │   └── Handler.php                        # Global error handler (ProblemDetails equivalent)
 │   ├── Http/
@@ -36,7 +40,8 @@ src/backend/php/
 │   │   └── Resources/
 │   │       └── TodoItemResource.php             # Response DTO (AutoMapper profile)
 │   ├── Models/
-│   │   └── TodoItem.php                         # Eloquent entity
+│   │   ├── TodoItem.php                         # Eloquent entity
+│   │   └── EmailLog.php                         # Eloquent entity for email audit trail
 │   ├── Providers/
 │   │   └── AppServiceProvider.php               # IoC bindings (Program.cs AddScoped)
 │   ├── Repositories/
@@ -53,7 +58,8 @@ src/backend/php/
 │   ├── factories/
 │   │   └── TodoItemFactory.php                  # Model factory for tests
 │   └── migrations/
-│       └── 2024_01_01_000000_create_todo_items_table.php
+│       ├── 2024_01_01_000000_create_todo_items_table.php
+│       └── 2024_01_02_000000_create_email_logs_table.php
 ├── routes/
 │   └── api.php                                  # Route definitions
 ├── tests/
@@ -68,6 +74,8 @@ src/backend/php/
 │       └── TodoItemApiTest.php                  # HTTP integration tests
 ├── phpunit.xml
 ├── composer.json
+├── Dockerfile            # API container image
+├── Dockerfile.worker     # Background worker container image
 └── .env.example
 ```
 
@@ -256,4 +264,57 @@ docker run -d -p 8080:8080 \
 ```bash
 docker stop todo-api-php
 docker rm todo-api-php
+```
+
+## Background worker
+
+A separate container runs the **incomplete-todo reminder** job. It uses the Laravel scheduler (`schedule:work`) to fire the `app:process-incomplete-reminders` Artisan command **every hour**.
+
+### What the worker does
+
+1. Queries all incomplete todo items (`is_completed = false`).
+2. Builds a plain-text email body listing each item.
+3. Inserts an `email_logs` record with `status = pending`.
+4. Sends the email via SMTP (`MAIL_*` env variables).
+5. Updates the log to `status = sent` (and sets `sent_at`) on success, or `status = failed` (and sets `error_message`) on failure.
+6. If there are no incomplete items the run is a no-op (no email sent, no log written).
+
+### Build the worker image
+
+```bash
+# Run from src/backend/php/
+docker build -f Dockerfile.worker -t todo-worker-php .
+```
+
+### Run the worker container
+
+The worker must share the same database as the API. When using SQLite, mount the same volume:
+
+```bash
+docker run -d \
+  -e APP_KEY=base64:$(openssl rand -base64 32) \
+  -e MAIL_MAILER=smtp \
+  -e MAIL_HOST=smtp.example.com \
+  -e MAIL_PORT=587 \
+  -e MAIL_USERNAME=user@example.com \
+  -e MAIL_PASSWORD=secret \
+  -e MAIL_ENCRYPTION=tls \
+  -e MAIL_FROM_ADDRESS=noreply@example.com \
+  -e MAIL_REMINDER_RECIPIENT=admin@example.com \
+  -v todo-php-data:/var/www/html/database \
+  --name todo-worker-php todo-worker-php
+```
+
+### Run the job immediately (one-shot)
+
+```bash
+php artisan app:process-incomplete-reminders
+```
+
+### View email logs
+
+Use any SQL client (or `php artisan tinker`) to inspect the `email_logs` table:
+
+```php
+App\Models\EmailLog::latest('created_at')->get();
 ```
