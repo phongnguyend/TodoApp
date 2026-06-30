@@ -62,11 +62,21 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
+      - name: Build API Docker image
         uses: docker/build-push-action@v6
         with:
           context: src/backend/php
           push: false
           tags: todo-api-php:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build worker Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: src/backend/php
+          file: src/backend/php/Dockerfile.worker
+          push: false
+          tags: todo-worker-php:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
