@@ -50,11 +50,22 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
+      - name: Build API Docker image
         uses: docker/build-push-action@v6
         with:
-          context: src/backend/dotnet
+          context: src/backend/dotnet/TodoApi
+          file: src/backend/dotnet/TodoApi/Dockerfile
           push: false
           tags: todo-api-dotnet:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Worker Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: src/backend/dotnet/TodoWorker
+          file: src/backend/dotnet/TodoWorker/Dockerfile
+          push: false
+          tags: todo-worker-dotnet:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
