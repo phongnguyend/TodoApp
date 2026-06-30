@@ -3,9 +3,9 @@ from abc import ABC, abstractmethod
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models.todo_item import TodoItem
-from app.repositories.todo_item_repository import ITodoItemRepository, TodoItemRepository
-from app.schemas.todo_item import (
+from shared.models.todo_item import TodoItem
+from api.repositories.todo_item_repository import ITodoItemRepository, TodoItemRepository
+from api.schemas.todo_item import (
     CreateTodoItemRequest,
     PaginatedResponse,
     TodoItemResponse,

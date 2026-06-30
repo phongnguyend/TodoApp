@@ -3,7 +3,7 @@ from typing import Generic, TypeVar
 
 from sqlalchemy.orm import Session
 
-from app.database import Base
+from shared.database import Base
 
 ModelT = TypeVar("ModelT", bound=Base)
 

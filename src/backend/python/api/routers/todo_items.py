@@ -3,14 +3,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.schemas.todo_item import (
+from shared.database import get_db
+from api.schemas.todo_item import (
     CreateTodoItemRequest,
     PaginatedResponse,
     TodoItemResponse,
     UpdateTodoItemRequest,
 )
-from app.services.todo_item_service import ITodoItemService, get_todo_service
+from api.services.todo_item_service import ITodoItemService, get_todo_service
 
 router = APIRouter(prefix="/api/todo-items", tags=["Todo Items"])
 

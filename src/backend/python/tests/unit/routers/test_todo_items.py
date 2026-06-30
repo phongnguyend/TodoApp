@@ -5,10 +5,10 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from app.database import get_db
-from app.main import app
-from app.routers import todo_items
-from app.schemas.todo_item import PaginatedResponse, TodoItemResponse
+from shared.database import get_db
+from api.main import app
+from api.routers import todo_items
+from api.schemas.todo_item import PaginatedResponse, TodoItemResponse
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

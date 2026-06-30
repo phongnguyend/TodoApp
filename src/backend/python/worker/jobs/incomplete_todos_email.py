@@ -1,6 +1,6 @@
 """
-incomplete_todos_email.py
-~~~~~~~~~~~~~~~~~~~~~~~~~
+jobs/incomplete_todos_email.py
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Job: query all incomplete todo items, build an email digest, persist an
 EmailLog record, then send it via SMTP.
 
@@ -21,10 +21,10 @@ from email.mime.text import MIMEText
 
 from sqlalchemy.orm import Session
 
-from app.config import settings
-from app.database import SessionLocal
-from app.models.email_log import EmailLog
-from app.models.todo_item import TodoItem
+from shared.config import settings
+from shared.database import SessionLocal
+from shared.models.email_log import EmailLog
+from shared.models.todo_item import TodoItem
 
 logger = logging.getLogger(__name__)
 

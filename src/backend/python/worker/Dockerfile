@@ -18,4 +18,4 @@ ENV PYTHONUNBUFFERED=1
 
 # The worker shares the same database as the API container.
 # Mount the same volume / point DATABASE_URL at the shared DB.
-CMD ["sh", "-c", "alembic upgrade head && python -m app.worker.main"]
+CMD ["sh", "-c", "alembic upgrade head && python -m TodoWorker.main"]

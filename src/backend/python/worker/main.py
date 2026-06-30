@@ -1,6 +1,6 @@
 """
-worker/main.py
-~~~~~~~~~~~~~~
+main.py
+~~~~~~~
 Entry-point for the background worker process.
 
 Behaviour
@@ -16,8 +16,8 @@ import sys
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-from app.config import settings
-from app.worker.jobs.incomplete_todos_email import send_incomplete_todos_email
+from shared.config import settings
+from worker.jobs.incomplete_todos_email import send_incomplete_todos_email
 
 logging.basicConfig(
     level=logging.INFO,

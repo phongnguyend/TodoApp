@@ -2,8 +2,8 @@ from abc import abstractmethod
 
 from sqlalchemy.orm import Session
 
-from app.models.todo_item import TodoItem
-from app.repositories.base_repository import BaseRepository, IRepository
+from shared.models.todo_item import TodoItem
+from api.repositories.base_repository import BaseRepository, IRepository
 
 
 class ITodoItemRepository(IRepository[TodoItem]):

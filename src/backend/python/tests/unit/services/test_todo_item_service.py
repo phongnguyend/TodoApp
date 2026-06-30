@@ -4,12 +4,12 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi import HTTPException
 
-from app.models.todo_item import TodoItem
-from app.schemas.todo_item import (
+from shared.models.todo_item import TodoItem
+from api.schemas.todo_item import (
     CreateTodoItemRequest,
     UpdateTodoItemRequest,
 )
-from app.services.todo_item_service import TodoItemService
+from api.services.todo_item_service import TodoItemService
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
