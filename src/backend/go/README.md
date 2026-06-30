@@ -25,8 +25,10 @@ A RESTful API for managing todo items built with **Gin**, **GORM**, and Go — t
 ```
 src/backend/go/
 ├── cmd/
-│   └── api/
-│       └── main.go                        # Entry point (Program.cs)
+│   ├── api/
+│   │   └── main.go                        # API entry point (Program.cs)
+│   └── worker/
+│       └── main.go                        # Background worker entry point
 ├── internal/
 │   ├── config/
 │   │   ├── config.go                      # Settings (appsettings.json)
@@ -34,20 +36,27 @@ src/backend/go/
 │   ├── database/
 │   │   └── database.go                    # GORM setup (DbContext)
 │   ├── models/
-│   │   └── todo_item.go                   # GORM entity
+│   │   ├── todo_item.go                   # GORM entity — TodoItem
+│   │   └── email_log.go                   # GORM entity — EmailLog
 │   ├── dto/
 │   │   └── todo_item.go                   # Request/response DTOs
 │   ├── repository/
-│   │   ├── repository.go                  # Repository interface
-│   │   └── todo_item_repository.go        # GORM implementation
+│   │   ├── repository.go                  # Repository interfaces
+│   │   ├── todo_item_repository.go        # GORM implementation — TodoItem
+│   │   └── email_log_repository.go        # GORM implementation — EmailLog
 │   ├── service/
 │   │   ├── todo_item_service.go           # Business logic
 │   │   └── todo_item_service_test.go      # Service unit tests
 │   ├── handler/
 │   │   ├── todo_item_handler.go           # HTTP handlers (Controller)
 │   │   └── todo_item_handler_test.go      # Handler unit tests
-│   └── router/
-│       └── router.go                      # Route registration
+│   ├── router/
+│   │   └── router.go                      # Route registration
+│   └── worker/
+│       └── job/
+│           └── incomplete_todos_email.go  # Email digest job
+├── Dockerfile                             # API container image
+├── Dockerfile.worker                      # Background worker container image
 ├── go.mod
 ├── .env.example
 └── README.md
@@ -161,14 +170,20 @@ go get gorm.io/driver/mysql
 
 ## Docker
 
-### Build the image
+### Build the API image
 
 ```bash
 # Run from src/backend/go/
 docker build -t todo-api-go .
 ```
 
-### Run the container
+### Build the worker image
+
+```bash
+docker build -f Dockerfile.worker -t todo-worker-go .
+```
+
+### Run the containers
 
 ```bash
 docker run -d -p 8080:8080 --name todo-api-go todo-api-go
@@ -179,15 +194,63 @@ Swagger UI: <http://localhost:8080/swagger/index.html>
 
 ### Persist the SQLite database
 
-Mount a volume so the database survives container restarts:
+Both the API and the worker need access to the same database file.
+Mount a shared named volume so the data survives container restarts:
 
 ```bash
+# API
 docker run -d -p 8080:8080 -v todo-go-data:/app --name todo-api-go todo-api-go
+
+# Worker (shares the same volume)
+docker run -d \
+  -v todo-go-data:/app \
+  -e SMTP_HOST=smtp.example.com \
+  -e SMTP_PORT=587 \
+  -e SMTP_USERNAME=user@example.com \
+  -e SMTP_PASSWORD=secret \
+  -e EMAIL_SENDER=noreply@example.com \
+  -e EMAIL_RECIPIENT=admin@example.com \
+  -e WORKER_INTERVAL_MINUTES=60 \
+  --name todo-worker-go todo-worker-go
 ```
 
-### Stop and remove the container
+### Stop and remove the containers
 
 ```bash
-docker stop todo-api-go
-docker rm todo-api-go
+docker stop todo-api-go todo-worker-go
+docker rm  todo-api-go todo-worker-go
+```
+
+## Background worker
+
+The worker runs as a **separate process / container** (`cmd/worker/main.go`) and shares the same SQLite database as the API via a mounted volume.
+
+### What it does
+
+1. Queries all incomplete todo items (`is_completed = false`).
+2. Builds a plain-text email digest listing every pending item.
+3. Inserts an `email_logs` row with `status = 'pending'`.
+4. Sends the email via SMTP (STARTTLS or plain depending on `SMTP_USE_TLS`).
+5. Updates the `email_logs` row to `status = 'sent'` on success, or `status = 'failed'` with `error_message` on failure.
+
+The job runs **immediately on startup** and then on the configured interval.
+
+### Worker configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `WORKER_INTERVAL_MINUTES` | `60` | How often to run the digest job |
+| `SMTP_HOST` | `localhost` | SMTP server hostname |
+| `SMTP_PORT` | `587` | SMTP server port |
+| `SMTP_USERNAME` | _(empty)_ | SMTP login (omit for anonymous) |
+| `SMTP_PASSWORD` | _(empty)_ | SMTP password |
+| `SMTP_USE_TLS` | `true` | `true` = STARTTLS (port 587); `false` = plain/SSL |
+| `EMAIL_SENDER` | `noreply@example.com` | From address |
+| `EMAIL_RECIPIENT` | `admin@example.com` | Destination address |
+
+### Run the worker locally
+
+```bash
+# Uses the same .env as the API
+go run ./cmd/worker
 ```
