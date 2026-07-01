@@ -2,11 +2,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY TodoWorker.csproj .
-RUN dotnet restore TodoWorker.csproj
+COPY TodoWorker/TodoWorker.csproj TodoWorker/
+COPY TodoShared/TodoShared.csproj TodoShared/
+RUN dotnet restore TodoWorker/TodoWorker.csproj
 
-COPY . .
-RUN dotnet publish TodoWorker.csproj -c Release -o /app/publish --no-restore
+COPY TodoWorker/ TodoWorker/
+COPY TodoShared/ TodoShared/
+RUN dotnet publish TodoWorker/TodoWorker.csproj -c Release -o /app/publish --no-restore
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime

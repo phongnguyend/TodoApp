@@ -66,6 +66,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: src/backend/php
+          file: src/backend/php/build/api/Dockerfile
           push: false
           tags: todo-api-php:latest
           cache-from: type=gha
@@ -75,7 +76,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: src/backend/php
-          file: src/backend/php/Dockerfile.worker
+          file: src/backend/php/build/worker/Dockerfile
           push: false
           tags: todo-worker-php:latest
           cache-from: type=gha

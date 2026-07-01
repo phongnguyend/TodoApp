@@ -1,4 +1,4 @@
-namespace TodoWorker.Models;
+namespace TodoShared.Models;
 
 public class EmailLog
 {

@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="TodoApi.Tests/TodoApi.Tests.csproj" />
   <Project Path="TodoApi/TodoApi.csproj" />
+  <Project Path="TodoShared/TodoShared.csproj" />
   <Project Path="TodoWorker/TodoWorker.csproj" />
 </Solution>

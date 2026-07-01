@@ -53,7 +53,7 @@ jobs:
       - name: Build API Docker image
         uses: docker/build-push-action@v6
         with:
-          context: src/backend/dotnet/TodoApi
+          context: src/backend/dotnet
           file: src/backend/dotnet/TodoApi/Dockerfile
           push: false
           tags: todo-api-dotnet:latest
@@ -63,7 +63,7 @@ jobs:
       - name: Build Worker Docker image
         uses: docker/build-push-action@v6
         with:
-          context: src/backend/dotnet/TodoWorker
+          context: src/backend/dotnet
           file: src/backend/dotnet/TodoWorker/Dockerfile
           push: false
           tags: todo-worker-dotnet:latest
