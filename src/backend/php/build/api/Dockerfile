@@ -25,7 +25,7 @@ RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions sto
     && chmod -R 775 storage bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
-COPY docker/nginx.conf /etc/nginx/http.d/default.conf
+COPY build/api/nginx.conf /etc/nginx/http.d/default.conf
 
 ENV APP_ENV=production
 ENV APP_DEBUG=false

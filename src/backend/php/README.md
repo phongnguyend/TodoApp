@@ -74,8 +74,11 @@ src/backend/php/
 │       └── TodoItemApiTest.php                  # HTTP integration tests
 ├── phpunit.xml
 ├── composer.json
-├── Dockerfile            # API container image
-├── Dockerfile.worker     # Background worker container image
+├── build/
+│   ├── api/
+│   │   └── Dockerfile            # API container image
+│   └── worker/
+│       └── Dockerfile            # Background worker container image
 └── .env.example
 ```
 
@@ -234,7 +237,7 @@ The test suite uses **PHPUnit 11** with an in-memory SQLite database — no extr
 
 ```bash
 # Run from src/backend/php/
-docker build -t todo-api-php .
+docker build -f build/api/Dockerfile -t todo-api-php .
 ```
 
 ### Run the container
@@ -283,7 +286,7 @@ A separate container runs the **incomplete-todo reminder** job. It uses the Lara
 
 ```bash
 # Run from src/backend/php/
-docker build -f Dockerfile.worker -t todo-worker-php .
+docker build -f build/worker/Dockerfile -t todo-worker-php .
 ```
 
 ### Run the worker container
