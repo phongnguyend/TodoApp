@@ -35,11 +35,18 @@ jobs:
       - name: Build with Maven
         run: mvn package -DskipTests -B
 
-      - name: Upload JAR artifact
+      - name: Upload API JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: todo-api-java
-          path: src/backend/java/target/*.jar
+          path: src/backend/java/todo-api/target/*.jar
+          retention-days: 1
+
+      - name: Upload Worker JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: todo-worker-java
+          path: src/backend/java/todo-worker/target/*.jar
           retention-days: 1
 
   docker:
@@ -57,6 +64,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: src/backend/java
+          file: src/backend/java/todo-api/Dockerfile
           push: false
           tags: todo-api-java:latest
           cache-from: type=gha
@@ -77,7 +85,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: src/backend/java
-          file: src/backend/java/Dockerfile.worker
+          file: src/backend/java/todo-worker/Dockerfile
           push: false
           tags: todo-worker-java:latest
           cache-from: type=gha

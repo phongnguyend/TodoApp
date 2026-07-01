@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: todo-worker
+
+  # Disable the embedded web server — this process has no HTTP interface
+  # (analogous to Microsoft.Extensions.Hosting.Worker in .NET)
+  main:
+    web-application-type: none
+
+  # ── DataSource ────────────────────────────────────────────────────────────────
+  datasource:
+    url: jdbc:h2:file:./todo;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  # ── JPA / Hibernate ──────────────────────────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  # ── Flyway ────────────────────────────────────────────────────────────────────
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  # ── JavaMail / SMTP ──────────────────────────────────────────────────────────
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:false}
+          starttls:
+            enable: ${SMTP_STARTTLS:false}
+
+# ── Worker settings ──────────────────────────────────────────────────────────
+worker:
+  interval-minutes: ${WORKER_INTERVAL_MINUTES:60}
+  email:
+    recipient: ${EMAIL_RECIPIENT:admin@example.com}
+    sender: ${EMAIL_SENDER:noreply@example.com}
+
+---
+# PostgreSQL profile — activate with: --spring.profiles.active=postgres
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: jdbc:postgresql://localhost:5432/todo_db
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect

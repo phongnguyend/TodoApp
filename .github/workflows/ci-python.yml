@@ -33,13 +33,13 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Check syntax
-        run: python -m compileall app/
+        run: python -m compileall api/ worker/ shared/
 
       - name: Verify app imports
-        run: python -c "from app.main import app; print('App loaded successfully')"
+        run: python -c "from api.main import app; print('App loaded successfully')"
 
       - name: Verify worker imports
-        run: python -c "from app.worker.main import main; print('Worker loaded successfully')"
+        run: python -c "from worker.main import main; print('Worker loaded successfully')"
 
       - name: Run unit tests
         run: python -m pytest tests/ -v
@@ -59,7 +59,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: src/backend/python
-          file: src/backend/python/Dockerfile
+          file: src/backend/python/api/Dockerfile
           push: false
           tags: todo-api-python:latest
           cache-from: type=gha
@@ -80,7 +80,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: src/backend/python
-          file: src/backend/python/Dockerfile.worker
+          file: src/backend/python/worker/Dockerfile
           push: false
           tags: todo-worker-python:latest
           cache-from: type=gha

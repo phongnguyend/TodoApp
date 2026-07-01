@@ -23,7 +23,7 @@ A RESTful API for managing todo items built with **FastAPI**, **SQLAlchemy**, an
 
 ```
 src/backend/python/
-├── app/
+├── api/                           # API project (analogous to dotnet/TodoApi)
 │   ├── main.py                        # App entry point (Program.cs)
 │   ├── config.py                      # Settings (appsettings.json)
 │   ├── database.py                    # DB session + Base (DbContext)
@@ -39,10 +39,17 @@ src/backend/python/
 │   │   └── todo_item_service.py       # ITodoItemService + impl
 │   ├── routers/
 │   │   └── todo_items.py              # TodoItemsController equivalent
-│   └── worker/                        # Background worker process
-│       ├── main.py                    # Worker entry-point (scheduler)
-│       └── jobs/
-│           └── incomplete_todos_email.py  # Digest email job
+│   └── Dockerfile                     # API container
+├── worker/                        # Worker project (analogous to dotnet/TodoWorker)
+│   ├── main.py                        # Worker entry-point (scheduler)
+│   ├── config.py                      # Settings (appsettings.json)
+│   ├── database.py                    # DB session + Base (DbContext)
+│   ├── models/
+│   │   ├── todo_item.py               # SQLAlchemy entity
+│   │   └── email_log.py               # Email audit-log entity
+│   ├── jobs/
+│   │   └── incomplete_todos_email.py  # Digest email job
+│   └── Dockerfile                     # Background worker container
 ├── tests/
 │   └── unit/
 │       ├── services/
@@ -55,8 +62,6 @@ src/backend/python/
 │   └── versions/
 │       └── 20260630_0000_aabbccdd1122_initial_create.py
 ├── alembic.ini
-├── Dockerfile                         # API container
-├── Dockerfile.worker                  # Background worker container
 ├── pytest.ini
 ├── requirements.txt
 └── .env.example
@@ -114,7 +119,7 @@ python -m pytest tests/unit/routers/ -v
 ### 6. Start the API server
 
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 The Swagger UI is available at <http://localhost:8000/swagger>.
@@ -174,7 +179,7 @@ WORKER_INTERVAL_MINUTES=60 # how often the digest is sent
 
 ```bash
 # Make sure the .env file is configured and migrations are applied first
-python -m app.worker.main
+python -m worker.main
 ```
 
 The worker runs the job immediately on startup, then repeats every `WORKER_INTERVAL_MINUTES` minutes.
@@ -185,13 +190,13 @@ The worker runs the job immediately on startup, then repeats every `WORKER_INTER
 
 ```bash
 # Run from src/backend/python/
-docker build -t todo-api-python .
+docker build -f api/Dockerfile -t todo-api-python .
 ```
 
 ### Build the worker image
 
 ```bash
-docker build -f Dockerfile.worker -t todo-worker-python .
+docker build -f worker/Dockerfile -t todo-worker-python .
 ```
 
 ### Run the API container

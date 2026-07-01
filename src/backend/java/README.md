@@ -22,55 +22,63 @@ A RESTful API for managing todo items built with **Spring Boot**, **Spring Data 
 
 ## Project structure
 
+The project follows a multi-module Maven layout (analogous to a .NET solution with separate `TodoApi` and `TodoWorker` projects sharing a common library):
+
 ```
 src/backend/java/
-├── Dockerfile                                     # API container image
-├── Dockerfile.worker                              # Worker container image
-├── pom.xml                                        # Maven build (like .csproj)
-└── src/
-    ├── main/
-    │   ├── java/com/example/todo/
-    │   │   ├── TodoApplication.java               # Entry point (@SpringBootApplication)
-    │   │   ├── config/
-    │   │   │   └── OpenApiConfig.java             # Swagger config
-    │   │   ├── controller/
-    │   │   │   └── TodoItemController.java        # @RestController
-    │   │   ├── dto/
-    │   │   │   ├── CreateTodoItemRequest.java     # record + @Valid
-    │   │   │   ├── UpdateTodoItemRequest.java     # record + @Valid
-    │   │   │   ├── TodoItemResponse.java          # record with factory method
-    │   │   │   └── PaginatedResponse.java         # generic record
-    │   │   ├── entity/
-    │   │   │   ├── TodoItem.java                  # @Entity (JPA model)
-    │   │   │   └── EmailLog.java                  # @Entity — email audit log
-    │   │   ├── exception/
-    │   │   │   └── GlobalExceptionHandler.java   # @RestControllerAdvice
-    │   │   ├── repository/
-    │   │   │   ├── TodoItemRepository.java        # JpaRepository<TodoItem, Long>
-    │   │   │   └── EmailLogRepository.java        # JpaRepository<EmailLog, Long>
-    │   │   ├── service/
-    │   │   │   ├── TodoItemService.java           # interface
-    │   │   │   └── TodoItemServiceImpl.java       # @Service implementation
-    │   │   └── worker/                            # Background worker (worker profile only)
-    │   │       ├── IncompleteTodosEmailJob.java   # Job: query → build email → persist → send
-    │   │       └── WorkerRunner.java              # ApplicationRunner: scheduling loop
-    │   └── resources/
-    │       ├── application.yml                    # API config (H2 + Swagger)
-    │       ├── application-worker.yml             # Worker config (no web server, SMTP)
-    │       └── db/migration/
-    │           ├── V1__create_todo_items.sql      # Flyway migration
-    │           └── V2__create_email_logs.sql      # Flyway migration
-    └── test/
-        ├── java/com/example/todo/
-        │   ├── TodoApplicationTests.java              # context load smoke test
-        │   ├── controller/
-        │   │   └── TodoItemControllerTest.java        # @WebMvcTest — HTTP layer
-        │   ├── repository/
-        │   │   └── TodoItemRepositoryTest.java        # @DataJpaTest — JPA slice
-        │   └── service/
-        │       └── TodoItemServiceImplTest.java       # Mockito — pure unit tests
-        └── resources/
-            └── application.yml                        # test config (H2 in-memory)
+├── pom.xml                                            # Parent POM (like a .NET solution file)
+├── todo-shared/                                       # Shared library (analogous to a shared .csproj)
+│   ├── pom.xml
+│   └── src/
+│       ├── main/
+│       │   ├── java/com/example/todo/
+│       │   │   ├── dto/
+│       │   │   │   ├── CreateTodoItemRequest.java     # record + @Valid
+│       │   │   │   ├── UpdateTodoItemRequest.java     # record + @Valid
+│       │   │   │   ├── TodoItemResponse.java          # record with factory method
+│       │   │   │   └── PaginatedResponse.java         # generic record
+│       │   │   ├── entity/
+│       │   │   │   ├── TodoItem.java                  # @Entity (JPA model)
+│       │   │   │   └── EmailLog.java                  # @Entity — email audit log
+│       │   │   ├── repository/
+│       │   │   │   ├── TodoItemRepository.java        # JpaRepository<TodoItem, Long>
+│       │   │   │   └── EmailLogRepository.java        # JpaRepository<EmailLog, Long>
+│       │   │   └── service/
+│       │   │       ├── TodoItemService.java           # interface
+│       │   │       └── TodoItemServiceImpl.java       # @Service implementation
+│       │   └── resources/db/migration/
+│       │       ├── V1__create_todo_items.sql          # Flyway migration
+│       │       └── V2__create_email_logs.sql          # Flyway migration
+│       └── test/
+│           ├── java/com/example/todo/
+│           │   ├── repository/TodoItemRepositoryTest.java  # @DataJpaTest — JPA slice
+│           │   └── service/TodoItemServiceImplTest.java    # Mockito — pure unit tests
+│           └── resources/application.yml                   # test config (H2 in-memory)
+├── todo-api/                                          # REST API (analogous to TodoApi.csproj)
+│   ├── pom.xml
+│   ├── Dockerfile
+│   └── src/
+│       ├── main/
+│       │   ├── java/com/example/todo/api/
+│       │   │   ├── TodoApiApplication.java            # Entry point (@SpringBootApplication)
+│       │   │   ├── config/OpenApiConfig.java          # Swagger config
+│       │   │   ├── controller/TodoItemController.java # @RestController
+│       │   │   └── exception/GlobalExceptionHandler.java  # @RestControllerAdvice
+│       │   └── resources/application.yml             # API config (H2 + Swagger)
+│       └── test/
+│           ├── java/com/example/todo/api/
+│           │   ├── TodoApiApplicationTests.java       # context load smoke test
+│           │   └── controller/TodoItemControllerTest.java  # @WebMvcTest — HTTP layer
+│           └── resources/application.yml             # test config (H2 in-memory)
+└── todo-worker/                                       # Background worker (analogous to TodoWorker.csproj)
+    ├── pom.xml
+    ├── Dockerfile
+    └── src/main/
+        ├── java/com/example/todo/worker/
+        │   ├── TodoWorkerApplication.java             # Entry point (no web server)
+        │   ├── IncompleteTodosEmailJob.java           # Job: query → build email → persist → send
+        │   └── WorkerRunner.java                      # ApplicationRunner: scheduling loop
+        └── resources/application.yml                 # Worker config (no web server, SMTP)
 ```
 
 ## Getting started
@@ -90,26 +98,28 @@ mvn clean package -DskipTests
 ### 2. Run unit tests
 
 ```bash
-# Run all tests
+# Run all tests across all modules
 mvn test
 
-# Run a specific test class
-mvn test -Dtest=TodoItemServiceImplTest
+# Run tests for a specific module
+mvn test -pl todo-shared
+mvn test -pl todo-api
 
-# Run tests matching a pattern
-mvn test -Dtest="*ServiceImpl*,*Controller*"
+# Run a specific test class
+mvn test -pl todo-api -Dtest=TodoItemControllerTest
+mvn test -pl todo-shared -Dtest=TodoItemServiceImplTest
 ```
 
-### 3. Run the application
+### 3. Run the API
 
 ```bash
-mvn spring-boot:run
+mvn spring-boot:run -pl todo-api
 ```
 
 Or run the packaged JAR:
 
 ```bash
-java -jar target/todo-api-1.0.0.jar
+java -jar todo-api/target/todo-api-1.0.0.jar
 ```
 
 The application starts on <http://localhost:8080>.  
@@ -134,10 +144,7 @@ The worker is a separate process (separate container) that periodically sends an
 4. Sends the email via SMTP (`JavaMailSender`).
 5. Updates the `email_logs` row to `status = 'sent'` (or `'failed'` + `error_message`).
 
-The worker is activated via the `worker` Spring profile (`--spring.profiles.active=worker`), which:
-- Disables the embedded web server (`spring.main.web-application-type=none`).
-- Loads `application-worker.yml` for SMTP and scheduling configuration.
-- Activates `WorkerRunner` and `IncompleteTodosEmailJob` beans.
+The worker runs as a standalone Spring Boot application (`todo-worker` module) with `spring.main.web-application-type=none` in its `application.yml` — no web server is started.
 
 ### Environment variables
 
@@ -156,14 +163,13 @@ The worker is activated via the `worker` Spring profile (`--spring.profiles.acti
 ### Run the worker locally
 
 ```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=worker
+mvn spring-boot:run -pl todo-worker
 ```
 
 ### Run with custom interval and SMTP
 
 ```bash
-java -jar target/todo-api-1.0.0.jar \
-  --spring.profiles.active=worker \
+java -jar todo-worker/target/todo-worker-1.0.0.jar \
   --WORKER_INTERVAL_MINUTES=30 \
   --SMTP_HOST=smtp.example.com \
   --SMTP_PORT=587 \
@@ -178,19 +184,19 @@ java -jar target/todo-api-1.0.0.jar \
 
 ### PostgreSQL
 
-1. Uncomment the PostgreSQL driver in `pom.xml`.
+1. Uncomment the PostgreSQL driver in `todo-shared/pom.xml`.
 2. Start the app with the `postgres` profile:
 
 ```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=postgres \
+mvn spring-boot:run -pl todo-api -Dspring-boot.run.profiles=postgres \
   -Dspring-boot.run.arguments="--DB_USERNAME=myuser --DB_PASSWORD=mypass"
 ```
 
 ### MySQL
 
-1. Uncomment the MySQL driver in `pom.xml`.
+1. Uncomment the MySQL driver in `todo-shared/pom.xml`.
 2. Change `V1__create_todo_items.sql` — `BIGINT AUTO_INCREMENT` is already MySQL-compatible.
-3. Add a MySQL datasource profile to `application.yml`.
+3. Add a MySQL datasource profile to `todo-api/src/main/resources/application.yml`.
 
 ## Docker
 
@@ -198,14 +204,14 @@ mvn spring-boot:run -Dspring-boot.run.profiles=postgres \
 
 ```bash
 # Run from src/backend/java/
-docker build -t todo-api-java .
+docker build -f todo-api/Dockerfile -t todo-api-java .
 ```
 
 ### Build the worker image
 
 ```bash
 # Run from src/backend/java/
-docker build -f Dockerfile.worker -t todo-worker-java .
+docker build -f todo-worker/Dockerfile -t todo-worker-java .
 ```
 
 ### Run the API container
