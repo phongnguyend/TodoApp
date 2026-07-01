@@ -1,9 +1,9 @@
 using Moq;
 using TodoApi.Data;
 using TodoApi.DTOs;
-using TodoApi.Models;
 using TodoApi.Repositories;
 using TodoApi.Services;
+using TodoShared.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace TodoApi.Tests.Services;

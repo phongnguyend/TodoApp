@@ -1,8 +1,8 @@
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using TodoShared.Models;
 using TodoWorker.Data;
-using TodoWorker.Models;
 
 namespace TodoWorker.Services;
 

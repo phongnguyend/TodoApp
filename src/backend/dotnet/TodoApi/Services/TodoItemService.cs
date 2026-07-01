@@ -1,7 +1,7 @@
 using TodoApi.Data;
 using TodoApi.DTOs;
-using TodoApi.Models;
 using TodoApi.Repositories;
+using TodoShared.Models;
 
 namespace TodoApi.Services;
 
