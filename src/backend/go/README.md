@@ -55,8 +55,11 @@ src/backend/go/
 │   └── worker/
 │       └── job/
 │           └── incomplete_todos_email.go  # Email digest job
-├── Dockerfile                             # API container image
-├── Dockerfile.worker                      # Background worker container image
+├── build/
+│   ├── api/
+│   │   └── Dockerfile                     # API container image
+│   └── worker/
+│       └── Dockerfile                     # Background worker container image
 ├── go.mod
 ├── .env.example
 └── README.md
@@ -174,13 +177,13 @@ go get gorm.io/driver/mysql
 
 ```bash
 # Run from src/backend/go/
-docker build -t todo-api-go .
+docker build -f build/api/Dockerfile -t todo-api-go .
 ```
 
 ### Build the worker image
 
 ```bash
-docker build -f Dockerfile.worker -t todo-worker-go .
+docker build -f build/worker/Dockerfile -t todo-worker-go .
 ```
 
 ### Run the containers

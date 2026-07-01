@@ -58,6 +58,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: src/backend/go
+          file: src/backend/go/build/api/Dockerfile
           push: false
           tags: todo-api-go:latest
           cache-from: type=gha
@@ -78,7 +79,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: src/backend/go
-          file: src/backend/go/Dockerfile.worker
+          file: src/backend/go/build/worker/Dockerfile
           push: false
           tags: todo-worker-go:latest
           cache-from: type=gha
