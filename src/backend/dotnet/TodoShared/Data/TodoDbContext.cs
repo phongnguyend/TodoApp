@@ -7,6 +7,7 @@ public abstract class TodoDbContext(DbContextOptions options) : DbContext(option
 {
     public DbSet<TodoItem> TodoItems => Set<TodoItem>();
     public DbSet<EmailLog> EmailLogs => Set<EmailLog>();
+    public DbSet<FileEntity> Files => Set<FileEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,6 +27,17 @@ public abstract class TodoDbContext(DbContextOptions options) : DbContext(option
             entity.Property(e => e.Subject).IsRequired().HasMaxLength(500);
             entity.Property(e => e.Body).IsRequired();
             entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("pending");
+            entity.Property(e => e.CreatedAt).IsRequired();
+        });
+
+        modelBuilder.Entity<FileEntity>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Extension).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.Size).IsRequired();
+            entity.Property(e => e.ContentType).HasMaxLength(100);
+            entity.Property(e => e.Location).IsRequired().HasMaxLength(500);
             entity.Property(e => e.CreatedAt).IsRequired();
         });
     }

@@ -1,4 +1,4 @@
-// Prisma schema — analogous to EF Core entity configuration + DbContext
+// Prisma schema - analogous to EF Core entity configuration + DbContext
 // Run: npx prisma migrate dev --name InitialCreate
 
 generator client {
@@ -32,4 +32,17 @@ model EmailLog {
   errorMessage String?
 
   @@map("email_logs")
+}
+
+model File {
+  id          Int       @id @default(autoincrement())
+  name        String
+  extension   String
+  size        Int
+  contentType String?
+  location    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime? @updatedAt
+
+  @@map("files")
 }

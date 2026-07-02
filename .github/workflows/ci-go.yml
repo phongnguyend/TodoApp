@@ -1,4 +1,4 @@
-name: CI — Go
+name: CI - Go
 
 on:
   push:
@@ -44,7 +44,7 @@ jobs:
         run: CGO_ENABLED=1 go test -v -cover ./...
 
   docker:
-    name: Docker Build — API
+    name: Docker Build - API
     runs-on: ubuntu-latest
     needs: build
 
@@ -65,7 +65,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   docker-worker:
-    name: Docker Build — Worker
+    name: Docker Build - Worker
     runs-on: ubuntu-latest
     needs: build
 

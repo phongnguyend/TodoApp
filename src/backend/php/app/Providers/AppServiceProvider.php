@@ -2,9 +2,13 @@
 
 namespace App\Providers;
 
+use App\Repositories\Contracts\FileRepositoryInterface;
 use App\Repositories\Contracts\TodoItemRepositoryInterface;
+use App\Repositories\FileRepository;
 use App\Repositories\TodoItemRepository;
+use App\Services\Contracts\FileServiceInterface;
 use App\Services\Contracts\TodoItemServiceInterface;
+use App\Services\FileService;
 use App\Services\TodoItemService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -22,9 +26,11 @@ class AppServiceProvider extends ServiceProvider
     {
         // Bind repository interface → concrete implementation (scoped per request by default in Laravel)
         $this->app->bind(TodoItemRepositoryInterface::class, TodoItemRepository::class);
+        $this->app->bind(FileRepositoryInterface::class, FileRepository::class);
 
         // Bind service interface → concrete implementation
         $this->app->bind(TodoItemServiceInterface::class, TodoItemService::class);
+        $this->app->bind(FileServiceInterface::class, FileService::class);
     }
 
     /**

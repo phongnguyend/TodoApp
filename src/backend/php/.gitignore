@@ -42,3 +42,6 @@ Homestead.json
 .phpactor.json
 auth.json
 # End https://github.com/github/gitignore/blob/main/Laravel.gitignore
+
+# Uploaded file content (metadata lives in the database; content is written here at runtime)
+/storage/app/uploads/

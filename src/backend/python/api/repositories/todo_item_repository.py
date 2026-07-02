@@ -7,7 +7,7 @@ from api.repositories.base_repository import BaseRepository, IRepository
 
 
 class ITodoItemRepository(IRepository[TodoItem]):
-    """Contract for the todo-item repository — mirrors an interface in C#."""
+    """Contract for the todo-item repository - mirrors an interface in C#."""
 
     @abstractmethod
     def get_by_title(self, title: str) -> TodoItem | None: ...

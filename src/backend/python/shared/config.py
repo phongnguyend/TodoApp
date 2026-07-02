@@ -28,5 +28,9 @@ class Settings(BaseSettings):
     # ── Background worker ─────────────────────────────────────────────────────
     WORKER_INTERVAL_MINUTES: int = 60
 
+    # ── File uploads ───────────────────────────────────────────────────────────
+    FILE_STORAGE_PATH: str = "./uploads"
+    MAX_UPLOAD_SIZE_BYTES: int = 10 * 1024 * 1024  # 10 MB
+
 
 settings = Settings()

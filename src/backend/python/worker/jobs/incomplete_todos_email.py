@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 def _build_email(todos: list[TodoItem]) -> tuple[str, str, str]:
     """Return (subject, plain_text_body, html_body)."""
     count = len(todos)
-    subject = f"Incomplete Todos Digest — {count} item(s) pending"
+    subject = f"Incomplete Todos Digest - {count} item(s) pending"
 
     # ── plain text ──────────────────────────────────────────────────────────
     lines: list[str] = [f"You have {count} incomplete todo item(s):\n"]
@@ -113,7 +113,7 @@ def send_incomplete_todos_email() -> None:
         )
 
         if not todos:
-            logger.info("No incomplete todos — skipping email digest.")
+            logger.info("No incomplete todos - skipping email digest.")
             return
 
         logger.info("Found %d incomplete todo(s); preparing email digest.", len(todos))

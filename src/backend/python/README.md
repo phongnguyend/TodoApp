@@ -1,6 +1,6 @@
-# Todo API — Python / FastAPI
+# Todo API - Python / FastAPI
 
-A RESTful API for managing todo items built with **FastAPI**, **SQLAlchemy**, and **Alembic** — the Python equivalent of an ASP.NET Core + Entity Framework project.
+A RESTful API for managing todo items built with **FastAPI**, **SQLAlchemy**, and **Alembic** - the Python equivalent of an ASP.NET Core + Entity Framework project.
 
 ## Tech-stack mapping
 
@@ -29,16 +29,21 @@ src/backend/python/
 │   ├── database.py                    # DB session + Base (DbContext)
 │   ├── models/
 │   │   ├── todo_item.py               # SQLAlchemy entity
-│   │   └── email_log.py               # Email audit-log entity
+│   │   ├── email_log.py               # Email audit-log entity
+│   │   └── file.py                    # Uploaded-file entity
 │   ├── schemas/
-│   │   └── todo_item.py               # Pydantic DTOs (request/response)
+│   │   ├── todo_item.py               # Pydantic DTOs (request/response)
+│   │   └── file.py                    # File metadata DTO (response)
 │   ├── repositories/
 │   │   ├── base_repository.py         # IRepository<T> + BaseRepository<T>
-│   │   └── todo_item_repository.py    # ITodoItemRepository + impl
+│   │   ├── todo_item_repository.py    # ITodoItemRepository + impl
+│   │   └── file_repository.py         # IFileRepository + impl
 │   ├── services/
-│   │   └── todo_item_service.py       # ITodoItemService + impl
+│   │   ├── todo_item_service.py       # ITodoItemService + impl
+│   │   └── file_service.py            # IFileService + impl (upload/download/delete)
 │   ├── routers/
-│   │   └── todo_items.py              # TodoItemsController equivalent
+│   │   ├── todo_items.py              # TodoItemsController equivalent
+│   │   └── files.py                   # FilesController equivalent
 │   └── Dockerfile                     # API container
 ├── worker/                        # Worker project (analogous to dotnet/TodoWorker)
 │   ├── main.py                        # Worker entry-point (scheduler)
@@ -46,21 +51,25 @@ src/backend/python/
 │   ├── database.py                    # DB session + Base (DbContext)
 │   ├── models/
 │   │   ├── todo_item.py               # SQLAlchemy entity
-│   │   └── email_log.py               # Email audit-log entity
+│   │   ├── email_log.py               # Email audit-log entity
+│   │   └── file.py                    # Uploaded-file entity
 │   ├── jobs/
 │   │   └── incomplete_todos_email.py  # Digest email job
 │   └── Dockerfile                     # Background worker container
 ├── tests/
 │   └── unit/
 │       ├── services/
-│       │   └── test_todo_item_service.py  # Service layer unit tests
+│       │   ├── test_todo_item_service.py  # Service layer unit tests
+│       │   └── test_file_service.py       # File service unit tests
 │       └── routers/
-│           └── test_todo_items.py         # Router / HTTP endpoint tests
+│           ├── test_todo_items.py         # Router / HTTP endpoint tests
+│           └── test_files.py              # File router / HTTP endpoint tests
 ├── alembic/
 │   ├── env.py
 │   ├── script.py.mako
 │   └── versions/
-│       └── 20260630_0000_aabbccdd1122_initial_create.py
+│       ├── 20260630_0000_aabbccdd1122_initial_create.py     # todo_items + email_logs
+│       └── 20260702_0000_bbccddee2233_add_files_table.py    # files
 ├── alembic.ini
 ├── pytest.ini
 ├── requirements.txt
@@ -95,7 +104,7 @@ cp .env.example .env
 ### 4. Run database migrations (like `dotnet ef database update`)
 
 ```bash
-# Apply the bundled initial migration (creates todo_items + email_logs)
+# Apply the bundled migrations (creates todo_items, email_logs, and files)
 alembic upgrade head
 
 # To generate a new migration after model changes (like `dotnet ef migrations add`)
@@ -127,6 +136,23 @@ The Swagger UI is available at <http://localhost:8000/swagger>.
 ## API endpoints
 
 See the [shared API contract](../README.md#api-endpoints) in the backend README.
+
+## File uploads
+
+The `/api/files` endpoints (list, get metadata, download, upload, delete) store uploaded file content on disk and persist metadata (`name`, `extension`, `size`, `content_type`, `location`, timestamps) in the `files` table.
+
+### Configuration (`.env`)
+
+```ini
+FILE_STORAGE_PATH=./uploads     # Directory where uploaded file content is stored
+MAX_UPLOAD_SIZE_BYTES=10485760  # Maximum accepted upload size, in bytes (default 10 MB)
+```
+
+### Notes
+
+- Uploaded file names are sanitized (directory components stripped) and stored on disk under a random-prefixed name to prevent path traversal and filename collisions.
+- The internal storage `location` is never exposed in API responses; file content is retrieved via `GET /api/files/{id}/download`.
+- Deleting a file removes both the database row and the file content on disk.
 
 ## Switching databases
 

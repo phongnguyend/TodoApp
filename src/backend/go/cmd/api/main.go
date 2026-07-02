@@ -30,19 +30,23 @@ func main() {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 
-	// ── Dependency injection (composition root — mirrors Program.cs AddScoped/AddSingleton) ──
+	// ── Dependency injection (composition root - mirrors Program.cs AddScoped/AddSingleton) ──
 	repo := repository.NewTodoItemRepository(db)
 	svc := service.NewTodoItemService(repo)
 	h := handler.NewTodoItemHandler(svc)
 
+	fileRepo := repository.NewFileRepository(db)
+	fileSvc := service.NewFileService(fileRepo, cfg)
+	fh := handler.NewFileHandler(fileSvc)
+
 	// ── Gin engine (analogous to app.Build() + middleware pipeline) ───────────
 	r := gin.Default()
 
-	// Swagger UI — mirrors app.UseSwagger() + app.UseSwaggerUI()
+	// Swagger UI - mirrors app.UseSwagger() + app.UseSwaggerUI()
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// ── Routes ────────────────────────────────────────────────────────────────
-	router.Setup(r, h)
+	router.Setup(r, h, fh)
 
 	log.Printf("Starting %s v%s on :%s", cfg.AppName, cfg.AppVersion, cfg.Port)
 	log.Printf("Swagger UI: http://localhost:%s/swagger/index.html", cfg.Port)

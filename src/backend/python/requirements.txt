@@ -9,6 +9,9 @@ alembic==1.14.0
 # Settings management (analogous to appsettings.json / IConfiguration)
 pydantic-settings==2.7.0
 
+# Multipart form parsing (required by FastAPI for file uploads)
+python-multipart==0.0.20
+
 # Background job scheduler (used by the worker process)
 apscheduler==3.11.0
 

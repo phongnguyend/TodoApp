@@ -14,7 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * REST controller — analogous to an [ApiController] class in ASP.NET Core.
+ * REST controller - analogous to an [ApiController] class in ASP.NET Core.
  *
  * @RestController   = [ApiController] + [Route]
  * @RequestMapping   = [Route("api/todo-items")]

@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Service implementation — registered as a Spring-managed bean via @Service.
+ * Service implementation - registered as a Spring-managed bean via @Service.
  * Mirrors a service class injected through ASP.NET Core's DI container.
  *
  * @Transactional mirrors [UnitOfWork] / SaveChanges() semantics in EF Core.

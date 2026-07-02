@@ -8,7 +8,7 @@ use App\Models\TodoItem;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
- * Service interface — mirrors ITodoItemService in C#.
+ * Service interface - mirrors ITodoItemService in C#.
  */
 interface TodoItemServiceInterface
 {

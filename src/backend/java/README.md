@@ -1,6 +1,6 @@
-# Todo API — Java / Spring Boot
+# Todo API - Java / Spring Boot
 
-A RESTful API for managing todo items built with **Spring Boot**, **Spring Data JPA**, **Hibernate**, and **Flyway** — the Java equivalent of an ASP.NET Core + Entity Framework project.
+A RESTful API for managing todo items built with **Spring Boot**, **Spring Data JPA**, **Hibernate**, and **Flyway** - the Java equivalent of an ASP.NET Core + Entity Framework project.
 
 ## Tech-stack mapping
 
@@ -36,23 +36,34 @@ src/backend/java/
 │       │   │   │   ├── CreateTodoItemRequest.java     # record + @Valid
 │       │   │   │   ├── UpdateTodoItemRequest.java     # record + @Valid
 │       │   │   │   ├── TodoItemResponse.java          # record with factory method
-│       │   │   │   └── PaginatedResponse.java         # generic record
+│       │   │   │   ├── PaginatedResponse.java         # generic record
+│       │   │   │   ├── FileResponse.java              # record with factory method (file metadata)
+│       │   │   │   └── FileDownloadTarget.java        # record - path/name/contentType for downloads
 │       │   │   ├── entity/
 │       │   │   │   ├── TodoItem.java                  # @Entity (JPA model)
-│       │   │   │   └── EmailLog.java                  # @Entity — email audit log
+│       │   │   │   ├── EmailLog.java                  # @Entity - email audit log
+│       │   │   │   └── FileEntity.java                # @Entity - uploaded file metadata
+│       │   │   ├── exception/
+│       │   │   │   └── PayloadTooLargeException.java  # thrown when an upload exceeds the size limit
 │       │   │   ├── repository/
 │       │   │   │   ├── TodoItemRepository.java        # JpaRepository<TodoItem, Long>
-│       │   │   │   └── EmailLogRepository.java        # JpaRepository<EmailLog, Long>
+│       │   │   │   ├── EmailLogRepository.java        # JpaRepository<EmailLog, Long>
+│       │   │   │   └── FileRepository.java            # JpaRepository<FileEntity, Long>
 │       │   │   └── service/
 │       │   │       ├── TodoItemService.java           # interface
-│       │   │       └── TodoItemServiceImpl.java       # @Service implementation
+│       │   │       ├── TodoItemServiceImpl.java       # @Service implementation
+│       │   │       ├── FileService.java               # interface
+│       │   │       └── FileServiceImpl.java           # @Service implementation (upload/download/delete on disk)
 │       │   └── resources/db/migration/
 │       │       ├── V1__create_todo_items.sql          # Flyway migration
-│       │       └── V2__create_email_logs.sql          # Flyway migration
+│       │       ├── V2__create_email_logs.sql          # Flyway migration
+│       │       └── V3__create_files.sql               # Flyway migration
 │       └── test/
 │           ├── java/com/example/todo/
-│           │   ├── repository/TodoItemRepositoryTest.java  # @DataJpaTest — JPA slice
-│           │   └── service/TodoItemServiceImplTest.java    # Mockito — pure unit tests
+│           │   ├── repository/TodoItemRepositoryTest.java  # @DataJpaTest - JPA slice
+│           │   ├── repository/FileRepositoryTest.java      # @DataJpaTest - JPA slice
+│           │   ├── service/TodoItemServiceImplTest.java    # Mockito - pure unit tests
+│           │   └── service/FileServiceImplTest.java        # Mockito - pure unit tests (uses @TempDir)
 │           └── resources/application.yml                   # test config (H2 in-memory)
 ├── todo-api/                                          # REST API (analogous to TodoApi.csproj)
 │   ├── pom.xml
@@ -63,12 +74,14 @@ src/backend/java/
 │       │   │   ├── TodoApiApplication.java            # Entry point (@SpringBootApplication)
 │       │   │   ├── config/OpenApiConfig.java          # Swagger config
 │       │   │   ├── controller/TodoItemController.java # @RestController
+│       │   │   ├── controller/FileController.java     # @RestController - /api/files
 │       │   │   └── exception/GlobalExceptionHandler.java  # @RestControllerAdvice
-│       │   └── resources/application.yml             # API config (H2 + Swagger)
+│       │   └── resources/application.yml             # API config (H2 + Swagger + file storage)
 │       └── test/
 │           ├── java/com/example/todo/api/
 │           │   ├── TodoApiApplicationTests.java       # context load smoke test
-│           │   └── controller/TodoItemControllerTest.java  # @WebMvcTest — HTTP layer
+│           │   ├── controller/TodoItemControllerTest.java  # @WebMvcTest - HTTP layer
+│           │   └── controller/FileControllerTest.java      # @WebMvcTest - HTTP layer (multipart)
 │           └── resources/application.yml             # test config (H2 in-memory)
 └── todo-worker/                                       # Background worker (analogous to TodoWorker.csproj)
     ├── pom.xml
@@ -107,7 +120,9 @@ mvn test -pl todo-api
 
 # Run a specific test class
 mvn test -pl todo-api -Dtest=TodoItemControllerTest
+mvn test -pl todo-api -Dtest=FileControllerTest
 mvn test -pl todo-shared -Dtest=TodoItemServiceImplTest
+mvn test -pl todo-shared -Dtest=FileServiceImplTest
 ```
 
 ### 3. Run the API
@@ -132,6 +147,29 @@ Flyway automatically applies `V1__create_todo_items.sql` on startup (like `dotne
 
 See the [shared API contract](../README.md#api-endpoints) in the backend README.
 
+## File uploads
+
+The `/api/files` endpoints (list, get metadata, download, upload, delete) store uploaded file
+content on disk and persist metadata (`name`, `extension`, `size`, `contentType`, `location`,
+timestamps) in the `files` table. The on-disk `location` is never exposed to clients - content is
+retrieved only via `GET /api/files/{id}/download`.
+
+- Uploaded file names are sanitized (directory components stripped) to prevent path traversal, and
+  a random UUID prefix is added to the stored file name to avoid collisions.
+- Uploads exceeding `MAX_UPLOAD_SIZE_BYTES` are rejected with `413 Payload Too Large`.
+- Deleting a file removes both the database row and the file content on disk.
+
+### Environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `FILE_STORAGE_PATH` | `./uploads` | Directory where uploaded file content is stored |
+| `MAX_UPLOAD_SIZE_BYTES` | `10485760` (10 MB) | Maximum accepted upload size, enforced by the service layer |
+
+These map to `app.file.storage-path` / `app.file.max-upload-size-bytes` in `application.yml`. The
+servlet-level `spring.servlet.multipart.max-file-size` / `max-request-size` (50 MB) act as a hard
+safety cap above the business rule.
+
 ## Background worker
 
 The worker is a separate process (separate container) that periodically sends an email digest of all incomplete todo items.
@@ -144,7 +182,7 @@ The worker is a separate process (separate container) that periodically sends an
 4. Sends the email via SMTP (`JavaMailSender`).
 5. Updates the `email_logs` row to `status = 'sent'` (or `'failed'` + `error_message`).
 
-The worker runs as a standalone Spring Boot application (`todo-worker` module) with `spring.main.web-application-type=none` in its `application.yml` — no web server is started.
+The worker runs as a standalone Spring Boot application (`todo-worker` module) with `spring.main.web-application-type=none` in its `application.yml` - no web server is started.
 
 ### Environment variables
 
@@ -195,7 +233,7 @@ mvn spring-boot:run -pl todo-api -Dspring-boot.run.profiles=postgres \
 ### MySQL
 
 1. Uncomment the MySQL driver in `todo-shared/pom.xml`.
-2. Change `V1__create_todo_items.sql` — `BIGINT AUTO_INCREMENT` is already MySQL-compatible.
+2. Change `V1__create_todo_items.sql` - `BIGINT AUTO_INCREMENT` is already MySQL-compatible.
 3. Add a MySQL datasource profile to `todo-api/src/main/resources/application.yml`.
 
 ## Docker
@@ -253,6 +291,18 @@ Mount a volume so the database survives container restarts:
 
 ```bash
 docker run -d -p 8080:8080 -v todo-java-data:/app --name todo-api-java todo-api-java
+```
+
+Since `FILE_STORAGE_PATH` defaults to `./uploads` (relative to the container's `/app` working
+directory), uploaded file content is also persisted under the same `todo-java-data` volume. To
+store uploads elsewhere, set `FILE_STORAGE_PATH` and mount a separate volume, e.g.:
+
+```bash
+docker run -d -p 8080:8080 \
+  -v todo-java-data:/app \
+  -v todo-java-uploads:/data/uploads \
+  -e FILE_STORAGE_PATH=/data/uploads \
+  --name todo-api-java todo-api-java
 ```
 
 ### Stop and remove the containers

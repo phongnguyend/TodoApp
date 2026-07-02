@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * API application entry point — analogous to Program.cs in an ASP.NET Core Web API project.
+ * API application entry point - analogous to Program.cs in an ASP.NET Core Web API project.
  *
  * scanBasePackages includes the shared {@code com.example.todo} package so Spring
  * discovers entities, repositories, and services from the todo-shared module.

@@ -4,7 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 /**
- * Bootstrap function — mirrors Program.cs in ASP.NET Core.
+ * Bootstrap function - mirrors Program.cs in ASP.NET Core.
  * Sets up the NestJS application, global pipes, and Swagger.
  */
 async function bootstrap(): Promise<void> {

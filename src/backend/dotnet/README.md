@@ -1,4 +1,4 @@
-# Todo API — ASP.NET Core / Entity Framework Core
+# Todo API - ASP.NET Core / Entity Framework Core
 
 A RESTful API for managing todo items built with **ASP.NET Core**, **Entity Framework Core**, and **SQLite** (swappable to SQL Server or PostgreSQL).
 
@@ -23,27 +23,31 @@ src/backend/dotnet/
 │   ├── Dockerfile                          # API container image
 ├── TodoApi/
 │   ├── Program.cs                          # App bootstrap & DI registration
-│   ├── appsettings.json                    # Connection string & logging
+│   ├── appsettings.json                    # Connection string, file storage & logging
 │   ├── Controllers/
-│   │   └── TodoItemsController.cs          # REST endpoints
+│   │   ├── TodoItemsController.cs          # REST endpoints - /api/todo-items
+│   │   └── FilesController.cs              # REST endpoints - /api/files
 │   ├── Data/
 │   │   ├── AppDbContext.cs                 # EF Core DbContext
 │   │   └── Migrations/                     # EF Core migrations
 │   ├── DTOs/
-│   │   └── TodoItemDtos.cs                 # Request / response models
-│   ├── Models/
-│   │   ├── TodoItem.cs                     # EF Core entity
-│   │   └── EmailLog.cs                     # EF Core entity
+│   │   ├── TodoItemDtos.cs                 # Request / response models
+│   │   └── FileDtos.cs                     # FileResponse / FileDownloadTarget models
 │   ├── Repositories/
 │   │   ├── IRepository.cs                  # Generic IRepository<T>
 │   │   ├── BaseRepository.cs               # Generic BaseRepository<T>
 │   │   ├── ITodoItemRepository.cs
 │   │   ├── TodoItemRepository.cs
 │   │   ├── IEmailLogRepository.cs
-│   │   └── EmailLogRepository.cs
+│   │   ├── EmailLogRepository.cs
+│   │   ├── IFileRepository.cs
+│   │   └── FileRepository.cs
 │   └── Services/
 │       ├── ITodoItemService.cs
-│       └── TodoItemService.cs
+│       ├── TodoItemService.cs
+│       ├── IFileService.cs                 # upload/download/delete on disk
+│       ├── FileService.cs
+│       └── FileTooLargeException.cs        # thrown when upload exceeds MaxUploadSizeBytes
 ├── TodoWorker/
 │   ├── Dockerfile                          # Worker container image
 │   ├── Program.cs                          # Worker bootstrap & DI registration
@@ -56,12 +60,14 @@ src/backend/dotnet/
 │   └── Services/
 │       ├── IEmailService.cs
 │       ├── SmtpEmailService.cs             # SMTP delivery via System.Net.Mail
-│       └── WorkerService.cs               # BackgroundService — periodic email job
+│       └── WorkerService.cs               # BackgroundService - periodic email job
 └── TodoApi.Tests/
     ├── Controllers/
-    │   └── TodoItemsControllerTests.cs     # Controller unit tests
+    │   ├── TodoItemsControllerTests.cs     # Controller unit tests
+    │   └── FilesControllerTests.cs         # Controller unit tests
     └── Services/
-        └── TodoItemServiceTests.cs         # Service unit tests
+        ├── TodoItemServiceTests.cs         # Service unit tests
+        └── FileServiceTests.cs             # Service unit tests
 ```
 
 ## Getting started
@@ -120,6 +126,30 @@ dotnet test --collect:"XPlat Code Coverage"
 ## API endpoints
 
 See the [shared API contract](../README.md#api-endpoints) in the backend README.
+
+## File uploads
+
+The `/api/files` endpoints (list, get metadata, download, upload, delete) store uploaded file content on disk and persist metadata (`Name`, `Extension`, `Size`, `ContentType`, `Location`, timestamps) in the `Files` table.
+
+### Configuration (`appsettings.json`)
+
+```json
+{
+  "FileStorage": {
+    "Path": "uploads",
+    "MaxUploadSizeBytes": 10485760
+  }
+}
+```
+
+`Path` (relative or absolute) is the directory where uploaded file content is stored; it is created automatically on first upload. `MaxUploadSizeBytes` is the maximum accepted upload size, in bytes (default 10 MB). Both values can be overridden with environment variables (e.g. `FileStorage__Path`, `FileStorage__MaxUploadSizeBytes`).
+
+### Notes
+
+- Uploaded file names are sanitized (directory components stripped via `Path.GetFileName`) and stored on disk under a random-prefixed name (GUID) to prevent path traversal and filename collisions.
+- The internal storage `Location` is never exposed in API responses; file content is retrieved via `GET /api/files/{id}/download`.
+- Deleting a file removes both the database row and the file content on disk.
+- Uploads exceeding `MaxUploadSizeBytes` are rejected with `413 Payload Too Large`.
 
 ## Background worker
 

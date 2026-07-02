@@ -9,7 +9,7 @@ spring:
     username: sa
     password: ""
 
-  # H2 web console (development only) — http://localhost:8080/h2-console
+  # H2 web console (development only) - http://localhost:8080/h2-console
   h2:
     console:
       enabled: true
@@ -18,7 +18,7 @@ spring:
   # ── JPA / Hibernate ──────────────────────────────────────────────────────────
   jpa:
     hibernate:
-      # "validate" — Flyway owns the schema; Hibernate only validates it
+      # "validate" - Flyway owns the schema; Hibernate only validates it
       # (analogous to EF Core not running migrations automatically at startup)
       ddl-auto: validate
     show-sql: false
@@ -30,6 +30,19 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+  # ── Multipart uploads (servlet-level hard cap; app.file.max-upload-size-bytes
+  #    below enforces the actual business rule and returns a friendlier 413) ────
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+# ── File storage (analogous to FILE_STORAGE_PATH / MAX_UPLOAD_SIZE_BYTES env vars) ─
+app:
+  file:
+    storage-path: ${FILE_STORAGE_PATH:./uploads}
+    max-upload-size-bytes: ${MAX_UPLOAD_SIZE_BYTES:10485760}
 
 # ── Server ────────────────────────────────────────────────────────────────────
 server:
@@ -43,7 +56,7 @@ springdoc:
     path: /v3/api-docs
 
 ---
-# PostgreSQL profile — activate with: --spring.profiles.active=postgres
+# PostgreSQL profile - activate with: --spring.profiles.active=postgres
 spring:
   config:
     activate:

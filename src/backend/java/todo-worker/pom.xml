@@ -12,7 +12,7 @@
 
     <artifactId>todo-worker</artifactId>
     <name>todo-worker</name>
-    <description>Todo background worker — email digest service</description>
+    <description>Todo background worker - email digest service</description>
 
     <dependencies>
         <!-- Shared entities, DTOs, repositories and services -->

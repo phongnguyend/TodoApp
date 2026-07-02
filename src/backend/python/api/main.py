@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from shared.config import settings
-from api.routers import todo_items
+from api.routers import files, todo_items
 
 # ── Application bootstrap (analogous to Program.cs / Startup.cs) ──────────────
 
@@ -27,6 +27,7 @@ app.add_middleware(
 # ── Routers (analogous to MapControllers / minimal-API route groups) ──────────
 
 app.include_router(todo_items.router)
+app.include_router(files.router)
 
 
 @app.get("/", include_in_schema=False)

@@ -6,7 +6,7 @@ import com.example.todo.dto.TodoItemResponse;
 import com.example.todo.dto.UpdateTodoItemRequest;
 
 /**
- * Service interface — mirrors ITodoItemService in C#.
+ * Service interface - mirrors ITodoItemService in C#.
  * Defines the contract for the business-logic layer.
  */
 public interface TodoItemService {

@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from shared.config import settings  # noqa: E402
 from shared.database import Base  # noqa: E402
-import shared.models  # noqa: E402, F401  — import all models so metadata is populated
+import shared.models  # noqa: E402, F401  - import all models so metadata is populated
 
 # ── Alembic Config object ──────────────────────────────────────────────────────
 config = context.config

@@ -27,7 +27,7 @@ import { UpdateTodoItemDto } from './dto/update-todo-item.dto';
 import { TodoItemsService } from './todo-items.service';
 
 /**
- * TodoItemsController — mirrors a [ApiController] / [Route("api/todo-items")] controller in ASP.NET Core.
+ * TodoItemsController - mirrors a [ApiController] / [Route("api/todo-items")] controller in ASP.NET Core.
  * NestJS decorators map directly to HTTP method + route attributes.
  */
 @ApiTags('Todo Items')

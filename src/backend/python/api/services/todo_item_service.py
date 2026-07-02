@@ -14,7 +14,7 @@ from api.schemas.todo_item import (
 
 
 class ITodoItemService(ABC):
-    """Service interface — mirrors ITodoService in C#."""
+    """Service interface - mirrors ITodoService in C#."""
 
     @abstractmethod
     def get_all(self, page: int, page_size: int) -> PaginatedResponse[TodoItemResponse]: ...

@@ -21,7 +21,7 @@ RUN apk add --no-cache \
 COPY --from=vendor /app /var/www/html
 COPY --from=vendor /app/vendor ./vendor
 
-RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
+RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views storage/app/uploads \
     && chmod -R 775 storage bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 

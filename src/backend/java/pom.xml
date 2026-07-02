@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- Parent — mirrors the implicit SDK/framework version in a .csproj -->
+    <!-- Parent - mirrors the implicit SDK/framework version in a .csproj -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -17,7 +17,7 @@
     <version>1.0.0</version>
     <packaging>pom</packaging>
     <name>todo-parent</name>
-    <description>Todo application — parent POM</description>
+    <description>Todo application - parent POM</description>
 
     <!-- Multi-module layout (analogous to a .NET solution file with multiple .csproj projects) -->
     <modules>
@@ -33,7 +33,7 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Internal module reference — lets child POMs omit the version -->
+            <!-- Internal module reference - lets child POMs omit the version -->
             <dependency>
                 <groupId>com.example</groupId>
                 <artifactId>todo-shared</artifactId>

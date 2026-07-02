@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// TodoItem is the GORM entity — analogous to an EF Core entity class.
+// TodoItem is the GORM entity - analogous to an EF Core entity class.
 // GORM maps struct fields to database columns using conventions and struct tags.
 type TodoItem struct {
 	ID          uint           `gorm:"primarykey;autoIncrement"          json:"id"`
@@ -18,7 +18,7 @@ type TodoItem struct {
 	DeletedAt   gorm.DeletedAt `gorm:"index"                             json:"-"` // soft delete
 }
 
-// TableName overrides the default table name — mirrors [Table("todo_items")] in EF.
+// TableName overrides the default table name - mirrors [Table("todo_items")] in EF.
 func (TodoItem) TableName() string {
 	return "todo_items"
 }

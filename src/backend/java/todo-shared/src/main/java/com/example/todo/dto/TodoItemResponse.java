@@ -5,7 +5,7 @@ import com.example.todo.entity.TodoItem;
 import java.time.Instant;
 
 /**
- * Response DTO — mirrors a TodoItemDto / view model in C#.
+ * Response DTO - mirrors a TodoItemDto / view model in C#.
  * Uses a static factory method instead of AutoMapper for explicit mapping.
  */
 public record TodoItemResponse(

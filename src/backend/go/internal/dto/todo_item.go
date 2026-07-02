@@ -9,7 +9,7 @@ type CreateTodoItemRequest struct {
 	Description *string `json:"description" binding:"omitempty,max=2000"`
 }
 
-// UpdateTodoItemRequest mirrors an UpdateTodoItemRequest DTO — all fields optional.
+// UpdateTodoItemRequest mirrors an UpdateTodoItemRequest DTO - all fields optional.
 type UpdateTodoItemRequest struct {
 	Title       *string `json:"title"       binding:"omitempty,min=1,max=200"`
 	Description *string `json:"description" binding:"omitempty,max=2000"`
@@ -26,7 +26,7 @@ type TodoItemResponse struct {
 	UpdatedAt   *time.Time `json:"updatedAt"`
 }
 
-// PaginatedResponse is a generic paginated list wrapper — mirrors PagedResult<T> in C#.
+// PaginatedResponse is a generic paginated list wrapper - mirrors PagedResult<T> in C#.
 type PaginatedResponse[T any] struct {
 	Items      []T   `json:"items"`
 	Total      int64 `json:"total"`

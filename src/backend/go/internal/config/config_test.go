@@ -25,7 +25,7 @@ func unsetEnv(t *testing.T, keys ...string) {
 }
 
 func TestLoad_DefaultValues(t *testing.T) {
-	unsetEnv(t, "APP_NAME", "APP_VERSION", "PORT", "DATABASE_DSN", "DEFAULT_PAGE_SIZE", "MAX_PAGE_SIZE")
+	unsetEnv(t, "APP_NAME", "APP_VERSION", "PORT", "DATABASE_DSN", "DEFAULT_PAGE_SIZE", "MAX_PAGE_SIZE", "FILE_STORAGE_PATH", "MAX_UPLOAD_SIZE_BYTES")
 
 	cfg := config.Load()
 
@@ -35,6 +35,8 @@ func TestLoad_DefaultValues(t *testing.T) {
 	assert.Equal(t, "todo.db", cfg.DatabaseDSN)
 	assert.Equal(t, 20, cfg.DefaultPageSize)
 	assert.Equal(t, 100, cfg.MaxPageSize)
+	assert.Equal(t, "./uploads", cfg.FileStoragePath)
+	assert.Equal(t, int64(10485760), cfg.MaxUploadSizeBytes)
 }
 
 func TestLoad_EnvVarsOverrideDefaults(t *testing.T) {
@@ -44,6 +46,8 @@ func TestLoad_EnvVarsOverrideDefaults(t *testing.T) {
 	t.Setenv("DATABASE_DSN", "test.db")
 	t.Setenv("DEFAULT_PAGE_SIZE", "50")
 	t.Setenv("MAX_PAGE_SIZE", "200")
+	t.Setenv("FILE_STORAGE_PATH", "/data/uploads")
+	t.Setenv("MAX_UPLOAD_SIZE_BYTES", "2048")
 
 	cfg := config.Load()
 
@@ -53,6 +57,8 @@ func TestLoad_EnvVarsOverrideDefaults(t *testing.T) {
 	assert.Equal(t, "test.db", cfg.DatabaseDSN)
 	assert.Equal(t, 50, cfg.DefaultPageSize)
 	assert.Equal(t, 200, cfg.MaxPageSize)
+	assert.Equal(t, "/data/uploads", cfg.FileStoragePath)
+	assert.Equal(t, int64(2048), cfg.MaxUploadSizeBytes)
 }
 
 func TestLoad_InvalidPageSizeEnvVar_UsesDefault(t *testing.T) {
@@ -64,4 +70,13 @@ func TestLoad_InvalidPageSizeEnvVar_UsesDefault(t *testing.T) {
 
 	assert.Equal(t, 20, cfg.DefaultPageSize)
 	assert.Equal(t, 100, cfg.MaxPageSize)
+}
+
+func TestLoad_InvalidMaxUploadSizeEnvVar_UsesDefault(t *testing.T) {
+	unsetEnv(t, "MAX_UPLOAD_SIZE_BYTES")
+	t.Setenv("MAX_UPLOAD_SIZE_BYTES", "not-a-number")
+
+	cfg := config.Load()
+
+	assert.Equal(t, int64(10485760), cfg.MaxUploadSizeBytes)
 }

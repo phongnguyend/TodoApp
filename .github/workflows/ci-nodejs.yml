@@ -1,4 +1,4 @@
-name: CI — Node.js
+name: CI - Node.js
 
 on:
   push:
@@ -48,7 +48,7 @@ jobs:
           path: src/backend/nodejs/coverage/
 
   docker:
-    name: Docker Build — API
+    name: Docker Build - API
     runs-on: ubuntu-latest
     needs: build
 
@@ -69,7 +69,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   docker-worker:
-    name: Docker Build — Worker
+    name: Docker Build - Worker
     runs-on: ubuntu-latest
     needs: build
 
