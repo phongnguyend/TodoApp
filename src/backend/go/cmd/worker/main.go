@@ -25,7 +25,7 @@ func main() {
 	interval := time.Duration(cfg.WorkerIntervalMinutes) * time.Minute
 	log.Printf("[worker] starting background worker (interval=%v)", interval)
 
-	// Run once immediately on startup — mirrors the Python worker behaviour.
+	// Run once immediately on startup - mirrors the Python worker behaviour.
 	job.SendIncompleteTodosEmail(db, cfg)
 
 	// ── Ticker loop ───────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ func main() {
 		case <-ticker.C:
 			job.SendIncompleteTodosEmail(db, cfg)
 		case sig := <-quit:
-			log.Printf("[worker] received signal %s — shutting down", sig)
+			log.Printf("[worker] received signal %s - shutting down", sig)
 			return
 		}
 	}

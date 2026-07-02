@@ -11,7 +11,7 @@ type todoItemRepository struct {
 	db *gorm.DB
 }
 
-// NewTodoItemRepository creates a new repository — called from the DI composition root.
+// NewTodoItemRepository creates a new repository - called from the DI composition root.
 func NewTodoItemRepository(db *gorm.DB) TodoItemRepository {
 	return &todoItemRepository{db: db}
 }

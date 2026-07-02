@@ -40,17 +40,36 @@ Audit trail for every outbound email attempt. Records persist even when SMTP del
 
 ---
 
+### Table: `files`
+
+Stores metadata about uploaded files.
+
+| Column | Data Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | INTEGER | PRIMARY KEY, AUTO INCREMENT, NOT NULL | Surrogate key |
+| `name` | VARCHAR(255) | NOT NULL | Original file name (without path) |
+| `extension` | VARCHAR(20) | NOT NULL | File extension, without the leading dot (e.g. `pdf`, `png`) |
+| `size` | BIGINT | NOT NULL | File size in bytes |
+| `content_type` | VARCHAR(100) | NULLABLE | MIME type of the file |
+| `location` | VARCHAR(500) | NOT NULL | Storage path or URL where the file content is stored |
+| `created_at` | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT `now()` | Set by the database on insert |
+| `updated_at` | TIMESTAMP WITH TIME ZONE | NULLABLE | Set by the database on update |
+
+---
+
 ## Naming Convention Mapping
 
 | Canonical (SQL) | Python / SQLAlchemy | .NET / EF Core | Go | Java / JPA | Node.js / Prisma | PHP / Eloquent |
 |---|---|---|---|---|---|---|
 | `todo_items` | `todo_items` | `TodoItems` | `todo_items` | `todo_items` | `todo_items` | `todo_items` |
 | `email_logs` | `email_logs` | `EmailLogs` | `email_logs` | `email_logs` | `email_logs` | `email_logs` |
+| `files` | `files` | `Files` | `files` | `files` | `files` | `files` |
 | `is_completed` | `is_completed` | `IsCompleted` | `is_completed` | `is_completed` | `isCompleted` | `is_completed` |
 | `created_at` | `created_at` | `CreatedAt` | `created_at` | `created_at` | `createdAt` | `created_at` |
 | `updated_at` | `updated_at` | `UpdatedAt` | `updated_at` | `updated_at` | `updatedAt` | `updated_at` |
 | `sent_at` | `sent_at` | `SentAt` | `sent_at` | `sent_at` | `sentAt` | `sent_at` |
 | `error_message` | `error_message` | `ErrorMessage` | `error_message` | `error_message` | `errorMessage` | `error_message` |
+| `content_type` | `content_type` | `ContentType` | `content_type` | `content_type` | `contentType` | `content_type` |
 
 ## API Endpoints
 
@@ -65,10 +84,15 @@ All implementations expose the same REST endpoints under the `/api/todo-items` p
 | `PUT` | `/api/todo-items/{id}` | Update a todo item |
 | `PATCH` | `/api/todo-items/{id}/complete` | Mark a todo item as complete |
 | `DELETE` | `/api/todo-items/{id}` | Delete a todo item |
+| `GET` | `/api/files` | List all uploaded files (paginated) |
+| `GET` | `/api/files/{id}` | Get a single file's metadata |
+| `GET` | `/api/files/{id}/download` | Download a file's content |
+| `POST` | `/api/files` | Upload a file (`multipart/form-data`) |
+| `DELETE` | `/api/files/{id}` | Delete a file |
 
 ### Pagination Query Parameters
 
-All paginated endpoints (`GET /api/todo-items` and `GET /api/todo-items/incomplete`) accept the following query parameters. The parameter name casing may differ per implementation but must convey the same semantics.
+All paginated endpoints (`GET /api/todo-items`, `GET /api/todo-items/incomplete`, and `GET /api/files`) accept the following query parameters. The parameter name casing may differ per implementation but must convey the same semantics.
 
 | Parameter (canonical) | Default | Description | Implementation note |
 |---|---|---|---|

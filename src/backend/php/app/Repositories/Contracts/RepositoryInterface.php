@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
- * Generic repository contract — mirrors IRepository<T> in C#.
+ * Generic repository contract - mirrors IRepository<T> in C#.
  */
 interface RepositoryInterface
 {

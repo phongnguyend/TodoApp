@@ -26,7 +26,7 @@ function buildEmail(todos: TodoItem[]): {
   htmlBody: string;
 } {
   const count = todos.length;
-  const subject = `Incomplete Todos Digest — ${count} item(s) pending`;
+  const subject = `Incomplete Todos Digest - ${count} item(s) pending`;
 
   // ── plain text ─────────────────────────────────────────────────────────────
   const lines: string[] = [`You have ${count} incomplete todo item(s):\n`];
@@ -74,7 +74,7 @@ export async function sendIncompleteTodosEmail(prisma: PrismaClient): Promise<vo
     });
 
     if (todos.length === 0) {
-      console.info('[worker] No incomplete todos — skipping email digest.');
+      console.info('[worker] No incomplete todos - skipping email digest.');
       return;
     }
 

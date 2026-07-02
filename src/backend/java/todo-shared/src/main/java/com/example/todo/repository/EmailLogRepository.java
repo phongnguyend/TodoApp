@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 /**
- * EmailLogRepository — CRUD access for the email_logs table.
+ * EmailLogRepository - CRUD access for the email_logs table.
  * Spring Data JPA generates the implementation at runtime.
  */
 @Repository

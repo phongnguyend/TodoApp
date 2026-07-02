@@ -1,6 +1,6 @@
-# Todo API — PHP / Laravel
+# Todo API - PHP / Laravel
 
-A RESTful API for managing todo items built with **Laravel 12**, **Eloquent ORM**, and Laravel's built-in migration system — the PHP equivalent of an ASP.NET Core + Entity Framework project.
+A RESTful API for managing todo items built with **Laravel 12**, **Eloquent ORM**, and Laravel's built-in migration system - the PHP equivalent of an ASP.NET Core + Entity Framework project.
 
 ## Tech-stack mapping
 
@@ -33,33 +33,43 @@ src/backend/php/
 │   │   └── Handler.php                        # Global error handler (ProblemDetails equivalent)
 │   ├── Http/
 │   │   ├── Controllers/Api/
-│   │   │   └── TodoItemController.php          # REST controller (ControllerBase)
+│   │   │   ├── TodoItemController.php          # REST controller (ControllerBase)
+│   │   │   └── FileController.php               # REST controller for uploaded files
 │   │   ├── Requests/
 │   │   │   ├── CreateTodoItemRequest.php        # Validated create DTO
-│   │   │   └── UpdateTodoItemRequest.php        # Validated update DTO
+│   │   │   ├── UpdateTodoItemRequest.php        # Validated update DTO
+│   │   │   └── UploadFileRequest.php            # Validated file-upload DTO (required/size rules)
 │   │   └── Resources/
-│   │       └── TodoItemResource.php             # Response DTO (AutoMapper profile)
+│   │       ├── TodoItemResource.php             # Response DTO (AutoMapper profile)
+│   │       └── FileResource.php                 # Response DTO for file metadata
 │   ├── Models/
 │   │   ├── TodoItem.php                         # Eloquent entity
-│   │   └── EmailLog.php                         # Eloquent entity for email audit trail
+│   │   ├── EmailLog.php                         # Eloquent entity for email audit trail
+│   │   └── File.php                             # Eloquent entity for uploaded-file metadata
 │   ├── Providers/
 │   │   └── AppServiceProvider.php               # IoC bindings (Program.cs AddScoped)
 │   ├── Repositories/
 │   │   ├── Contracts/
 │   │   │   ├── RepositoryInterface.php          # IRepository<T>
-│   │   │   └── TodoItemRepositoryInterface.php  # ITodoItemRepository
+│   │   │   ├── TodoItemRepositoryInterface.php  # ITodoItemRepository
+│   │   │   └── FileRepositoryInterface.php      # IFileRepository
 │   │   ├── BaseRepository.php                   # GenericRepository<T>
-│   │   └── TodoItemRepository.php               # Concrete implementation
+│   │   ├── TodoItemRepository.php               # Concrete implementation
+│   │   └── FileRepository.php                   # Concrete implementation
 │   └── Services/
 │       ├── Contracts/
-│       │   └── TodoItemServiceInterface.php     # ITodoItemService
-│       └── TodoItemService.php                  # Business logic
+│       │   ├── TodoItemServiceInterface.php     # ITodoItemService
+│       │   └── FileServiceInterface.php         # IFileService
+│       ├── TodoItemService.php                  # Business logic
+│       └── FileService.php                      # Business logic - upload/download/delete on disk
 ├── database/
 │   ├── factories/
-│   │   └── TodoItemFactory.php                  # Model factory for tests
+│   │   ├── TodoItemFactory.php                  # Model factory for tests
+│   │   └── FileFactory.php                      # Model factory for tests
 │   └── migrations/
 │       ├── 2024_01_01_000000_create_todo_items_table.php
-│       └── 2024_01_02_000000_create_email_logs_table.php
+│       ├── 2024_01_02_000000_create_email_logs_table.php
+│       └── 2024_01_03_000000_create_files_table.php
 ├── routes/
 │   └── api.php                                  # Route definitions
 ├── tests/
@@ -67,11 +77,14 @@ src/backend/php/
 │   ├── Unit/
 │   │   ├── Requests/
 │   │   │   ├── CreateTodoItemRequestTest.php    # Validation rule tests
-│   │   │   └── UpdateTodoItemRequestTest.php    # Validation rule tests
+│   │   │   ├── UpdateTodoItemRequestTest.php    # Validation rule tests
+│   │   │   └── UploadFileRequestTest.php        # Validation rule tests (required/max size)
 │   │   └── Services/
-│   │       └── TodoItemServiceTest.php          # Service unit tests (Mockery)
+│   │       ├── TodoItemServiceTest.php          # Service unit tests (Mockery)
+│   │       └── FileServiceTest.php              # Service unit tests (Mockery + real temp files)
 │   └── Feature/
-│       └── TodoItemApiTest.php                  # HTTP integration tests
+│       ├── TodoItemApiTest.php                  # HTTP integration tests
+│       └── FileApiTest.php                      # HTTP integration tests (upload/download/delete)
 ├── phpunit.xml
 ├── composer.json
 ├── build/
@@ -150,11 +163,13 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-Edit `.env` — by default it uses **SQLite**. For SQLite, create the database file:
+Edit `.env` - by default it uses **SQLite**. For SQLite, create the database file:
 
 ```bash
 touch database/database.sqlite
 ```
+
+File uploads are written to the path set by `FILE_STORAGE_PATH` (defaults to `storage/app/uploads` when unset), and are capped by `MAX_UPLOAD_SIZE_BYTES` (default `10485760`, i.e. 10 MB).
 
 ### 3. Run migrations (like `dotnet ef database update`)
 
@@ -189,6 +204,24 @@ Swagger UI → <http://localhost:8000/api/documentation>
 
 See the [shared API contract](../README.md#api-endpoints) in the backend README.
 
+## File uploads
+
+The `/api/files` endpoints (list, get metadata, download, upload, delete) store uploaded file content on disk and persist metadata (`name`, `extension`, `size`, `content_type`, `location`, timestamps) in the `files` table.
+
+### Configuration (`.env`)
+
+```ini
+FILE_STORAGE_PATH=/absolute/path/to/storage/app/uploads  # Directory where uploaded file content is stored (defaults to storage/app/uploads when unset)
+MAX_UPLOAD_SIZE_BYTES=10485760                            # Maximum accepted upload size, in bytes (default 10 MB)
+```
+
+### Notes
+
+- Uploaded file names are sanitized (directory components stripped via `basename()`) and stored on disk under a random-prefixed name to prevent path traversal and filename collisions.
+- The internal storage `location` is never exposed in API responses; file content is retrieved via `GET /api/files/{id}/download`.
+- Deleting a file removes both the database row and the file content on disk.
+- Uploads exceeding `MAX_UPLOAD_SIZE_BYTES` are rejected by `UploadFileRequest`'s validation rules with `422 Unprocessable Entity` (Laravel's standard validation-failure response).
+
 ## Switching databases
 
 Update `DB_CONNECTION` and related variables in `.env`:
@@ -199,9 +232,9 @@ Update `DB_CONNECTION` and related variables in `.env`:
 
 ## Running tests
 
-The test suite uses **PHPUnit 11** with an in-memory SQLite database — no extra setup required.
+The test suite uses **PHPUnit 11** with an in-memory SQLite database - no extra setup required.
 
-> **Missing PHP extensions — Windows gotcha**  
+> **Missing PHP extensions - Windows gotcha**  
 > The in-memory SQLite test database requires the `pdo_sqlite` and `sqlite3` extensions.  
 > On a default Windows PHP installation both extensions are present but **commented out** in `php.ini`.  
 > Open your active `php.ini` (run `php --ini` to find it) and uncomment the two lines:
@@ -229,7 +262,10 @@ The test suite uses **PHPUnit 11** with an in-memory SQLite database — no extr
 | Unit | `TodoItemServiceTest` | All service methods; repository mocked via Mockery |
 | Unit | `CreateTodoItemRequestTest` | `title` required/length, `description` optional/length |
 | Unit | `UpdateTodoItemRequestTest` | All fields optional, type/length constraints |
-| Feature | `TodoItemApiTest` | All 7 endpoints — status codes, response shape, database state |
+| Unit | `FileServiceTest` | All service methods; repository mocked via Mockery, real temp files for upload/download/delete |
+| Unit | `UploadFileRequestTest` | `file` required, rejected when exceeding `MAX_UPLOAD_SIZE_BYTES` |
+| Feature | `TodoItemApiTest` | All 7 todo-item endpoints - status codes, response shape, database state |
+| Feature | `FileApiTest` | All 5 file endpoints - upload/download/delete round-trip against a temp storage dir |
 
 ## Docker
 

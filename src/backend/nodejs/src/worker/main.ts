@@ -9,7 +9,7 @@
  * * Then repeats on the interval defined by WORKER_INTERVAL_MINUTES (default 60).
  * * Handles SIGTERM / SIGINT for clean container shutdown.
  *
- * This process is intentionally kept outside the NestJS application context —
+ * This process is intentionally kept outside the NestJS application context -
  * it accesses Prisma directly and runs as a plain Node.js process in a
  * separate container (see Dockerfile.worker).
  */

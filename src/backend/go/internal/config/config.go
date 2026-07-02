@@ -8,7 +8,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Config holds all application settings — analogous to appsettings.json bound via IConfiguration.
+// Config holds all application settings - analogous to appsettings.json bound via IConfiguration.
 type Config struct {
 	AppName         string
 	AppVersion      string
@@ -16,6 +16,10 @@ type Config struct {
 	DatabaseDSN     string
 	DefaultPageSize int
 	MaxPageSize     int
+
+	// File upload settings
+	FileStoragePath    string
+	MaxUploadSizeBytes int64
 
 	// SMTP / email settings (used by the background worker)
 	SMTPHost       string
@@ -44,6 +48,9 @@ func Load() *Config {
 		DatabaseDSN:     getEnv("DATABASE_DSN", "todo.db"),
 		DefaultPageSize: getEnvInt("DEFAULT_PAGE_SIZE", 20),
 		MaxPageSize:     getEnvInt("MAX_PAGE_SIZE", 100),
+
+		FileStoragePath:    getEnv("FILE_STORAGE_PATH", "./uploads"),
+		MaxUploadSizeBytes: getEnvInt64("MAX_UPLOAD_SIZE_BYTES", 10485760),
 
 		SMTPHost:              getEnv("SMTP_HOST", "localhost"),
 		SMTPPort:              getEnvInt("SMTP_PORT", 587),
@@ -76,6 +83,15 @@ func getEnvBool(key string, fallback bool) bool {
 	if v, ok := os.LookupEnv(key); ok {
 		if b, err := strconv.ParseBool(v); err == nil {
 			return b
+		}
+	}
+	return fallback
+}
+
+func getEnvInt64(key string, fallback int64) int64 {
+	if v, ok := os.LookupEnv(key); ok {
+		if i, err := strconv.ParseInt(v, 10, 64); err == nil {
+			return i
 		}
 	}
 	return fallback

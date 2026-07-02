@@ -10,7 +10,7 @@ import (
 	"github.com/todo/backend/go/internal/service"
 )
 
-// TodoItemHandler handles HTTP requests — analogous to a [ApiController] in ASP.NET Core.
+// TodoItemHandler handles HTTP requests - analogous to a [ApiController] in ASP.NET Core.
 // Each method maps to a route registered in the router.
 type TodoItemHandler struct {
 	svc service.TodoItemService

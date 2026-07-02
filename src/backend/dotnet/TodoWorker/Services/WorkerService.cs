@@ -58,13 +58,13 @@ public class WorkerService(
 
         if (incompleteTodos.Count == 0)
         {
-            logger.LogInformation("No incomplete todos found — skipping email");
+            logger.LogInformation("No incomplete todos found - skipping email");
             return;
         }
 
-        logger.LogInformation("Found {Count} incomplete todo(s) — preparing email", incompleteTodos.Count);
+        logger.LogInformation("Found {Count} incomplete todo(s) - preparing email", incompleteTodos.Count);
 
-        var subject = $"Incomplete Todos — {incompleteTodos.Count} item(s) pending";
+        var subject = $"Incomplete Todos - {incompleteTodos.Count} item(s) pending";
         var body = BuildEmailBody(incompleteTodos);
 
         var emailLog = new EmailLog

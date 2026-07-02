@@ -39,7 +39,7 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
 
-        <!-- Lombok — reduces boilerplate (getters, setters, constructors) -->
+        <!-- Lombok - reduces boilerplate (getters, setters, constructors) -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -81,7 +81,7 @@
 
     <build>
         <plugins>
-            <!-- Skip Spring Boot repackaging — this is a shared library, not an executable -->
+            <!-- Skip Spring Boot repackaging - this is a shared library, not an executable -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

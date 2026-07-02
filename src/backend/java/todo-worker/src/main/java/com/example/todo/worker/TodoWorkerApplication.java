@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 /**
- * Worker application entry point — analogous to Program.cs in an ASP.NET Core Worker Service project.
+ * Worker application entry point - analogous to Program.cs in an ASP.NET Core Worker Service project.
  *
  * scanBasePackages includes the shared {@code com.example.todo} package so Spring
  * discovers entities, repositories, and services from the todo-shared module.

@@ -1,5 +1,6 @@
 package com.example.todo.api.exception;
 
+import com.example.todo.exception.PayloadTooLargeException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -7,12 +8,13 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Global exception handler — mirrors ASP.NET Core's ProblemDetails middleware
+ * Global exception handler - mirrors ASP.NET Core's ProblemDetails middleware
  * and IExceptionFilter / UseExceptionHandler pattern.
  *
  * Returns RFC 9457 ProblemDetail responses (same format as ASP.NET Core's built-in problem details).
@@ -36,6 +38,23 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Validation failed");
         problem.setTitle("Bad Request");
         problem.setProperty("errors", errors);
+        return problem;
+    }
+
+    /** Maps PayloadTooLargeException → 413 Payload Too Large */
+    @ExceptionHandler(PayloadTooLargeException.class)
+    public ProblemDetail handlePayloadTooLarge(PayloadTooLargeException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.PAYLOAD_TOO_LARGE, ex.getMessage());
+        problem.setTitle("Payload Too Large");
+        return problem;
+    }
+
+    /** Maps Spring's servlet-level upload size limit → 413 Payload Too Large */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ProblemDetail handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.PAYLOAD_TOO_LARGE, "The uploaded file exceeds the maximum allowed size.");
+        problem.setTitle("Payload Too Large");
         return problem;
     }
 }

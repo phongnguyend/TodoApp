@@ -1,4 +1,4 @@
-# Build stage — identical vendor layer to the API image
+# Build stage - identical vendor layer to the API image
 FROM composer:2 AS vendor
 WORKDIR /app
 
@@ -8,7 +8,7 @@ RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 COPY . .
 RUN composer dump-autoload --optimize --no-dev
 
-# Runtime stage — CLI only (no nginx / php-fpm needed)
+# Runtime stage - CLI only (no nginx / php-fpm needed)
 FROM php:8.4-cli-alpine
 WORKDIR /var/www/html
 

@@ -9,7 +9,7 @@ use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
- * Global exception handler — analogous to ASP.NET Core's UseExceptionHandler /
+ * Global exception handler - analogous to ASP.NET Core's UseExceptionHandler /
  * IExceptionFilter / ProblemDetails middleware.
  */
 class Handler extends ExceptionHandler

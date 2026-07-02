@@ -9,7 +9,7 @@ import (
 
 // Setup registers all routes on the Gin engine.
 // Mirrors app.MapControllers() / minimal-API route group configuration in ASP.NET Core.
-func Setup(r *gin.Engine, h *handler.TodoItemHandler) {
+func Setup(r *gin.Engine, h *handler.TodoItemHandler, fh *handler.FileHandler) {
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "healthy"})
 	})
@@ -23,5 +23,14 @@ func Setup(r *gin.Engine, h *handler.TodoItemHandler) {
 		api.PUT("/:id", h.Update)
 		api.PATCH("/:id/complete", h.MarkComplete)
 		api.DELETE("/:id", h.Delete)
+	}
+
+	files := r.Group("/api/files")
+	{
+		files.GET("", fh.GetAll)
+		files.GET("/:id", fh.GetByID)
+		files.GET("/:id/download", fh.Download)
+		files.POST("", fh.Upload)
+		files.DELETE("/:id", fh.Delete)
 	}
 }

@@ -14,6 +14,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ── Repository & Service (Dependency Injection) ────────────────────────────────
 builder.Services.AddScoped<ITodoItemRepository, TodoItemRepository>();
 builder.Services.AddScoped<ITodoItemService, TodoItemService>();
+builder.Services.AddScoped<IFileRepository, FileRepository>();
+builder.Services.AddScoped<IFileService, FileService>();
 
 // ── Controllers & OpenAPI / Swagger ────────────────────────────────────────────
 builder.Services.AddControllers();

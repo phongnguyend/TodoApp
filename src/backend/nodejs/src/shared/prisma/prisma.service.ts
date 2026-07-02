@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 /**
  * PrismaService wraps PrismaClient and manages its lifecycle.
- * This is analogous to DbContext in Entity Framework — it is registered
+ * This is analogous to DbContext in Entity Framework - it is registered
  * as a singleton provider and injected wherever database access is needed.
  */
 @Injectable()

@@ -19,7 +19,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * IncompleteTodosEmailJob — the core worker logic.
+ * IncompleteTodosEmailJob - the core worker logic.
  *
  * Flow (mirrors the Node.js / Python implementations):
  * 1. Query all incomplete todo items ordered by created_at.
@@ -59,13 +59,13 @@ public class IncompleteTodosEmailJob {
         List<TodoItem> todos = todoItemRepository.findByCompletedFalseOrderByCreatedAtAsc();
 
         if (todos.isEmpty()) {
-            log.info("[worker] No incomplete todos — skipping email digest.");
+            log.info("[worker] No incomplete todos - skipping email digest.");
             return;
         }
 
         log.info("[worker] Found {} incomplete todo(s); preparing email digest.", todos.size());
 
-        String subject = String.format("Incomplete Todos Digest — %d item(s) pending", todos.size());
+        String subject = String.format("Incomplete Todos Digest - %d item(s) pending", todos.size());
         String textBody = buildTextBody(todos);
         String htmlBody = buildHtmlBody(todos);
 

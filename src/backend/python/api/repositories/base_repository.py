@@ -9,7 +9,7 @@ ModelT = TypeVar("ModelT", bound=Base)
 
 
 class IRepository(ABC, Generic[ModelT]):
-    """Generic repository interface — mirrors IRepository<T> in C#."""
+    """Generic repository interface - mirrors IRepository<T> in C#."""
 
     @abstractmethod
     def get_by_id(self, entity_id: int) -> ModelT | None: ...

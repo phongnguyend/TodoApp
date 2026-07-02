@@ -1,4 +1,4 @@
-# Build stage — Docker build context: java/ directory
+# Build stage - Docker build context: java/ directory
 #   docker build -f todo-worker/Dockerfile -t todo-worker .
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /src

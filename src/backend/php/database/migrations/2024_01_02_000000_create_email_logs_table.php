@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Create email_logs table.
- * Audit trail for every outbound email attempt — records persist even when SMTP delivery fails.
+ * Audit trail for every outbound email attempt - records persist even when SMTP delivery fails.
  */
 return new class extends Migration
 {

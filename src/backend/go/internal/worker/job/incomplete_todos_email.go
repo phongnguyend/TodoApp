@@ -28,14 +28,14 @@ func SendIncompleteTodosEmail(db *gorm.DB, cfg *config.Config) {
 	todoRepo := repository.NewTodoItemRepository(db)
 	logRepo := repository.NewEmailLogRepository(db)
 
-	// 1. Fetch all incomplete todos (no pagination — digest covers everything).
+	// 1. Fetch all incomplete todos (no pagination - digest covers everything).
 	result, err := todoRepo.FindIncomplete(0, 10_000)
 	if err != nil {
 		log.Printf("[worker] failed to query incomplete todos: %v", err)
 		return
 	}
 	if len(result.Items) == 0 {
-		log.Println("[worker] no incomplete todos — skipping email digest")
+		log.Println("[worker] no incomplete todos - skipping email digest")
 		return
 	}
 
@@ -78,7 +78,7 @@ func SendIncompleteTodosEmail(db *gorm.DB, cfg *config.Config) {
 // buildEmail constructs the email subject and plain-text body.
 func buildEmail(todos []models.TodoItem) (subject, body string) {
 	count := len(todos)
-	subject = fmt.Sprintf("Incomplete Todos Digest — %d item(s) pending", count)
+	subject = fmt.Sprintf("Incomplete Todos Digest - %d item(s) pending", count)
 
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "You have %d incomplete todo item(s):\n\n", count)

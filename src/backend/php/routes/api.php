@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\FileController;
 use App\Http\Controllers\Api\TodoItemController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,4 +21,12 @@ Route::prefix('todo-items')->group(function () {
     Route::put('/{id}',        [TodoItemController::class, 'update']);      // PUT    /api/todo-items/{id}
     Route::patch('/{id}/complete', [TodoItemController::class, 'complete']); // PATCH /api/todo-items/{id}/complete
     Route::delete('/{id}',    [TodoItemController::class, 'destroy']);      // DELETE /api/todo-items/{id}
+});
+
+Route::prefix('files')->group(function () {
+    Route::get('/',              [FileController::class, 'index']);    // GET    /api/files
+    Route::get('/{id}/download', [FileController::class, 'download']); // GET    /api/files/{id}/download
+    Route::get('/{id}',          [FileController::class, 'show']);     // GET    /api/files/{id}
+    Route::post('/',             [FileController::class, 'store']);    // POST   /api/files
+    Route::delete('/{id}',       [FileController::class, 'destroy']);  // DELETE /api/files/{id}
 });

@@ -2,7 +2,7 @@ spring:
   application:
     name: todo-worker
 
-  # Disable the embedded web server — this process has no HTTP interface
+  # Disable the embedded web server - this process has no HTTP interface
   # (analogous to Microsoft.Extensions.Hosting.Worker in .NET)
   main:
     web-application-type: none
@@ -49,7 +49,7 @@ worker:
     sender: ${EMAIL_SENDER:noreply@example.com}
 
 ---
-# PostgreSQL profile — activate with: --spring.profiles.active=postgres
+# PostgreSQL profile - activate with: --spring.profiles.active=postgres
 spring:
   config:
     activate:

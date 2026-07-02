@@ -1,6 +1,6 @@
-# Todo API — Node.js / NestJS + Prisma
+# Todo API - Node.js / NestJS + Prisma
 
-A RESTful API for managing todo items built with **NestJS**, **Prisma**, and **TypeScript** — the Node.js equivalent of an ASP.NET Core + Entity Framework project.
+A RESTful API for managing todo items built with **NestJS**, **Prisma**, and **TypeScript** - the Node.js equivalent of an ASP.NET Core + Entity Framework project.
 
 ## Tech-stack mapping
 
@@ -31,18 +31,28 @@ src/backend/nodejs/
 │   │   ├── Dockerfile                     # API container image
 │   │   ├── main.ts                        # API bootstrap (Program.cs)
 │   │   ├── app.module.ts                  # Root module (Startup.cs)
-│   │   └── todo-items/
-│   │       ├── todo-items.module.ts           # Feature module
-│   │       ├── todo-items.controller.ts       # Controller (route handlers)
-│   │       ├── todo-items.controller.spec.ts  # Controller unit tests
-│   │       ├── todo-items.service.ts          # Business logic
-│   │       ├── todo-items.service.spec.ts     # Service unit tests
-│   │       ├── todo-items.repository.ts       # Data access (Prisma queries)
-│   │       ├── todo-items.repository.spec.ts  # Repository unit tests
+│   │   ├── todo-items/
+│   │   │   ├── todo-items.module.ts           # Feature module
+│   │   │   ├── todo-items.controller.ts       # Controller (route handlers)
+│   │   │   ├── todo-items.controller.spec.ts  # Controller unit tests
+│   │   │   ├── todo-items.service.ts          # Business logic
+│   │   │   ├── todo-items.service.spec.ts     # Service unit tests
+│   │   │   ├── todo-items.repository.ts       # Data access (Prisma queries)
+│   │   │   ├── todo-items.repository.spec.ts  # Repository unit tests
+│   │   │   └── dto/
+│   │   │       ├── create-todo-item.dto.ts
+│   │   │       ├── update-todo-item.dto.ts
+│   │   │       └── todo-item-response.dto.ts
+│   │   └── files/
+│   │       ├── files.module.ts            # Feature module
+│   │       ├── files.controller.ts        # Controller (list/get/download/upload/delete)
+│   │       ├── files.controller.spec.ts   # Controller unit tests
+│   │       ├── files.service.ts           # Business logic (storage on disk + metadata)
+│   │       ├── files.service.spec.ts      # Service unit tests
+│   │       ├── files.repository.ts        # Data access (Prisma queries)
+│   │       ├── files.repository.spec.ts   # Repository unit tests
 │   │       └── dto/
-│   │           ├── create-todo-item.dto.ts
-│   │           ├── update-todo-item.dto.ts
-│   │           └── todo-item-response.dto.ts
+│   │           └── file-response.dto.ts
 │   ├── shared/
 │   │   ├── prisma/
 │   │   │   ├── prisma.service.ts          # PrismaClient wrapper (DbContext)
@@ -127,6 +137,17 @@ The Swagger UI is available at <http://localhost:3000/swagger>.
 
 See the [shared API contract](../README.md#api-endpoints) in the backend README.
 
+### Files
+
+The `files` feature (`src/api/files/`) stores uploaded file content on disk and its metadata in the `files` table (via Prisma).
+
+Uploads are handled with `@nestjs/platform-express`'s `FileInterceptor`, buffered in memory, then written to `FILE_STORAGE_PATH` under a randomly-prefixed file name (to avoid collisions/overwrites between uploads that share a name). The client-supplied file name is stripped of any directory components before being stored, to prevent path traversal.
+
+| Variable | Default | Description |
+|---|---|---|
+| `FILE_STORAGE_PATH` | `./uploads` | Directory where uploaded file content is stored |
+| `MAX_UPLOAD_SIZE_BYTES` | `10485760` (10 MB) | Maximum accepted upload size; larger files are rejected with `413 Payload Too Large` |
+
 ## Background worker
 
 The worker runs as a **separate process / container** (`src/worker/Dockerfile`). It is intentionally kept outside the NestJS application context and connects to Prisma directly.
@@ -138,7 +159,7 @@ On startup and then every `WORKER_INTERVAL_MINUTES` minutes (default: 60):
 1. Queries all incomplete todo items (`isCompleted = false`).
 2. Builds a plain-text + HTML email digest.
 3. Inserts an `email_logs` row with `status = "pending"`.
-4. Sends the email via SMTP (nodemailer — supports STARTTLS and SSL).
+4. Sends the email via SMTP (nodemailer - supports STARTTLS and SSL).
 5. Updates the `email_logs` row to `status = "sent"` or `"failed"` (with `errorMessage`).
 
 If there are no incomplete todos, the job is skipped and no email is sent.
@@ -147,7 +168,7 @@ If there are no incomplete todos, the job is skipped and no email is sent.
 
 | Variable | Default | Description |
 |---|---|---|
-| `DATABASE_URL` | *(required)* | Same value as the API — both containers share the same database |
+| `DATABASE_URL` | *(required)* | Same value as the API - both containers share the same database |
 | `SMTP_HOST` | `localhost` | SMTP server hostname |
 | `SMTP_PORT` | `587` | SMTP server port |
 | `SMTP_SECURE` | `false` | `true` → implicit TLS (port 465); `false` → STARTTLS (port 587) |

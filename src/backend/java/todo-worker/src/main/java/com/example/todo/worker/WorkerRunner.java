@@ -8,7 +8,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
 /**
- * WorkerRunner — schedules the email-digest job on startup.
+ * WorkerRunner - schedules the email-digest job on startup.
  *
  * Behaviour (mirrors the Node.js / Python worker entry-points):
  * - Runs {@link IncompleteTodosEmailJob#execute()} immediately on startup.

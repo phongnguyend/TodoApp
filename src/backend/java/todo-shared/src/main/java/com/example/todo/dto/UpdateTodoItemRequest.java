@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
 
 /**
- * Request DTO for updating a todo item — all fields are optional (PATCH semantics).
+ * Request DTO for updating a todo item - all fields are optional (PATCH semantics).
  * Mirrors an UpdateTodoItemRequest in C#.
  */
 public record UpdateTodoItemRequest(

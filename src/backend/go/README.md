@@ -1,6 +1,6 @@
-# Todo API — Go / Gin + GORM
+# Todo API - Go / Gin + GORM
 
-A RESTful API for managing todo items built with **Gin**, **GORM**, and Go — the Go equivalent of an ASP.NET Core + Entity Framework project.
+A RESTful API for managing todo items built with **Gin**, **GORM**, and Go - the Go equivalent of an ASP.NET Core + Entity Framework project.
 
 ## Tech-stack mapping
 
@@ -36,20 +36,27 @@ src/backend/go/
 │   ├── database/
 │   │   └── database.go                    # GORM setup (DbContext)
 │   ├── models/
-│   │   ├── todo_item.go                   # GORM entity — TodoItem
-│   │   └── email_log.go                   # GORM entity — EmailLog
+│   │   ├── todo_item.go                   # GORM entity - TodoItem
+│   │   ├── email_log.go                   # GORM entity - EmailLog
+│   │   └── file.go                        # GORM entity - File (uploaded-file metadata)
 │   ├── dto/
-│   │   └── todo_item.go                   # Request/response DTOs
+│   │   ├── todo_item.go                   # Request/response DTOs
+│   │   └── file.go                        # File metadata response DTO
 │   ├── repository/
 │   │   ├── repository.go                  # Repository interfaces
-│   │   ├── todo_item_repository.go        # GORM implementation — TodoItem
-│   │   └── email_log_repository.go        # GORM implementation — EmailLog
+│   │   ├── todo_item_repository.go        # GORM implementation - TodoItem
+│   │   ├── email_log_repository.go        # GORM implementation - EmailLog
+│   │   └── file_repository.go             # GORM implementation - File
 │   ├── service/
 │   │   ├── todo_item_service.go           # Business logic
-│   │   └── todo_item_service_test.go      # Service unit tests
+│   │   ├── todo_item_service_test.go      # Service unit tests
+│   │   ├── file_service.go                # Business logic (upload/download/delete on disk)
+│   │   └── file_service_test.go           # Service unit tests
 │   ├── handler/
 │   │   ├── todo_item_handler.go           # HTTP handlers (Controller)
-│   │   └── todo_item_handler_test.go      # Handler unit tests
+│   │   ├── todo_item_handler_test.go      # Handler unit tests
+│   │   ├── file_handler.go                # HTTP handlers - /api/files (Controller)
+│   │   └── file_handler_test.go           # Handler unit tests
 │   ├── router/
 │   │   └── router.go                      # Route registration
 │   └── worker/
@@ -145,6 +152,24 @@ go build -o todo-api ./cmd/api
 ## API endpoints
 
 See the [shared API contract](../README.md#api-endpoints) in the backend README.
+
+## File uploads
+
+The `/api/files` endpoints (list, get metadata, download, upload, delete) store uploaded file content on disk and persist metadata (`name`, `extension`, `size`, `content_type`, `location`, timestamps) in the `files` table.
+
+### Configuration (`.env`)
+
+```ini
+FILE_STORAGE_PATH=./uploads     # Directory where uploaded file content is stored
+MAX_UPLOAD_SIZE_BYTES=10485760  # Maximum accepted upload size, in bytes (default 10 MB)
+```
+
+### Notes
+
+- Uploaded file names are sanitized (directory components stripped) and stored on disk under a random-prefixed name to prevent path traversal and filename collisions.
+- The internal storage `location` is never exposed in API responses; file content is retrieved via `GET /api/files/{id}/download`.
+- Deleting a file removes both the database row and the file content on disk.
+- Uploads exceeding `MAX_UPLOAD_SIZE_BYTES` are rejected with `413 Request Entity Too Large`.
 
 ## Switching databases
 

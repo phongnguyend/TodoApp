@@ -3,7 +3,7 @@ import { PrismaService } from './prisma.service';
 
 /**
  * @Global makes PrismaService available across all modules without
- * explicit imports — similar to registering DbContext in ASP.NET Core's
+ * explicit imports - similar to registering DbContext in ASP.NET Core's
  * service collection with a scoped or singleton lifetime.
  */
 @Global()

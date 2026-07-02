@@ -10,7 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Instant;
 
 /**
- * JPA entity — analogous to an EF Core entity class mapped via Data Annotations or Fluent API.
+ * JPA entity - analogous to an EF Core entity class mapped via Data Annotations or Fluent API.
  * Hibernate manages the ORM mapping; Flyway manages the schema.
  */
 @Entity

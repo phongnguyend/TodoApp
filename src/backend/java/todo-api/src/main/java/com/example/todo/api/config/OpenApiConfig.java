@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * OpenAPI / Swagger configuration — mirrors services.AddSwaggerGen() in ASP.NET Core.
+ * OpenAPI / Swagger configuration - mirrors services.AddSwaggerGen() in ASP.NET Core.
  * SpringDoc auto-registers Swagger UI at /swagger-ui.html and JSON at /v3/api-docs.
  */
 @Configuration

@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Validates incoming update requests (all fields optional — PATCH semantics).
+ * Validates incoming update requests (all fields optional - PATCH semantics).
  * Analogous to an UpdateTodoItemRequest DTO with nullable properties in C#.
  */
 class UpdateTodoItemRequest extends FormRequest

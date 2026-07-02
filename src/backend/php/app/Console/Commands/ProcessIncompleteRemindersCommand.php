@@ -30,7 +30,7 @@ class ProcessIncompleteRemindersCommand extends Command
             ->get();
 
         if ($items->isEmpty()) {
-            $this->info('No incomplete todo items — skipping reminder email.');
+            $this->info('No incomplete todo items - skipping reminder email.');
             return Command::SUCCESS;
         }
 
