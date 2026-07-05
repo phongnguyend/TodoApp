@@ -84,6 +84,10 @@ All implementations expose the same REST endpoints under the `/api/todo-items` p
 | `PUT` | `/api/todo-items/{id}` | Update a todo item |
 | `PATCH` | `/api/todo-items/{id}/complete` | Mark a todo item as complete |
 | `DELETE` | `/api/todo-items/{id}` | Delete a todo item |
+| `POST` | `/api/todo-items/import/csv` | Import todo items from a CSV file (`multipart/form-data`) |
+| `POST` | `/api/todo-items/import/excel` | Import todo items from an Excel file (`multipart/form-data`) |
+| `GET` | `/api/todo-items/export/csv` | Export todo items as a CSV file |
+| `GET` | `/api/todo-items/export/excel` | Export todo items as an Excel file |
 | `GET` | `/api/files` | List all uploaded files (paginated) |
 | `GET` | `/api/files/{id}` | Get a single file's metadata |
 | `GET` | `/api/files/{id}/download` | Download a file's content |
