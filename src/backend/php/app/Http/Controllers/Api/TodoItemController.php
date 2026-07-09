@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateTodoItemRequest;
-use App\Http\Requests\ImportTodoItemsRequest;
+use App\Http\Requests\ImportTodoItemsCsvRequest;
+use App\Http\Requests\ImportTodoItemsExcelRequest;
 use App\Http\Requests\UpdateTodoItemRequest;
 use App\Http\Resources\TodoItemResource;
 use App\Services\Contracts\TodoItemServiceInterface;
@@ -99,7 +100,7 @@ class TodoItemController extends Controller
     /**
      * POST /api/todo-items/import/csv
      */
-    public function importCsv(ImportTodoItemsRequest $request): JsonResponse
+    public function importCsv(ImportTodoItemsCsvRequest $request): JsonResponse
     {
         $result = $this->service->importCsv($request->file('file'));
 
@@ -116,6 +117,29 @@ class TodoItemController extends Controller
         return response($content, 200, [
             'Content-Type'        => 'text/csv',
             'Content-Disposition' => 'attachment; filename="todo_items.csv"',
+        ]);
+    }
+
+    /**
+     * POST /api/todo-items/import/excel
+     */
+    public function importExcel(ImportTodoItemsExcelRequest $request): JsonResponse
+    {
+        $result = $this->service->importExcel($request->file('file'));
+
+        return response()->json($result);
+    }
+
+    /**
+     * GET /api/todo-items/export/excel
+     */
+    public function exportExcel(): Response
+    {
+        $content = $this->service->exportExcel();
+
+        return response($content, 200, [
+            'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="todo_items.xlsx"',
         ]);
     }
 }

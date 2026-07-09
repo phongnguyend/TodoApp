@@ -38,4 +38,16 @@ interface TodoItemServiceInterface
      * Renders every todo item as CSV text (header row + one row per item).
      */
     public function exportCsv(): string;
+
+    /**
+     * Parses the given Excel (.xlsx/.xls) file and creates a todo item for each valid row.
+     *
+     * @return array{imported: int, failed: int, errors: array<int, array{row: int, error: string}>}
+     */
+    public function importExcel(UploadedFile $file): array;
+
+    /**
+     * Renders every todo item as an Excel (.xlsx) workbook (header row + one row per item).
+     */
+    public function exportExcel(): string;
 }

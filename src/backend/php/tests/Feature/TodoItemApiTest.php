@@ -5,6 +5,9 @@ namespace Tests\Feature;
 use App\Models\TodoItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 
 class TodoItemApiTest extends TestCase
@@ -231,5 +234,99 @@ class TodoItemApiTest extends TestCase
         $response->assertOk();
         $lines = array_filter(explode("\n", (string) $response->getContent()));
         $this->assertCount(1, $lines);
+    }
+
+    // ── POST /api/todo-items/import/excel ─────────────────────────────
+
+    public function test_importExcel_creates_todos_and_reports_counts(): void
+    {
+        $file = $this->makeExcelUploadFile([
+            ['title', 'description', 'is_completed'],
+            ['Buy groceries', 'Milk and eggs', false],
+            ['Read a book', '', true],
+            ['', 'Missing title', false],
+        ]);
+
+        $response = $this->postJson('/api/todo-items/import/excel', ['file' => $file]);
+
+        $response->assertOk()
+                 ->assertJson([
+                     'imported' => 2,
+                     'failed'   => 1,
+                 ])
+                 ->assertJsonPath('errors.0.row', 4)
+                 ->assertJsonPath('errors.0.error', 'Title is required.');
+
+        $this->assertDatabaseHas('todo_items', ['title' => 'Buy groceries', 'description' => 'Milk and eggs']);
+        $this->assertDatabaseHas('todo_items', ['title' => 'Read a book', 'is_completed' => true]);
+        $this->assertDatabaseCount('todo_items', 2);
+    }
+
+    public function test_importExcel_returns_422_when_file_missing(): void
+    {
+        $response = $this->postJson('/api/todo-items/import/excel', []);
+
+        $response->assertUnprocessable()
+                 ->assertJsonValidationErrors(['file']);
+    }
+
+    // ── GET /api/todo-items/export/excel ────────────────────────────
+
+    public function test_exportExcel_returns_excel_content_for_all_todos(): void
+    {
+        TodoItem::factory()->create(['title' => 'Buy groceries', 'description' => 'Milk and eggs']);
+        TodoItem::factory()->completed()->create(['title' => 'Read a book']);
+
+        $response = $this->get('/api/todo-items/export/excel');
+
+        $response->assertOk()
+                 ->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                 ->assertHeader('Content-Disposition', 'attachment; filename="todo_items.xlsx"');
+
+        $rows = $this->readExcelRows($response->getContent());
+        $this->assertSame(['id', 'title', 'description', 'is_completed', 'created_at', 'updated_at'], $rows[0]);
+        $titles = array_column($rows, 1);
+        $this->assertContains('Buy groceries', $titles);
+        $this->assertContains('Read a book', $titles);
+    }
+
+    public function test_exportExcel_returns_header_only_when_no_todos(): void
+    {
+        $response = $this->get('/api/todo-items/export/excel');
+
+        $response->assertOk();
+        $rows = $this->readExcelRows($response->getContent());
+        $this->assertCount(1, $rows);
+    }
+
+    // ── Excel test helpers ────────────────────────────────────────────────
+
+    private function makeExcelUploadFile(array $rows): UploadedFile
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        foreach ($rows as $rowIndex => $row) {
+            $sheet->fromArray($row, null, 'A' . ($rowIndex + 1));
+        }
+
+        $stream = fopen('php://temp', 'r+');
+        (new Xlsx($spreadsheet))->save($stream);
+        rewind($stream);
+        $content = (string) stream_get_contents($stream);
+        fclose($stream);
+
+        return UploadedFile::fake()->createWithContent('todos.xlsx', $content);
+    }
+
+    private function readExcelRows(string $content): array
+    {
+        $path = tempnam(sys_get_temp_dir(), 'xlsx');
+        file_put_contents($path, $content);
+
+        try {
+            return IOFactory::load($path)->getActiveSheet()->toArray(null, true, false, false);
+        } finally {
+            unlink($path);
+        }
     }
 }

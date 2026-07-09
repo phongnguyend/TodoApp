@@ -5,10 +5,10 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Validates incoming CSV import requests.
+ * Validates incoming Excel import requests.
  * Analogous to a [FromForm] IFormFile parameter with content-type validation in C#.
  */
-class ImportTodoItemsRequest extends FormRequest
+class ImportTodoItemsExcelRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -18,7 +18,7 @@ class ImportTodoItemsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file', 'mimes:csv,txt'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls'],
         ];
     }
 }
