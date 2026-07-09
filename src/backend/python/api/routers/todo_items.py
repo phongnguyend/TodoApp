@@ -57,6 +57,23 @@ def export_csv(service: ServiceDep):
     )
 
 
+@router.post("/import/excel", response_model=ImportResult, summary="Import todo items from an Excel file")
+def import_excel(service: ServiceDep, db: DbDep, file: Annotated[UploadFile, UploadFileParam(...)]):
+    result = service.import_excel(file)
+    db.commit()
+    return result
+
+
+@router.get("/export/excel", summary="Export todo items as an Excel file")
+def export_excel(service: ServiceDep):
+    content = service.export_excel()
+    return StreamingResponse(
+        iter([content]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=todo_items.xlsx"},
+    )
+
+
 @router.get("/{todo_id}", response_model=TodoItemResponse, summary="Get a todo item by ID")
 def get_by_id(todo_id: int, service: ServiceDep):
     return service.get_by_id(todo_id)
