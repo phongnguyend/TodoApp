@@ -1,11 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, File as UploadFileParam, UploadFile, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from shared.database import get_db
 from api.schemas.todo_item import (
     CreateTodoItemRequest,
+    ImportResult,
     PaginatedResponse,
     TodoItemResponse,
     UpdateTodoItemRequest,
@@ -36,6 +38,23 @@ def get_all(service: ServiceDep, page: int = 1, page_size: int = 20):
 @router.get("/incomplete", response_model=PaginatedResponse[TodoItemResponse], summary="Get incomplete todo items")
 def get_incomplete(service: ServiceDep, page: int = 1, page_size: int = 20):
     return service.get_incomplete(page=page, page_size=page_size)
+
+
+@router.post("/import/csv", response_model=ImportResult, summary="Import todo items from a CSV file")
+def import_csv(service: ServiceDep, db: DbDep, file: Annotated[UploadFile, UploadFileParam(...)]):
+    result = service.import_csv(file)
+    db.commit()
+    return result
+
+
+@router.get("/export/csv", summary="Export todo items as a CSV file")
+def export_csv(service: ServiceDep):
+    content = service.export_csv()
+    return StreamingResponse(
+        iter([content]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=todo_items.csv"},
+    )
 
 
 @router.get("/{todo_id}", response_model=TodoItemResponse, summary="Get a todo item by ID")

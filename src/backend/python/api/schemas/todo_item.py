@@ -39,3 +39,16 @@ class PaginatedResponse[T](BaseModel):
     page: int
     page_size: int
     total_pages: int
+
+
+# ── CSV import/export DTOs ─────────────────────────────────────────────────────
+
+class ImportRowError(BaseModel):
+    row: int
+    error: str
+
+
+class ImportResult(BaseModel):
+    imported: int
+    failed: int
+    errors: list[ImportRowError] = Field(default_factory=list)

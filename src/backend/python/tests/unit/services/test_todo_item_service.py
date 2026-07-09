@@ -1,8 +1,9 @@
+import io
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 
 from shared.models.todo_item import TodoItem
 from api.schemas.todo_item import (
@@ -10,6 +11,10 @@ from api.schemas.todo_item import (
     UpdateTodoItemRequest,
 )
 from api.services.todo_item_service import TodoItemService
+
+
+def _make_upload_file(content: str) -> UploadFile:
+    return UploadFile(filename="todo_items.csv", file=io.BytesIO(content.encode("utf-8")))
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -244,3 +249,94 @@ class TestMarkComplete:
             TodoItemService(repo).mark_complete(99)
 
         assert exc_info.value.status_code == 404
+
+
+# ── import_csv ────────────────────────────────────────────────────────────────
+
+class TestImportCsv:
+    def test_imports_valid_rows(self):
+        repo = MagicMock()
+        csv_content = "title,description,is_completed\nBuy milk,Whole milk,false\nWalk dog,,true\n"
+
+        result = TodoItemService(repo).import_csv(_make_upload_file(csv_content))
+
+        assert result.imported == 2
+        assert result.failed == 0
+        assert result.errors == []
+        assert repo.add.call_count == 2
+
+    def test_maps_row_fields_onto_todo_item(self):
+        repo = MagicMock()
+        csv_content = "title,description,is_completed\nBuy milk,Whole milk,true\n"
+
+        TodoItemService(repo).import_csv(_make_upload_file(csv_content))
+
+        added: TodoItem = repo.add.call_args[0][0]
+        assert added.title == "Buy milk"
+        assert added.description == "Whole milk"
+        assert added.is_completed is True
+
+    def test_reports_error_for_missing_title(self):
+        repo = MagicMock()
+        csv_content = "title,description,is_completed\n,No title,false\nValid,ok,false\n"
+
+        result = TodoItemService(repo).import_csv(_make_upload_file(csv_content))
+
+        assert result.imported == 1
+        assert result.failed == 1
+        assert result.errors[0].row == 2
+        assert "Title is required" in result.errors[0].error
+
+    def test_defaults_missing_description_and_is_completed(self):
+        repo = MagicMock()
+        csv_content = "title\nJust a title\n"
+
+        result = TodoItemService(repo).import_csv(_make_upload_file(csv_content))
+
+        assert result.imported == 1
+        added: TodoItem = repo.add.call_args[0][0]
+        assert added.description is None
+        assert added.is_completed is False
+
+    def test_empty_file_imports_nothing(self):
+        repo = MagicMock()
+        csv_content = "title,description,is_completed\n"
+
+        result = TodoItemService(repo).import_csv(_make_upload_file(csv_content))
+
+        assert result.imported == 0
+        assert result.failed == 0
+        repo.add.assert_not_called()
+
+
+# ── export_csv ────────────────────────────────────────────────────────────────
+
+class TestExportCsv:
+    def test_returns_header_and_rows(self):
+        repo = MagicMock()
+        repo.get_all_items.return_value = [_make_todo(1, "A", "Desc A", True)]
+
+        content = TodoItemService(repo).export_csv()
+
+        lines = content.strip().splitlines()
+        assert lines[0] == "id,title,description,is_completed,created_at,updated_at"
+        assert lines[1].startswith("1,A,Desc A,True,")
+
+    def test_empty_list_returns_header_only(self):
+        repo = MagicMock()
+        repo.get_all_items.return_value = []
+
+        content = TodoItemService(repo).export_csv()
+
+        lines = content.strip().splitlines()
+        assert len(lines) == 1
+        assert lines[0] == "id,title,description,is_completed,created_at,updated_at"
+
+    def test_handles_null_description(self):
+        repo = MagicMock()
+        repo.get_all_items.return_value = [_make_todo(1, "A", None, False)]
+
+        content = TodoItemService(repo).export_csv()
+
+        lines = content.strip().splitlines()
+        assert lines[1] == "1,A,,False,2024-01-01T12:00:00+00:00,"

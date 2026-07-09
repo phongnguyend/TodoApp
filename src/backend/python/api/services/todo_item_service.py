@@ -1,16 +1,29 @@
+import csv
+import io
 from abc import ABC, abstractmethod
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from shared.models.todo_item import TodoItem
 from api.repositories.todo_item_repository import ITodoItemRepository, TodoItemRepository
 from api.schemas.todo_item import (
     CreateTodoItemRequest,
+    ImportResult,
+    ImportRowError,
     PaginatedResponse,
     TodoItemResponse,
     UpdateTodoItemRequest,
 )
+
+# ── CSV import/export helpers ───────────────────────────────────────────────────
+
+_CSV_FIELDNAMES = ["id", "title", "description", "is_completed", "created_at", "updated_at"]
+_TRUE_VALUES = {"1", "true", "yes", "y"}
+
+
+def _parse_bool(value: str | None) -> bool:
+    return (value or "").strip().lower() in _TRUE_VALUES
 
 
 class ITodoItemService(ABC):
@@ -36,6 +49,12 @@ class ITodoItemService(ABC):
 
     @abstractmethod
     def mark_complete(self, todo_id: int) -> TodoItemResponse: ...
+
+    @abstractmethod
+    def import_csv(self, file: UploadFile) -> ImportResult: ...
+
+    @abstractmethod
+    def export_csv(self) -> str: ...
 
 
 class TodoItemService(ITodoItemService):
@@ -105,6 +124,47 @@ class TodoItemService(ITodoItemService):
         todo.is_completed = True
         updated = self._repo.update(todo)
         return TodoItemResponse.model_validate(updated)
+
+    # ── CSV import/export ─────────────────────────────────────────────────────
+
+    def import_csv(self, file: UploadFile) -> ImportResult:
+        raw = file.file.read()
+        text = raw.decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(text))
+
+        imported = 0
+        errors: list[ImportRowError] = []
+        for row_number, row in enumerate(reader, start=2):  # header is row 1
+            title = (row.get("title") or "").strip()
+            if not title:
+                errors.append(ImportRowError(row=row_number, error="Title is required."))
+                continue
+
+            description = (row.get("description") or "").strip() or None
+            is_completed = _parse_bool(row.get("is_completed"))
+
+            todo = TodoItem(title=title, description=description, is_completed=is_completed)
+            self._repo.add(todo)
+            imported += 1
+
+        return ImportResult(imported=imported, failed=len(errors), errors=errors)
+
+    def export_csv(self) -> str:
+        items = self._repo.get_all_items()
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(_CSV_FIELDNAMES)
+        for item in items:
+            writer.writerow([
+                item.id,
+                item.title,
+                item.description or "",
+                item.is_completed,
+                item.created_at.isoformat() if item.created_at else "",
+                item.updated_at.isoformat() if item.updated_at else "",
+            ])
+        return buffer.getvalue()
 
 
 # ── Dependency factory (used by FastAPI Depends) ──────────────────────────────
