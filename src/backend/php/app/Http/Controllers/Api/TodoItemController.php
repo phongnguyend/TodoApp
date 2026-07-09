@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateTodoItemRequest;
+use App\Http\Requests\ImportTodoItemsRequest;
 use App\Http\Requests\UpdateTodoItemRequest;
 use App\Http\Resources\TodoItemResource;
 use App\Services\Contracts\TodoItemServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 /**
  * REST controller for todo items.
@@ -92,5 +94,28 @@ class TodoItemController extends Controller
         $this->service->delete($id);
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * POST /api/todo-items/import/csv
+     */
+    public function importCsv(ImportTodoItemsRequest $request): JsonResponse
+    {
+        $result = $this->service->importCsv($request->file('file'));
+
+        return response()->json($result);
+    }
+
+    /**
+     * GET /api/todo-items/export/csv
+     */
+    public function exportCsv(): Response
+    {
+        $content = $this->service->exportCsv();
+
+        return response($content, 200, [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="todo_items.csv"',
+        ]);
     }
 }

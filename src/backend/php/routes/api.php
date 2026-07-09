@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('todo-items')->group(function () {
     Route::get('/',            [TodoItemController::class, 'index']);       // GET    /api/todo-items
     Route::get('/incomplete',  [TodoItemController::class, 'incomplete']);  // GET    /api/todo-items/incomplete
+    Route::post('/import/csv', [TodoItemController::class, 'importCsv']);   // POST   /api/todo-items/import/csv
+    Route::get('/export/csv',  [TodoItemController::class, 'exportCsv']);   // GET    /api/todo-items/export/csv
     Route::get('/{id}',        [TodoItemController::class, 'show']);        // GET    /api/todo-items/{id}
     Route::post('/',           [TodoItemController::class, 'store']);       // POST   /api/todo-items
     Route::put('/{id}',        [TodoItemController::class, 'update']);      // PUT    /api/todo-items/{id}

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\TodoItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class TodoItemApiTest extends TestCase
@@ -169,5 +170,66 @@ class TodoItemApiTest extends TestCase
         $response = $this->deleteJson('/api/todo-items/9999');
 
         $response->assertNotFound();
+    }
+
+    // ── POST /api/todo-items/import/csv ───────────────────────────────────────
+
+    public function test_importCsv_creates_todos_and_reports_counts(): void
+    {
+        $csv = "title,description,is_completed\n"
+             . "Buy groceries,Milk and eggs,false\n"
+             . "Read a book,,true\n"
+             . ",Missing title,false\n";
+        $file = UploadedFile::fake()->createWithContent('todos.csv', $csv);
+
+        $response = $this->postJson('/api/todo-items/import/csv', ['file' => $file]);
+
+        $response->assertOk()
+                 ->assertJson([
+                     'imported' => 2,
+                     'failed'   => 1,
+                 ])
+                 ->assertJsonPath('errors.0.row', 4)
+                 ->assertJsonPath('errors.0.error', 'Title is required.');
+
+        $this->assertDatabaseHas('todo_items', ['title' => 'Buy groceries', 'description' => 'Milk and eggs']);
+        $this->assertDatabaseHas('todo_items', ['title' => 'Read a book', 'is_completed' => true]);
+        $this->assertDatabaseCount('todo_items', 2);
+    }
+
+    public function test_importCsv_returns_422_when_file_missing(): void
+    {
+        $response = $this->postJson('/api/todo-items/import/csv', []);
+
+        $response->assertUnprocessable()
+                 ->assertJsonValidationErrors(['file']);
+    }
+
+    // ── GET /api/todo-items/export/csv ────────────────────────────────────────
+
+    public function test_exportCsv_returns_csv_content_for_all_todos(): void
+    {
+        TodoItem::factory()->create(['title' => 'Buy groceries', 'description' => 'Milk and eggs']);
+        TodoItem::factory()->completed()->create(['title' => 'Read a book']);
+
+        $response = $this->get('/api/todo-items/export/csv');
+
+        $response->assertOk()
+                 ->assertHeader('Content-Type', 'text/csv; charset=UTF-8')
+                 ->assertHeader('Content-Disposition', 'attachment; filename="todo_items.csv"');
+
+        $content = $response->getContent();
+        $this->assertStringContainsString('id,title,description,is_completed,created_at,updated_at', $content);
+        $this->assertStringContainsString('Buy groceries', $content);
+        $this->assertStringContainsString('Read a book', $content);
+    }
+
+    public function test_exportCsv_returns_header_only_when_no_todos(): void
+    {
+        $response = $this->get('/api/todo-items/export/csv');
+
+        $response->assertOk();
+        $lines = array_filter(explode("\n", (string) $response->getContent()));
+        $this->assertCount(1, $lines);
     }
 }

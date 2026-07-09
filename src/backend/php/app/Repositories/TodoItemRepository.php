@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\TodoItem;
 use App\Repositories\Contracts\TodoItemRepositoryInterface;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
@@ -27,5 +28,10 @@ class TodoItemRepository extends BaseRepository implements TodoItemRepositoryInt
     public function findByTitle(string $title): ?TodoItem
     {
         return TodoItem::where('title', $title)->first();
+    }
+
+    public function getAllOrdered(): Collection
+    {
+        return TodoItem::orderByDesc('created_at')->get();
     }
 }

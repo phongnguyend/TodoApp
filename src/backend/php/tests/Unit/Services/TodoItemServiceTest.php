@@ -7,7 +7,9 @@ use App\Http\Requests\UpdateTodoItemRequest;
 use App\Models\TodoItem;
 use App\Repositories\Contracts\TodoItemRepositoryInterface;
 use App\Services\TodoItemService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Mockery;
 use Tests\TestCase;
@@ -156,5 +158,74 @@ class TodoItemServiceTest extends TestCase
 
         $this->expectException(ModelNotFoundException::class);
         $this->service->markComplete(99);
+    }
+
+    // ── importCsv ─────────────────────────────────────────────────────────────
+
+    public function test_importCsv_creates_valid_rows_and_collects_errors(): void
+    {
+        $csv = "title,description,is_completed\n"
+             . "Buy groceries,Milk and eggs,true\n"
+             . ",Missing title,false\n";
+        $file = UploadedFile::fake()->createWithContent('todos.csv', $csv);
+
+        $this->repository->shouldReceive('create')
+            ->once()
+            ->with([
+                'title'        => 'Buy groceries',
+                'description'  => 'Milk and eggs',
+                'is_completed' => true,
+            ])
+            ->andReturn(new TodoItem(['title' => 'Buy groceries']));
+
+        $result = $this->service->importCsv($file);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(1, $result['failed']);
+        $this->assertSame([['row' => 3, 'error' => 'Title is required.']], $result['errors']);
+    }
+
+    public function test_importCsv_treats_blank_description_as_null(): void
+    {
+        $csv = "title,description,is_completed\nRead a book,,false\n";
+        $file = UploadedFile::fake()->createWithContent('todos.csv', $csv);
+
+        $this->repository->shouldReceive('create')
+            ->once()
+            ->with([
+                'title'        => 'Read a book',
+                'description'  => null,
+                'is_completed' => false,
+            ])
+            ->andReturn(new TodoItem(['title' => 'Read a book']));
+
+        $result = $this->service->importCsv($file);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(0, $result['failed']);
+    }
+
+    // ── exportCsv ─────────────────────────────────────────────────────────────
+
+    public function test_exportCsv_returns_header_only_when_no_items(): void
+    {
+        $this->repository->shouldReceive('getAllOrdered')->once()->andReturn(new Collection([]));
+
+        $content = $this->service->exportCsv();
+
+        $this->assertSame("id,title,description,is_completed,created_at,updated_at\n", $content);
+    }
+
+    public function test_exportCsv_returns_header_and_rows(): void
+    {
+        $todo = new TodoItem(['title' => 'Buy groceries', 'description' => 'Milk', 'is_completed' => true]);
+        $todo->id = 1;
+        $this->repository->shouldReceive('getAllOrdered')->once()->andReturn(new Collection([$todo]));
+
+        $content = $this->service->exportCsv();
+        $rows = array_map('str_getcsv', array_filter(explode("\n", $content)));
+
+        $this->assertSame(['id', 'title', 'description', 'is_completed', 'created_at', 'updated_at'], $rows[0]);
+        $this->assertSame(['1', 'Buy groceries', 'Milk', 'true', '', ''], $rows[1]);
     }
 }
