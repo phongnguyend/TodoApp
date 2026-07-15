@@ -1,9 +1,11 @@
 package com.example.todo.service;
 
 import com.example.todo.dto.CreateTodoItemRequest;
+import com.example.todo.dto.ImportResult;
 import com.example.todo.dto.PaginatedResponse;
 import com.example.todo.dto.TodoItemResponse;
 import com.example.todo.dto.UpdateTodoItemRequest;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Service interface - mirrors ITodoItemService in C#.
@@ -24,4 +26,8 @@ public interface TodoItemService {
     TodoItemResponse markComplete(Long id);
 
     void delete(Long id);
+
+    ImportResult importCsv(MultipartFile file);
+
+    String exportCsv();
 }

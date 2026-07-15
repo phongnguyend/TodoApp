@@ -1,6 +1,8 @@
 package com.example.todo.api.controller;
 
 import com.example.todo.dto.CreateTodoItemRequest;
+import com.example.todo.dto.ImportResult;
+import com.example.todo.dto.ImportRowError;
 import com.example.todo.dto.PaginatedResponse;
 import com.example.todo.dto.TodoItemResponse;
 import com.example.todo.dto.UpdateTodoItemRequest;
@@ -11,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -24,9 +27,11 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -117,8 +122,8 @@ class TodoItemControllerTest {
         when(service.create(any(CreateTodoItemRequest.class))).thenReturn(sampleResponse());
 
         mockMvc.perform(post("/api/todo-items")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.title").value("Buy groceries"));
@@ -129,8 +134,8 @@ class TodoItemControllerTest {
         CreateTodoItemRequest request = new CreateTodoItemRequest("", null);
 
         mockMvc.perform(post("/api/todo-items")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -139,15 +144,15 @@ class TodoItemControllerTest {
         CreateTodoItemRequest request = new CreateTodoItemRequest("A".repeat(201), null);
 
         mockMvc.perform(post("/api/todo-items")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void create_missingBody_returnsBadRequest() throws Exception {
         mockMvc.perform(post("/api/todo-items")
-                        .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
     }
 
@@ -159,8 +164,8 @@ class TodoItemControllerTest {
         when(service.update(eq(1L), any(UpdateTodoItemRequest.class))).thenReturn(sampleResponse());
 
         mockMvc.perform(put("/api/todo-items/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1));
     }
@@ -172,8 +177,8 @@ class TodoItemControllerTest {
                 .thenThrow(new EntityNotFoundException("Todo item 99 not found."));
 
         mockMvc.perform(put("/api/todo-items/99")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
     }
 
@@ -212,5 +217,53 @@ class TodoItemControllerTest {
 
         mockMvc.perform(delete("/api/todo-items/99"))
                 .andExpect(status().isNotFound());
+    }
+
+    // ── POST /api/todo-items/import/csv ────────────────────────────────────
+
+    @Test
+    void importCsv_validFile_returnsOkWithSummary() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "todo_items.csv", "text/csv",
+                "title,description,is_completed\nBuy milk,,false\n".getBytes());
+        when(service.importCsv(any())).thenReturn(new ImportResult(1, 0, List.of()));
+
+        mockMvc.perform(multipart("/api/todo-items/import/csv").file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imported").value(1))
+                .andExpect(jsonPath("$.failed").value(0));
+    }
+
+    @Test
+    void importCsv_invalidRows_returnsOkWithErrors() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "todo_items.csv", "text/csv",
+                "title,description,is_completed\n,,false\n".getBytes());
+        when(service.importCsv(any()))
+                .thenReturn(new ImportResult(0, 1, List.of(new ImportRowError(2, "Title is required."))));
+
+        mockMvc.perform(multipart("/api/todo-items/import/csv").file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imported").value(0))
+                .andExpect(jsonPath("$.failed").value(1))
+                .andExpect(jsonPath("$.errors[0].row").value(2))
+                .andExpect(jsonPath("$.errors[0].error").value("Title is required."));
+    }
+
+    @Test
+    void importCsv_missingFile_returnsBadRequest() throws Exception {
+        mockMvc.perform(multipart("/api/todo-items/import/csv"))
+                .andExpect(status().isBadRequest());
+    }
+
+    // ── GET /api/todo-items/export/csv ─────────────────────────────────────
+
+    @Test
+    void exportCsv_returnsOkWithCsvContentAndAttachmentHeader() throws Exception {
+        when(service.exportCsv()).thenReturn("id,title,description,is_completed,created_at,updated_at\r\n");
+
+        mockMvc.perform(get("/api/todo-items/export/csv"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"todo_items.csv\""));
     }
 }

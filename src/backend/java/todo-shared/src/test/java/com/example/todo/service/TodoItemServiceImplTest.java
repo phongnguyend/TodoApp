@@ -1,6 +1,7 @@
 package com.example.todo.service;
 
 import com.example.todo.dto.CreateTodoItemRequest;
+import com.example.todo.dto.ImportResult;
 import com.example.todo.dto.PaginatedResponse;
 import com.example.todo.dto.TodoItemResponse;
 import com.example.todo.dto.UpdateTodoItemRequest;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -213,5 +215,70 @@ class TodoItemServiceImplTest {
         assertThatThrownBy(() -> service.delete(99L))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("99");
+    }
+
+    // ── importCsv ──────────────────────────────────────────────────────
+
+    @Test
+    void importCsv_validRows_importsAndReturnsSummary() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "todo_items.csv", "text/csv",
+                "title,description,is_completed\nBuy milk,Whole milk,true\nBuy eggs,,false\n".getBytes());
+        when(repository.save(any(TodoItem.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ImportResult result = service.importCsv(file);
+
+        assertThat(result.imported()).isEqualTo(2);
+        assertThat(result.failed()).isZero();
+        assertThat(result.errors()).isEmpty();
+        verify(repository, org.mockito.Mockito.times(2)).save(any(TodoItem.class));
+    }
+
+    @Test
+    void importCsv_blankTitle_recordsRowError() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "todo_items.csv", "text/csv",
+                "title,description,is_completed\n,,false\n".getBytes());
+
+        ImportResult result = service.importCsv(file);
+
+        assertThat(result.imported()).isZero();
+        assertThat(result.failed()).isEqualTo(1);
+        assertThat(result.errors()).hasSize(1);
+        assertThat(result.errors().get(0).row()).isEqualTo(2);
+        assertThat(result.errors().get(0).error()).isEqualTo("Title is required.");
+    }
+
+    @Test
+    void importCsv_emptyFile_returnsEmptySummary() {
+        MockMultipartFile file = new MockMultipartFile("file", "todo_items.csv", "text/csv", new byte[0]);
+
+        ImportResult result = service.importCsv(file);
+
+        assertThat(result.imported()).isZero();
+        assertThat(result.failed()).isZero();
+        assertThat(result.errors()).isEmpty();
+    }
+
+    // ── exportCsv ───────────────────────────────────────────────────
+
+    @Test
+    void exportCsv_returnsHeaderAndRows() {
+        when(repository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(item));
+
+        String csv = service.exportCsv();
+        List<String> lines = List.of(csv.split("\r\n"));
+
+        assertThat(lines.get(0)).isEqualTo("id,title,description,is_completed,created_at,updated_at");
+        assertThat(lines.get(1)).contains("1,Buy groceries,\"Milk, eggs, bread\",false");
+    }
+
+    @Test
+    void exportCsv_noItems_returnsHeaderOnly() {
+        when(repository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of());
+
+        String csv = service.exportCsv();
+
+        assertThat(csv).isEqualTo("id,title,description,is_completed,created_at,updated_at\r\n");
     }
 }
