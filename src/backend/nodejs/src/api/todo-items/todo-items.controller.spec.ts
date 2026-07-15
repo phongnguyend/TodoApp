@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 
 import { PaginatedResponseDto } from '../../shared/common/dto/paginated-response.dto';
+import { ImportResultDto } from './dto/import-result.dto';
 import { TodoItemResponseDto } from './dto/todo-item-response.dto';
 import { TodoItemsController } from './todo-items.controller';
 import { TodoItemsService } from './todo-items.service';
@@ -36,6 +38,8 @@ describe('TodoItemsController', () => {
       update: jest.fn(),
       markComplete: jest.fn(),
       delete: jest.fn(),
+      importCsv: jest.fn(),
+      exportCsv: jest.fn(),
     } as unknown as jest.Mocked<TodoItemsService>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -150,4 +154,41 @@ describe('TodoItemsController', () => {
       expect(service.delete).toHaveBeenCalledWith(1);
     });
   });
-});
+  // ── importCsv ──────────────────────────────────────────────────────────────
+
+  describe('importCsv', () => {
+    it('should forward the uploaded file buffer to the service', async () => {
+      const result: ImportResultDto = { imported: 2, failed: 0, errors: [] };
+      service.importCsv.mockResolvedValue(result);
+      const file = { buffer: Buffer.from('title\nBuy milk\n') } as Express.Multer.File;
+
+      const response = await controller.importCsv(file);
+
+      expect(service.importCsv).toHaveBeenCalledWith(file.buffer);
+      expect(response).toBe(result);
+    });
+
+    it('should throw BadRequestException when no file is provided', () => {
+      expect(() => controller.importCsv(undefined)).toThrow(BadRequestException);
+      expect(service.importCsv).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── exportCsv ───────────────────────────────────────────────────────────
+
+  describe('exportCsv', () => {
+    it('should stream the CSV content with the correct headers', async () => {
+      const csv = 'id,title,description,is_completed,created_at,updated_at\r\n';
+      service.exportCsv.mockResolvedValue(csv);
+      const res = { set: jest.fn(), send: jest.fn() } as unknown as import('express').Response;
+
+      await controller.exportCsv(res);
+
+      expect(service.exportCsv).toHaveBeenCalled();
+      expect(res.set).toHaveBeenCalledWith({
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="todo_items.csv"',
+      });
+      expect(res.send).toHaveBeenCalledWith(csv);
+    });
+  });});

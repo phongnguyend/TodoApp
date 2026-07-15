@@ -1,10 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PaginatedResponseDto } from '../../shared/common/dto/paginated-response.dto';
+import { parseCsv, toCsvRow } from './csv.util';
 import { CreateTodoItemDto } from './dto/create-todo-item.dto';
+import { ImportResultDto, ImportRowErrorDto } from './dto/import-result.dto';
 import { TodoItemResponseDto } from './dto/todo-item-response.dto';
 import { UpdateTodoItemDto } from './dto/update-todo-item.dto';
 import { TodoItemRepository } from './todo-items.repository';
 import { TodoItem } from '@prisma/client';
+
+const CSV_HEADER = ['id', 'title', 'description', 'is_completed', 'created_at', 'updated_at'];
+const TRUE_VALUES = new Set(['1', 'true', 'yes', 'y']);
 
 /**
  * TodoItemsService contains all business logic.
@@ -48,6 +53,10 @@ export class TodoItemsService {
       throw new NotFoundException(`Todo item ${id} not found.`);
     }
     return item;
+  }
+
+  private static parseBool(value: string | undefined): boolean {
+    return TRUE_VALUES.has((value ?? '').trim().toLowerCase());
   }
 
   // ── Queries ───────────────────────────────────────────────────────────────────
@@ -98,5 +107,64 @@ export class TodoItemsService {
   async delete(id: number): Promise<void> {
     await this.getOrThrow(id);
     await this.repository.delete(id);
+  }
+
+  // ── CSV import/export ──────────────────────────────────────────────────────
+
+  async importCsv(buffer: Buffer): Promise<ImportResultDto> {
+    const text = buffer.toString('utf-8').replace(/^\uFEFF/, ''); // strip UTF-8 BOM
+    const rows = parseCsv(text);
+
+    if (rows.length === 0) {
+      return { imported: 0, failed: 0, errors: [] };
+    }
+
+    const header = rows[0].map((column) => column.trim().toLowerCase());
+    const colIndex = new Map(header.map((name, idx) => [name, idx]));
+    const getCell = (row: string[], name: string): string | undefined => {
+      const idx = colIndex.get(name);
+      return idx !== undefined ? row[idx] : undefined;
+    };
+
+    let imported = 0;
+    const errors: ImportRowErrorDto[] = [];
+
+    for (let i = 1; i < rows.length; i++) {
+      const rowNumber = i + 1; // header occupies row 1
+      const row = rows[i];
+
+      const title = (getCell(row, 'title') ?? '').trim();
+      if (!title) {
+        errors.push({ row: rowNumber, error: 'Title is required.' });
+        continue;
+      }
+
+      const description = (getCell(row, 'description') ?? '').trim() || null;
+      const isCompleted = TodoItemsService.parseBool(getCell(row, 'is_completed'));
+
+      await this.repository.create({ title, description, isCompleted });
+      imported++;
+    }
+
+    return { imported, failed: errors.length, errors };
+  }
+
+  async exportCsv(): Promise<string> {
+    const items = await this.repository.findAllOrdered();
+
+    const lines = [toCsvRow(CSV_HEADER)];
+    for (const item of items) {
+      lines.push(
+        toCsvRow([
+          item.id,
+          item.title,
+          item.description ?? '',
+          item.isCompleted,
+          item.createdAt ? item.createdAt.toISOString() : '',
+          item.updatedAt ? item.updatedAt.toISOString() : '',
+        ]),
+      );
+    }
+    return lines.join('');
   }
 }

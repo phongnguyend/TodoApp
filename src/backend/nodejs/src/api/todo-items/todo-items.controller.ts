@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -11,8 +12,14 @@ import {
   Post,
   Put,
   Query,
+  Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  ApiBody,
+  ApiConsumes,
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
@@ -20,8 +27,10 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { Response } from 'express';
 import { PaginatedResponseDto } from '../../shared/common/dto/paginated-response.dto';
 import { CreateTodoItemDto } from './dto/create-todo-item.dto';
+import { ImportResultDto } from './dto/import-result.dto';
 import { TodoItemResponseDto } from './dto/todo-item-response.dto';
 import { UpdateTodoItemDto } from './dto/update-todo-item.dto';
 import { TodoItemsService } from './todo-items.service';
@@ -94,5 +103,33 @@ export class TodoItemsController {
   @ApiNotFoundResponse({ description: 'Todo item not found' })
   async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.service.delete(id);
+  }
+
+  @Post('import/csv')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiOkResponse({ type: ImportResultDto, description: 'Import result summary' })
+  importCsv(@UploadedFile() file?: Express.Multer.File): Promise<ImportResultDto> {
+    if (!file) {
+      throw new BadRequestException('file is required.');
+    }
+    return this.service.importCsv(file.buffer);
+  }
+
+  @Get('export/csv')
+  @ApiOkResponse({ description: 'CSV file containing all todo items' })
+  async exportCsv(@Res() res: Response): Promise<void> {
+    const content = await this.service.exportCsv();
+    res.set({
+      'Content-Type': 'text/csv',
+      'Content-Disposition': 'attachment; filename="todo_items.csv"',
+    });
+    res.send(content);
   }
 }

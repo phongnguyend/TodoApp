@@ -24,6 +24,7 @@ describe('TodoItemsService', () => {
       findAll: jest.fn(),
       findIncomplete: jest.fn(),
       findById: jest.fn(),
+      findAllOrdered: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -224,6 +225,91 @@ describe('TodoItemsService', () => {
       repository.findById.mockResolvedValue(null);
 
       await expect(service.delete(99)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ── importCsv ─────────────────────────────────────────────────────────────────
+
+  describe('importCsv', () => {
+    it('should import valid rows and skip rows with missing titles', async () => {
+      repository.create.mockResolvedValue(makeTodoItem());
+      const csv =
+        'title,description,is_completed\n' +
+        'Buy milk,Whole milk,false\n' +
+        ',No title,true\n' +
+        'Walk dog,,true\n';
+
+      const result = await service.importCsv(Buffer.from(csv, 'utf-8'));
+
+      expect(repository.create).toHaveBeenCalledTimes(2);
+      expect(repository.create).toHaveBeenNthCalledWith(1, {
+        title: 'Buy milk',
+        description: 'Whole milk',
+        isCompleted: false,
+      });
+      expect(repository.create).toHaveBeenNthCalledWith(2, {
+        title: 'Walk dog',
+        description: null,
+        isCompleted: true,
+      });
+      expect(result).toEqual({
+        imported: 2,
+        failed: 1,
+        errors: [{ row: 3, error: 'Title is required.' }],
+      });
+    });
+
+    it('should strip a UTF-8 BOM before parsing', async () => {
+      repository.create.mockResolvedValue(makeTodoItem());
+      const csv = '\uFEFFtitle,description,is_completed\nBuy milk,,false\n';
+
+      const result = await service.importCsv(Buffer.from(csv, 'utf-8'));
+
+      expect(repository.create).toHaveBeenCalledWith({
+        title: 'Buy milk',
+        description: null,
+        isCompleted: false,
+      });
+      expect(result.imported).toBe(1);
+    });
+
+    it('should return an empty result for an empty file', async () => {
+      const result = await service.importCsv(Buffer.from('', 'utf-8'));
+
+      expect(repository.create).not.toHaveBeenCalled();
+      expect(result).toEqual({ imported: 0, failed: 0, errors: [] });
+    });
+  });
+
+  // ── exportCsv ─────────────────────────────────────────────────────────────────
+
+  describe('exportCsv', () => {
+    it('should render all items as a CSV document', async () => {
+      repository.findAllOrdered.mockResolvedValue([
+        makeTodoItem({
+          id: 1,
+          title: 'Buy milk',
+          description: 'Whole milk',
+          createdAt: new Date('2024-01-01T00:00:00.000Z'),
+        }),
+      ]);
+
+      const csv = await service.exportCsv();
+
+      expect(csv).toBe(
+        'id,title,description,is_completed,created_at,updated_at\r\n' +
+          '1,Buy milk,Whole milk,false,2024-01-01T00:00:00.000Z,\r\n',
+      );
+    });
+
+    it('should quote fields containing commas', async () => {
+      repository.findAllOrdered.mockResolvedValue([
+        makeTodoItem({ id: 1, title: 'Buy milk, eggs' }),
+      ]);
+
+      const csv = await service.exportCsv();
+
+      expect(csv).toContain('"Buy milk, eggs"');
     });
   });
 });

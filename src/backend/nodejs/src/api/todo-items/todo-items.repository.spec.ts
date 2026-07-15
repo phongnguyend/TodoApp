@@ -114,6 +114,22 @@ describe('TodoItemRepository', () => {
     });
   });
 
+  // ── findAllOrdered ────────────────────────────────────────────────────────────
+
+  describe('findAllOrdered', () => {
+    it('should return all items ordered by createdAt descending', async () => {
+      const items = [makeTodoItem(), makeTodoItem({ id: 2 })];
+      prismaMock.todoItem.findMany.mockResolvedValue(items);
+
+      const result = await repository.findAllOrdered();
+
+      expect(prismaMock.todoItem.findMany).toHaveBeenCalledWith({
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(result).toEqual(items);
+    });
+  });
+
   // ── findById ──────────────────────────────────────────────────────────────────
 
   describe('findById', () => {
