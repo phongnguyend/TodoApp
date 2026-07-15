@@ -40,6 +40,8 @@ describe('TodoItemsController', () => {
       delete: jest.fn(),
       importCsv: jest.fn(),
       exportCsv: jest.fn(),
+      importExcel: jest.fn(),
+      exportExcel: jest.fn(),
     } as unknown as jest.Mocked<TodoItemsService>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -191,4 +193,44 @@ describe('TodoItemsController', () => {
       });
       expect(res.send).toHaveBeenCalledWith(csv);
     });
-  });});
+  });
+
+  // ── importExcel ─────────────────────────────────────────────────────────────
+
+  describe('importExcel', () => {
+    it('should forward the uploaded file buffer to the service', async () => {
+      const result: ImportResultDto = { imported: 2, failed: 0, errors: [] };
+      service.importExcel.mockResolvedValue(result);
+      const file = { buffer: Buffer.from('fake xlsx bytes') } as Express.Multer.File;
+
+      const response = await controller.importExcel(file);
+
+      expect(service.importExcel).toHaveBeenCalledWith(file.buffer);
+      expect(response).toBe(result);
+    });
+
+    it('should throw BadRequestException when no file is provided', () => {
+      expect(() => controller.importExcel(undefined)).toThrow(BadRequestException);
+      expect(service.importExcel).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── exportExcel ─────────────────────────────────────────────────────────────
+
+  describe('exportExcel', () => {
+    it('should stream the Excel content with the correct headers', async () => {
+      const xlsx = Buffer.from('fake xlsx bytes');
+      service.exportExcel.mockResolvedValue(xlsx);
+      const res = { set: jest.fn(), send: jest.fn() } as unknown as import('express').Response;
+
+      await controller.exportExcel(res);
+
+      expect(service.exportExcel).toHaveBeenCalled();
+      expect(res.set).toHaveBeenCalledWith({
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': 'attachment; filename="todo_items.xlsx"',
+      });
+      expect(res.send).toHaveBeenCalledWith(xlsx);
+    });
+  });
+});

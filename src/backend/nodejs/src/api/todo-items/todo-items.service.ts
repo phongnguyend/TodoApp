@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PaginatedResponseDto } from '../../shared/common/dto/paginated-response.dto';
 import { parseCsv, toCsvRow } from './csv.util';
+import { buildExcelWorkbook, parseExcel } from './excel.util';
 import { CreateTodoItemDto } from './dto/create-todo-item.dto';
 import { ImportResultDto, ImportRowErrorDto } from './dto/import-result.dto';
 import { TodoItemResponseDto } from './dto/todo-item-response.dto';
@@ -166,5 +167,63 @@ export class TodoItemsService {
       );
     }
     return lines.join('');
+  }
+
+  // ── Excel import/export ─────────────────────────────────────────────────────
+
+  async importExcel(buffer: Buffer): Promise<ImportResultDto> {
+    const rows = await parseExcel(buffer);
+
+    if (rows.length === 0) {
+      return { imported: 0, failed: 0, errors: [] };
+    }
+
+    const header = rows[0].map((column) => String(column ?? '').trim().toLowerCase());
+    const colIndex = new Map(header.map((name, idx) => [name, idx]));
+    const getCell = (row: unknown[], name: string): unknown => {
+      const idx = colIndex.get(name);
+      return idx !== undefined ? row[idx] : undefined;
+    };
+
+    let imported = 0;
+    const errors: ImportRowErrorDto[] = [];
+
+    for (let i = 1; i < rows.length; i++) {
+      const rowNumber = i + 1; // header occupies row 1
+      const row = rows[i];
+
+      if (row === undefined || row.every((value) => value === null || value === undefined)) {
+        continue;
+      }
+
+      const title = String(getCell(row, 'title') ?? '').trim();
+      if (!title) {
+        errors.push({ row: rowNumber, error: 'Title is required.' });
+        continue;
+      }
+
+      const description = String(getCell(row, 'description') ?? '').trim() || null;
+      const isCompleted = TodoItemsService.parseBool(String(getCell(row, 'is_completed') ?? ''));
+
+      await this.repository.create({ title, description, isCompleted });
+      imported++;
+    }
+
+    return { imported, failed: errors.length, errors };
+  }
+
+  async exportExcel(): Promise<Buffer> {
+    const items = await this.repository.findAllOrdered();
+
+    const rows = items.map((item) => [
+      item.id,
+      item.title,
+      item.description ?? '',
+      item.isCompleted,
+      item.createdAt ? item.createdAt.toISOString() : '',
+      item.updatedAt ? item.updatedAt.toISOString() : '',
+    ]);
+
+    return buildExcelWorkbook(CSV_HEADER, rows);
   }
 }

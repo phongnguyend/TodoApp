@@ -132,4 +132,32 @@ export class TodoItemsController {
     });
     res.send(content);
   }
+
+  @Post('import/excel')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiOkResponse({ type: ImportResultDto, description: 'Import result summary' })
+  importExcel(@UploadedFile() file?: Express.Multer.File): Promise<ImportResultDto> {
+    if (!file) {
+      throw new BadRequestException('file is required.');
+    }
+    return this.service.importExcel(file.buffer);
+  }
+
+  @Get('export/excel')
+  @ApiOkResponse({ description: 'Excel file containing all todo items' })
+  async exportExcel(@Res() res: Response): Promise<void> {
+    const content = await this.service.exportExcel();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="todo_items.xlsx"',
+    });
+    res.send(content);
+  }
 }
