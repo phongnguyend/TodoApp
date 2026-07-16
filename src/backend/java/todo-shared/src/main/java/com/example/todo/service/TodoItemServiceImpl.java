@@ -9,6 +9,7 @@ import com.example.todo.dto.UpdateTodoItemRequest;
 import com.example.todo.entity.TodoItem;
 import com.example.todo.repository.TodoItemRepository;
 import com.example.todo.util.CsvUtil;
+import com.example.todo.util.ExcelUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -128,7 +129,61 @@ public class TodoItemServiceImpl implements TodoItemService {
     @Transactional
     public ImportResult importCsv(MultipartFile file) {
         List<List<String>> rows = CsvUtil.parse(readAsUtf8(file));
+        return importRows(rows);
+    }
 
+    @Override
+    public String exportCsv() {
+        List<TodoItem> items = repository.findAllByOrderByCreatedAtDesc();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(CsvUtil.toCsvRow(CSV_HEADER));
+        for (TodoItem item : items) {
+            sb.append(CsvUtil.toCsvRow(List.of(
+                    item.getId(),
+                    item.getTitle(),
+                    item.getDescription() != null ? item.getDescription() : "",
+                    item.isCompleted(),
+                    item.getCreatedAt() != null ? item.getCreatedAt().toString() : "",
+                    item.getUpdatedAt() != null ? item.getUpdatedAt().toString() : "")));
+        }
+        return sb.toString();
+    }
+
+    // ── Excel import/export ───────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public ImportResult importExcel(MultipartFile file) {
+        List<List<String>> rows;
+        try {
+            rows = ExcelUtil.parse(file.getInputStream());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return importRows(rows);
+    }
+
+    @Override
+    public byte[] exportExcel() {
+        List<TodoItem> items = repository.findAllByOrderByCreatedAtDesc();
+
+        List<List<Object>> rows = items.stream()
+                .<List<Object>>map(item -> List.of(
+                        item.getId(),
+                        item.getTitle(),
+                        item.getDescription() != null ? item.getDescription() : "",
+                        item.isCompleted(),
+                        item.getCreatedAt() != null ? item.getCreatedAt().toString() : "",
+                        item.getUpdatedAt() != null ? item.getUpdatedAt().toString() : ""))
+                .toList();
+
+        return ExcelUtil.write(CSV_HEADER, rows);
+    }
+
+    // ── Shared import row processing (CSV & Excel) ────────────────────────────
+
+    private ImportResult importRows(List<List<String>> rows) {
         if (rows.isEmpty()) {
             return new ImportResult(0, 0, List.of());
         }
@@ -161,24 +216,6 @@ public class TodoItemServiceImpl implements TodoItemService {
         }
 
         return new ImportResult(imported, errors.size(), errors);
-    }
-
-    @Override
-    public String exportCsv() {
-        List<TodoItem> items = repository.findAllByOrderByCreatedAtDesc();
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(CsvUtil.toCsvRow(CSV_HEADER));
-        for (TodoItem item : items) {
-            sb.append(CsvUtil.toCsvRow(List.of(
-                    item.getId(),
-                    item.getTitle(),
-                    item.getDescription() != null ? item.getDescription() : "",
-                    item.isCompleted(),
-                    item.getCreatedAt() != null ? item.getCreatedAt().toString() : "",
-                    item.getUpdatedAt() != null ? item.getUpdatedAt().toString() : "")));
-        }
-        return sb.toString();
     }
 
     private static String getCell(List<String> row, Map<String, Integer> colIndex, String name) {

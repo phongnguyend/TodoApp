@@ -111,4 +111,23 @@ public class TodoItemController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"todo_items.csv\"")
                 .body(content);
     }
+
+    @PostMapping(value = "/import/excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Import todo items from an Excel file")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE))
+    public ImportResult importExcel(
+            @Parameter(schema = @Schema(type = "string", format = "binary")) @RequestParam("file") MultipartFile file) {
+        return service.importExcel(file);
+    }
+
+    @GetMapping("/export/excel")
+    @Operation(summary = "Export todo items as an Excel file")
+    public ResponseEntity<byte[]> exportExcel() {
+        byte[] content = service.exportExcel();
+        return ResponseEntity.ok()
+                .contentType(
+                        MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"todo_items.xlsx\"")
+                .body(content);
+    }
 }

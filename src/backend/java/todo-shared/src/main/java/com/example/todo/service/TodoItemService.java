@@ -30,4 +30,8 @@ public interface TodoItemService {
     ImportResult importCsv(MultipartFile file);
 
     String exportCsv();
+
+    ImportResult importExcel(MultipartFile file);
+
+    byte[] exportExcel();
 }
