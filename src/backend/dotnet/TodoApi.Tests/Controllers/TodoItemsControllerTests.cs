@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using TodoApi.Controllers;
@@ -182,5 +183,47 @@ public class TodoItemsControllerTests
         var result = await _sut.Delete(99);
 
         Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    // ── CSV import/export ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ImportCsv_Returns400_WhenFileMissing()
+    {
+        var result = await _sut.ImportCsv(null);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(400, badRequest.StatusCode);
+        _serviceMock.Verify(s => s.ImportCsvAsync(It.IsAny<IFormFile>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportCsv_Returns200_WithImportResult()
+    {
+        var formFile = new Mock<IFormFile>();
+        formFile.Setup(f => f.Length).Returns(10);
+        var importResult = new ImportResult(2, 1, [new ImportRowError(3, "Title is required.")]);
+        _serviceMock.Setup(s => s.ImportCsvAsync(formFile.Object, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(importResult);
+
+        var result = await _sut.ImportCsv(formFile.Object);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+        Assert.Same(importResult, ok.Value);
+    }
+
+    [Fact]
+    public async Task ExportCsv_ReturnsFileResult()
+    {
+        _serviceMock.Setup(s => s.ExportCsvAsync(It.IsAny<CancellationToken>()))
+                    .ReturnsAsync("id,title\n1,Test");
+
+        var result = await _sut.ExportCsv();
+
+        var file = Assert.IsType<FileContentResult>(result);
+        Assert.Equal("text/csv; charset=utf-8", file.ContentType);
+        Assert.Equal("todo-items.csv", file.FileDownloadName);
+        Assert.Equal("id,title\n1,Test", System.Text.Encoding.UTF8.GetString(file.FileContents));
     }
 }

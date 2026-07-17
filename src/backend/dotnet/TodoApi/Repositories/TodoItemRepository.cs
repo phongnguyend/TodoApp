@@ -16,4 +16,7 @@ public class TodoItemRepository(AppDbContext db) : BaseRepository<TodoItem>(db),
         var items = await query.Skip(skip).Take(take).ToListAsync(ct);
         return (items, total);
     }
+
+    public async Task<IReadOnlyList<TodoItem>> GetAllItemsAsync(CancellationToken ct = default)
+        => await Db.TodoItems.OrderByDescending(t => t.CreatedAt).ThenByDescending(t => t.Id).ToListAsync(ct);
 }

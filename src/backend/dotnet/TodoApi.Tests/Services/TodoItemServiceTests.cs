@@ -1,10 +1,12 @@
+using System.Text;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using TodoApi.Data;
 using TodoApi.DTOs;
 using TodoApi.Repositories;
 using TodoApi.Services;
 using TodoShared.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace TodoApi.Tests.Services;
 
@@ -254,5 +256,47 @@ public class TodoItemServiceTests
 
         Assert.NotNull(item.UpdatedAt);
         Assert.True(item.UpdatedAt >= before);
+    }
+
+    // ── ImportCsvAsync ──────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ImportCsvAsync_CreatesValidRowsAndCollectsErrors()
+    {
+        var csv = "title,description,is_completed\nBuy milk,Whole milk,true\n,Missing title,false\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
+        var file = new FormFile(stream, 0, stream.Length, "file", "todo-items.csv")
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = "text/csv"
+        };
+
+        _repoMock.Setup(r => r.AddAsync(It.IsAny<TodoItem>(), It.IsAny<CancellationToken>()))
+                 .ReturnsAsync((TodoItem item, CancellationToken _) => item);
+
+        var result = await _sut.ImportCsvAsync(file);
+
+        Assert.Equal(1, result.Imported);
+        Assert.Equal(1, result.Failed);
+        Assert.Single(result.Errors);
+        Assert.Equal(3, result.Errors[0].Row);
+    }
+
+    // ── ExportCsvAsync ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ExportCsvAsync_ReturnsCsvContent()
+    {
+        var items = new List<TodoItem>
+        {
+            new() { Id = 1, Title = "Buy milk", Description = "Whole milk", IsCompleted = false, CreatedAt = DateTime.UtcNow },
+        };
+        _repoMock.Setup(r => r.GetAllItemsAsync(It.IsAny<CancellationToken>()))
+                 .ReturnsAsync(items);
+
+        var csv = await _sut.ExportCsvAsync();
+
+        Assert.StartsWith("id,title,description,is_completed,created_at,updated_at", csv);
+        Assert.Contains("Buy milk", csv);
     }
 }
