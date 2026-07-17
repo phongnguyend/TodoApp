@@ -121,6 +121,31 @@ public class TodoItemsController(ITodoItemService service) : ControllerBase
         return File(bytes, "text/csv; charset=utf-8", "todo-items.csv");
     }
 
+    // POST api/todo-items/import/excel
+    [HttpPost("import/excel")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(ImportResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ImportExcel(IFormFile? file, CancellationToken ct = default)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { error = "file is required" });
+        }
+
+        var result = await service.ImportExcelAsync(file, ct);
+        return Ok(result);
+    }
+
+    // GET api/todo-items/export/excel
+    [HttpGet("export/excel")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ExportExcel(CancellationToken ct = default)
+    {
+        var bytes = await service.ExportExcelAsync(ct);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "todo-items.xlsx");
+    }
+
     // DELETE api/todo-items/{id}
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

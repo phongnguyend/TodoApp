@@ -226,4 +226,44 @@ public class TodoItemsControllerTests
         Assert.Equal("todo-items.csv", file.FileDownloadName);
         Assert.Equal("id,title\n1,Test", System.Text.Encoding.UTF8.GetString(file.FileContents));
     }
+
+    [Fact]
+    public async Task ImportExcel_Returns400_WhenFileMissing()
+    {
+        var result = await _sut.ImportExcel(null);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(400, badRequest.StatusCode);
+        _serviceMock.Verify(s => s.ImportExcelAsync(It.IsAny<IFormFile>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportExcel_Returns200_WithImportResult()
+    {
+        var formFile = new Mock<IFormFile>();
+        formFile.Setup(f => f.Length).Returns(10);
+        var importResult = new ImportResult(1, 0, []);
+        _serviceMock.Setup(s => s.ImportExcelAsync(formFile.Object, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(importResult);
+
+        var result = await _sut.ImportExcel(formFile.Object);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+        Assert.Same(importResult, ok.Value);
+    }
+
+    [Fact]
+    public async Task ExportExcel_ReturnsFileResult()
+    {
+        _serviceMock.Setup(s => s.ExportExcelAsync(It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new byte[] { 1, 2, 3 });
+
+        var result = await _sut.ExportExcel();
+
+        var file = Assert.IsType<FileContentResult>(result);
+        Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", file.ContentType);
+        Assert.Equal("todo-items.xlsx", file.FileDownloadName);
+        Assert.Equal(new byte[] { 1, 2, 3 }, file.FileContents);
+    }
 }

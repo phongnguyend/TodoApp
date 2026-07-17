@@ -1,4 +1,7 @@
 using System.Text;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using TodoApi.Data;
 using TodoApi.DTOs;
 using TodoApi.Repositories;
@@ -9,6 +12,7 @@ namespace TodoApi.Services;
 public class TodoItemService(ITodoItemRepository repository, AppDbContext db) : ITodoItemService
 {
     private static readonly string[] CsvFieldNames = ["id", "title", "description", "is_completed", "created_at", "updated_at"];
+    private static readonly string[] ExcelFieldNames = ["id", "title", "description", "is_completed", "created_at", "updated_at"];
     private static readonly HashSet<string> TrueValues = new(StringComparer.OrdinalIgnoreCase) { "1", "true", "yes", "y" };
 
     // ── Mapping ───────────────────────────────────────────────────────────────
@@ -252,5 +256,148 @@ public class TodoItemService(ITodoItemRepository repository, AppDbContext db) : 
         }
 
         return value;
+    }
+
+    public async Task<ImportResult> ImportExcelAsync(IFormFile file, CancellationToken ct = default)
+    {
+        if (file.Length == 0)
+        {
+            return new ImportResult(0, 0, []);
+        }
+
+        using var stream = file.OpenReadStream();
+        using var package = SpreadsheetDocument.Open(stream, false);
+        var workbookPart = package.WorkbookPart ?? throw new InvalidOperationException("The uploaded file is not a valid workbook.");
+        var sheet = workbookPart.Workbook.Descendants<Sheet>().FirstOrDefault();
+        if (sheet is null)
+        {
+            return new ImportResult(0, 0, []);
+        }
+
+        var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+        var sharedStringPart = workbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
+        var rows = worksheetPart.Worksheet.Descendants<Row>().ToList();
+        if (rows.Count == 0)
+        {
+            return new ImportResult(0, 0, []);
+        }
+
+        var headerCells = ReadRowValues(rows[0], sharedStringPart).Select(value => value.Trim().ToLowerInvariant()).ToList();
+        var indexByName = headerCells.Select((name, index) => new { name, index })
+            .Where(entry => !string.IsNullOrWhiteSpace(entry.name))
+            .ToDictionary(entry => entry.name, entry => entry.index, StringComparer.OrdinalIgnoreCase);
+
+        var imported = 0;
+        var errors = new List<ImportRowError>();
+
+        for (var rowIndex = 1; rowIndex < rows.Count; rowIndex++)
+        {
+            var rowNumber = rowIndex + 1;
+            var values = ReadRowValues(rows[rowIndex], sharedStringPart);
+            var title = GetColumnValue(values, indexByName, "title")?.Trim();
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                errors.Add(new ImportRowError(rowNumber, "Title is required."));
+                continue;
+            }
+
+            var description = GetColumnValue(values, indexByName, "description")?.Trim();
+            var isCompleted = ParseBool(GetColumnValue(values, indexByName, "is_completed"));
+
+            var item = new TodoItem
+            {
+                Title = title,
+                Description = string.IsNullOrWhiteSpace(description) ? null : description,
+                IsCompleted = isCompleted,
+                CreatedAt = DateTime.UtcNow,
+            };
+
+            await repository.AddAsync(item, ct);
+            imported++;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return new ImportResult(imported, errors.Count, errors);
+    }
+
+    public async Task<byte[]> ExportExcelAsync(CancellationToken ct = default)
+    {
+        var items = await repository.GetAllItemsAsync(ct);
+        using var stream = new MemoryStream();
+        using var package = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook, true);
+        var workbookPart = package.AddWorkbookPart();
+        workbookPart.Workbook = new Workbook(new Sheets());
+
+        var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+        worksheetPart.Worksheet = new Worksheet(new SheetData());
+        var sheets = workbookPart.Workbook.GetFirstChild<Sheets>()!;
+        sheets.Append(new Sheet { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "Todo Items" });
+
+        var sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+        AppendRow(sheetData, ExcelFieldNames);
+        foreach (var item in items)
+        {
+            AppendRow(sheetData, new[]
+            {
+                item.Id.ToString(),
+                item.Title ?? string.Empty,
+                item.Description ?? string.Empty,
+                item.IsCompleted.ToString().ToLowerInvariant(),
+                item.CreatedAt.ToString("O"),
+                item.UpdatedAt?.ToString("O") ?? string.Empty,
+            });
+        }
+
+        worksheetPart.Worksheet.Save();
+        workbookPart.Workbook.Save();
+        package.Save();
+        stream.Position = 0;
+        return stream.ToArray();
+    }
+
+    private static IReadOnlyList<string> ReadRowValues(Row row, SharedStringTablePart? sharedStringTablePart)
+    {
+        var values = new List<string>();
+        var cells = row.Elements<Cell>().ToList();
+        foreach (var cell in cells)
+        {
+            values.Add(GetCellValue(cell, sharedStringTablePart));
+        }
+
+        return values;
+    }
+
+    private static string GetCellValue(Cell cell, SharedStringTablePart? sharedStringTablePart)
+    {
+        if (cell.DataType?.Value == CellValues.SharedString && sharedStringTablePart is not null)
+        {
+            if (cell.CellValue is not null && int.TryParse(cell.CellValue.Text, out var index) && index >= 0 && index < sharedStringTablePart.SharedStringTable.Count())
+            {
+                return sharedStringTablePart.SharedStringTable.ElementAt(index).InnerText;
+            }
+        }
+
+        if (cell.DataType?.Value == CellValues.InlineString)
+        {
+            return cell.InlineString?.InnerText ?? string.Empty;
+        }
+
+        if (cell.CellValue is not null)
+        {
+            return cell.CellValue.Text;
+        }
+
+        return string.Empty;
+    }
+
+    private static void AppendRow(SheetData sheetData, IEnumerable<string> values)
+    {
+        var row = new Row();
+        foreach (var value in values)
+        {
+            row.AppendChild(new Cell(new CellValue(value)) { DataType = CellValues.String });
+        }
+
+        sheetData.AppendChild(row);
     }
 }
