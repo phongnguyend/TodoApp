@@ -4,21 +4,21 @@ A RESTful API for managing todo items built with **Gin**, **GORM**, and Go - the
 
 ## Tech-stack mapping
 
-| ASP.NET Core + EF | Go equivalent |
-|---|---|
-| ASP.NET Core | **Gin** (HTTP framework) |
-| Entity Framework Core | **GORM** (ORM) |
-| EF Migrations | GORM `AutoMigrate` / `golang-migrate` |
-| `DbContext` | `*gorm.DB` passed via constructor DI |
-| Controllers | **Handlers** (`TodoItemHandler`) |
-| Services (`IService` / `Service`) | `TodoItemService` interface + impl |
-| Repository pattern | `TodoItemRepository` interface + impl |
-| DTOs / Data Annotations | Go structs with `binding` tags (Gin validator) |
-| `appsettings.json` / `IConfiguration` | `godotenv` + `config.Config` struct |
-| Dependency Injection | Manual constructor injection (composition root in `main.go`) |
-| Swagger / OpenAPI | `swaggo/gin-swagger` at `/swagger/index.html` |
-| `Program.cs` | `cmd/api/main.go` |
-| xUnit + Moq | `testing` (stdlib) + `testify` (hand-written interface mocks) |
+| ASP.NET Core + EF                     | Go equivalent                                                 |
+| ------------------------------------- | ------------------------------------------------------------- |
+| ASP.NET Core                          | **Gin** (HTTP framework)                                      |
+| Entity Framework Core                 | **GORM** (ORM)                                                |
+| EF Migrations                         | GORM `AutoMigrate` / `golang-migrate`                         |
+| `DbContext`                           | `*gorm.DB` passed via constructor DI                          |
+| Controllers                           | **Handlers** (`TodoItemHandler`)                              |
+| Services (`IService` / `Service`)     | `TodoItemService` interface + impl                            |
+| Repository pattern                    | `TodoItemRepository` interface + impl                         |
+| DTOs / Data Annotations               | Go structs with `binding` tags (Gin validator)                |
+| `appsettings.json` / `IConfiguration` | `godotenv` + `config.Config` struct                           |
+| Dependency Injection                  | Manual constructor injection (composition root in `main.go`)  |
+| Swagger / OpenAPI                     | `swaggo/gin-swagger` at `/swagger/index.html`                 |
+| `Program.cs`                          | `cmd/api/main.go`                                             |
+| xUnit + Moq                           | `testing` (stdlib) + `testify` (hand-written interface mocks) |
 
 ## Project structure
 
@@ -77,16 +77,19 @@ src/backend/go/
 ### 1. Install Go
 
 **Windows (winget):**
+
 ```powershell
 winget install GoLang.Go
 ```
 
 **macOS (Homebrew):**
+
 ```bash
 brew install go
 ```
 
 **Linux:**
+
 ```bash
 sudo apt install golang-go        # Debian/Ubuntu
 sudo dnf install golang           # Fedora/RHEL
@@ -94,7 +97,7 @@ sudo dnf install golang           # Fedora/RHEL
 
 Or download the installer directly: <https://go.dev/dl/>
 
-Ensure Go 1.23+ is installed (`go version` to verify).
+Ensure Go 1.25+ is installed (`go version` to verify).
 
 ### 2. Install dependencies
 
@@ -177,21 +180,25 @@ MAX_UPLOAD_SIZE_BYTES=10485760  # Maximum accepted upload size, in bytes (defaul
 2. Swap the driver import in `internal/database/database.go`:
 
 **PostgreSQL:**
+
 ```go
 import "gorm.io/driver/postgres"
 // ...
 db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 ```
+
 ```bash
 go get gorm.io/driver/postgres
 ```
 
 **MySQL:**
+
 ```go
 import "gorm.io/driver/mysql"
 // ...
 db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 ```
+
 ```bash
 go get gorm.io/driver/mysql
 ```
@@ -265,16 +272,16 @@ The job runs **immediately on startup** and then on the configured interval.
 
 ### Worker configuration
 
-| Variable | Default | Description |
-|---|---|---|
-| `WORKER_INTERVAL_MINUTES` | `60` | How often to run the digest job |
-| `SMTP_HOST` | `localhost` | SMTP server hostname |
-| `SMTP_PORT` | `587` | SMTP server port |
-| `SMTP_USERNAME` | _(empty)_ | SMTP login (omit for anonymous) |
-| `SMTP_PASSWORD` | _(empty)_ | SMTP password |
-| `SMTP_USE_TLS` | `true` | `true` = STARTTLS (port 587); `false` = plain/SSL |
-| `EMAIL_SENDER` | `noreply@example.com` | From address |
-| `EMAIL_RECIPIENT` | `admin@example.com` | Destination address |
+| Variable                  | Default               | Description                                       |
+| ------------------------- | --------------------- | ------------------------------------------------- |
+| `WORKER_INTERVAL_MINUTES` | `60`                  | How often to run the digest job                   |
+| `SMTP_HOST`               | `localhost`           | SMTP server hostname                              |
+| `SMTP_PORT`               | `587`                 | SMTP server port                                  |
+| `SMTP_USERNAME`           | _(empty)_             | SMTP login (omit for anonymous)                   |
+| `SMTP_PASSWORD`           | _(empty)_             | SMTP password                                     |
+| `SMTP_USE_TLS`            | `true`                | `true` = STARTTLS (port 587); `false` = plain/SSL |
+| `EMAIL_SENDER`            | `noreply@example.com` | From address                                      |
+| `EMAIL_RECIPIENT`         | `admin@example.com`   | Destination address                               |
 
 ### Run the worker locally
 
