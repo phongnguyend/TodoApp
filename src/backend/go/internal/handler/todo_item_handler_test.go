@@ -34,6 +34,8 @@ type mockSvc struct {
 	deleteFn        func(id uint) error
 	importCSVFn     func(r io.Reader) (dto.ImportResult, error)
 	exportCSVFn     func() (string, error)
+	importExcelFn   func(r io.Reader) (dto.ImportResult, error)
+	exportExcelFn   func() ([]byte, error)
 }
 
 func (m *mockSvc) GetAll(page, pageSize int) (dto.PaginatedResponse[dto.TodoItemResponse], error) {
@@ -63,6 +65,12 @@ func (m *mockSvc) ImportCSV(r io.Reader) (dto.ImportResult, error) {
 func (m *mockSvc) ExportCSV() (string, error) {
 	return m.exportCSVFn()
 }
+func (m *mockSvc) ImportExcel(r io.Reader) (dto.ImportResult, error) {
+	return m.importExcelFn(r)
+}
+func (m *mockSvc) ExportExcel() ([]byte, error) {
+	return m.exportExcelFn()
+}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -89,6 +97,8 @@ func setupRouter(h *handler.TodoItemHandler) *gin.Engine {
 	api.DELETE("/:id", h.Delete)
 	api.POST("/import/csv", h.ImportCSV)
 	api.GET("/export/csv", h.ExportCSV)
+	api.POST("/import/excel", h.ImportExcel)
+	api.GET("/export/excel", h.ExportExcel)
 	return r
 }
 
@@ -461,6 +471,101 @@ func TestExportCSV_ServiceError_Returns500(t *testing.T) {
 	r := setupRouter(handler.NewTodoItemHandler(svc))
 
 	w := doRequest(r, http.MethodGet, "/api/todo-items/export/csv", nil)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+// ── ImportExcel ───────────────────────────────────────────────────────────────
+
+func multipartExcelRequest(content []byte) (*http.Request, error) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", "todo_items.xlsx")
+	if err != nil {
+		return nil, err
+	}
+	if _, err := part.Write(content); err != nil {
+		return nil, err
+	}
+	if err := writer.Close(); err != nil {
+		return nil, err
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/todo-items/import/excel", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	return req, nil
+}
+
+func TestImportExcel_Returns200(t *testing.T) {
+	svc := &mockSvc{
+		importExcelFn: func(r io.Reader) (dto.ImportResult, error) {
+			return dto.ImportResult{Imported: 2, Failed: 0, Errors: []dto.ImportRowError{}}, nil
+		},
+	}
+	r := setupRouter(handler.NewTodoItemHandler(svc))
+
+	req, err := multipartExcelRequest([]byte("fake xlsx bytes"))
+	require.NoError(t, err)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var respBody dto.ImportResult
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &respBody))
+	assert.Equal(t, 2, respBody.Imported)
+	assert.Equal(t, 0, respBody.Failed)
+}
+
+func TestImportExcel_MissingFile_Returns400(t *testing.T) {
+	r := setupRouter(handler.NewTodoItemHandler(&mockSvc{}))
+
+	w := doRequest(r, http.MethodPost, "/api/todo-items/import/excel", nil)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestImportExcel_ServiceError_Returns500(t *testing.T) {
+	svc := &mockSvc{
+		importExcelFn: func(r io.Reader) (dto.ImportResult, error) {
+			return dto.ImportResult{}, assert.AnError
+		},
+	}
+	r := setupRouter(handler.NewTodoItemHandler(svc))
+
+	req, err := multipartExcelRequest([]byte("fake xlsx bytes"))
+	require.NoError(t, err)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+// ── ExportExcel ───────────────────────────────────────────────────────────────
+
+func TestExportExcel_Returns200(t *testing.T) {
+	svc := &mockSvc{
+		exportExcelFn: func() ([]byte, error) {
+			return []byte("fake xlsx bytes"), nil
+		},
+	}
+	r := setupRouter(handler.NewTodoItemHandler(svc))
+
+	w := doRequest(r, http.MethodGet, "/api/todo-items/export/excel", nil)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Header().Get("Content-Type"), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	assert.Contains(t, w.Header().Get("Content-Disposition"), "todo_items.xlsx")
+	assert.Equal(t, "fake xlsx bytes", w.Body.String())
+}
+
+func TestExportExcel_ServiceError_Returns500(t *testing.T) {
+	svc := &mockSvc{
+		exportExcelFn: func() ([]byte, error) {
+			return nil, assert.AnError
+		},
+	}
+	r := setupRouter(handler.NewTodoItemHandler(svc))
+
+	w := doRequest(r, http.MethodGet, "/api/todo-items/export/excel", nil)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }

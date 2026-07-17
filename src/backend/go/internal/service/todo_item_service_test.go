@@ -1,7 +1,9 @@
 package service_test
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +14,7 @@ import (
 	"github.com/todo/backend/go/internal/models"
 	"github.com/todo/backend/go/internal/repository"
 	"github.com/todo/backend/go/internal/service"
+	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
 
@@ -481,5 +484,136 @@ func TestExportCSV_RepoError_Propagates(t *testing.T) {
 	svc := service.NewTodoItemService(repo)
 
 	_, err := svc.ExportCSV()
+	require.Error(t, err)
+}
+
+// ── ImportExcel ───────────────────────────────────────────────────────────────
+
+func buildExcelFile(t *testing.T, rows [][]string) []byte {
+	t.Helper()
+	f := excelize.NewFile()
+	defer f.Close()
+	for r, row := range rows {
+		values := make([]interface{}, len(row))
+		for c, v := range row {
+			values[c] = v
+		}
+		require.NoError(t, f.SetSheetRow("Sheet1", fmt.Sprintf("A%d", r+1), &values))
+	}
+	buf, err := f.WriteToBuffer()
+	require.NoError(t, err)
+	return buf.Bytes()
+}
+
+func TestImportExcel_CreatesValidRows(t *testing.T) {
+	var created []*models.TodoItem
+	repo := &mockRepo{
+		createFn: func(item *models.TodoItem) (*models.TodoItem, error) {
+			created = append(created, item)
+			return item, nil
+		},
+	}
+	svc := service.NewTodoItemService(repo)
+
+	content := buildExcelFile(t, [][]string{
+		{"title", "description", "is_completed"},
+		{"Buy milk", "Whole milk", "true"},
+		{"Buy eggs", "", "false"},
+	})
+	result, err := svc.ImportExcel(bytes.NewReader(content))
+
+	require.NoError(t, err)
+	assert.Equal(t, 2, result.Imported)
+	assert.Equal(t, 0, result.Failed)
+	assert.Empty(t, result.Errors)
+	require.Len(t, created, 2)
+	assert.Equal(t, "Buy milk", created[0].Title)
+	assert.Equal(t, "Whole milk", *created[0].Description)
+	assert.True(t, created[0].IsCompleted)
+	assert.Equal(t, "Buy eggs", created[1].Title)
+	assert.Nil(t, created[1].Description)
+	assert.False(t, created[1].IsCompleted)
+}
+
+func TestImportExcel_MissingTitle_RecordsError(t *testing.T) {
+	repo := &mockRepo{
+		createFn: func(item *models.TodoItem) (*models.TodoItem, error) { return item, nil },
+	}
+	svc := service.NewTodoItemService(repo)
+
+	content := buildExcelFile(t, [][]string{
+		{"title", "description", "is_completed"},
+		{"", "No title", "false"},
+		{"Buy milk", "", "false"},
+	})
+	result, err := svc.ImportExcel(bytes.NewReader(content))
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, result.Imported)
+	assert.Equal(t, 1, result.Failed)
+	require.Len(t, result.Errors, 1)
+	assert.Equal(t, 2, result.Errors[0].Row)
+}
+
+func TestImportExcel_EmptyFile_ReturnsZeroResult(t *testing.T) {
+	svc := service.NewTodoItemService(&mockRepo{})
+
+	content := buildExcelFile(t, [][]string{{"title", "description", "is_completed"}})
+	result, err := svc.ImportExcel(bytes.NewReader(content))
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, result.Imported)
+	assert.Equal(t, 0, result.Failed)
+}
+
+func TestImportExcel_RepoError_Propagates(t *testing.T) {
+	repo := &mockRepo{
+		createFn: func(item *models.TodoItem) (*models.TodoItem, error) {
+			return nil, errors.New("db error")
+		},
+	}
+	svc := service.NewTodoItemService(repo)
+
+	content := buildExcelFile(t, [][]string{
+		{"title", "description", "is_completed"},
+		{"Buy milk", "", "false"},
+	})
+	_, err := svc.ImportExcel(bytes.NewReader(content))
+	require.Error(t, err)
+}
+
+// ── ExportExcel ───────────────────────────────────────────────────────────────
+
+func TestExportExcel_WritesHeaderAndRows(t *testing.T) {
+	item := sampleItem()
+	repo := &mockRepo{
+		findAllItemsFn: func() ([]models.TodoItem, error) {
+			return []models.TodoItem{*item}, nil
+		},
+	}
+	svc := service.NewTodoItemService(repo)
+
+	content, err := svc.ExportExcel()
+
+	require.NoError(t, err)
+	f, err := excelize.OpenReader(bytes.NewReader(content))
+	require.NoError(t, err)
+	defer f.Close()
+	rows, err := f.GetRows(f.GetSheetName(0))
+	require.NoError(t, err)
+	require.Len(t, rows, 2)
+	assert.Equal(t, []string{"id", "title", "description", "is_completed", "created_at", "updated_at"}, rows[0])
+	assert.Equal(t, item.Title, rows[1][1])
+}
+
+func TestExportExcel_RepoError_Propagates(t *testing.T) {
+	repo := &mockRepo{
+		findAllItemsFn: func() ([]models.TodoItem, error) {
+			return nil, errors.New("db error")
+		},
+	}
+	svc := service.NewTodoItemService(repo)
+
+	_, err := svc.ExportExcel()
 	require.Error(t, err)
 }
