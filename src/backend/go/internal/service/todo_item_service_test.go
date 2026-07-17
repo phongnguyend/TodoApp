@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 type mockRepo struct {
 	findAllFn        func(skip, limit int) (repository.PaginatedResult, error)
 	findIncompleteFn func(skip, limit int) (repository.PaginatedResult, error)
+	findAllItemsFn   func() ([]models.TodoItem, error)
 	findByIDFn       func(id uint) (*models.TodoItem, error)
 	createFn         func(item *models.TodoItem) (*models.TodoItem, error)
 	updateFn         func(item *models.TodoItem) (*models.TodoItem, error)
@@ -30,6 +32,9 @@ func (m *mockRepo) FindAll(skip, limit int) (repository.PaginatedResult, error) 
 }
 func (m *mockRepo) FindIncomplete(skip, limit int) (repository.PaginatedResult, error) {
 	return m.findIncompleteFn(skip, limit)
+}
+func (m *mockRepo) FindAllItems() ([]models.TodoItem, error) {
+	return m.findAllItemsFn()
 }
 func (m *mockRepo) FindByID(id uint) (*models.TodoItem, error) {
 	return m.findByIDFn(id)
@@ -380,5 +385,101 @@ func TestDelete_RepoDeleteError_Propagates(t *testing.T) {
 	svc := service.NewTodoItemService(repo)
 
 	err := svc.Delete(1)
+	require.Error(t, err)
+}
+
+// ── ImportCSV ─────────────────────────────────────────────────────────────────
+
+func TestImportCSV_CreatesValidRows(t *testing.T) {
+	var created []*models.TodoItem
+	repo := &mockRepo{
+		createFn: func(item *models.TodoItem) (*models.TodoItem, error) {
+			created = append(created, item)
+			return item, nil
+		},
+	}
+	svc := service.NewTodoItemService(repo)
+
+	csvContent := "title,description,is_completed\nBuy milk,Whole milk,true\nBuy eggs,,false\n"
+	result, err := svc.ImportCSV(strings.NewReader(csvContent))
+
+	require.NoError(t, err)
+	assert.Equal(t, 2, result.Imported)
+	assert.Equal(t, 0, result.Failed)
+	assert.Empty(t, result.Errors)
+	require.Len(t, created, 2)
+	assert.Equal(t, "Buy milk", created[0].Title)
+	assert.Equal(t, "Whole milk", *created[0].Description)
+	assert.True(t, created[0].IsCompleted)
+	assert.Equal(t, "Buy eggs", created[1].Title)
+	assert.Nil(t, created[1].Description)
+	assert.False(t, created[1].IsCompleted)
+}
+
+func TestImportCSV_MissingTitle_RecordsError(t *testing.T) {
+	repo := &mockRepo{
+		createFn: func(item *models.TodoItem) (*models.TodoItem, error) { return item, nil },
+	}
+	svc := service.NewTodoItemService(repo)
+
+	csvContent := "title,description,is_completed\n,No title,false\nBuy milk,,false\n"
+	result, err := svc.ImportCSV(strings.NewReader(csvContent))
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, result.Imported)
+	assert.Equal(t, 1, result.Failed)
+	require.Len(t, result.Errors, 1)
+	assert.Equal(t, 2, result.Errors[0].Row)
+}
+
+func TestImportCSV_EmptyFile_ReturnsZeroResult(t *testing.T) {
+	svc := service.NewTodoItemService(&mockRepo{})
+
+	result, err := svc.ImportCSV(strings.NewReader(""))
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, result.Imported)
+	assert.Equal(t, 0, result.Failed)
+}
+
+func TestImportCSV_RepoError_Propagates(t *testing.T) {
+	repo := &mockRepo{
+		createFn: func(item *models.TodoItem) (*models.TodoItem, error) {
+			return nil, errors.New("db error")
+		},
+	}
+	svc := service.NewTodoItemService(repo)
+
+	_, err := svc.ImportCSV(strings.NewReader("title,description,is_completed\nBuy milk,,false\n"))
+	require.Error(t, err)
+}
+
+// ── ExportCSV ─────────────────────────────────────────────────────────────────
+
+func TestExportCSV_WritesHeaderAndRows(t *testing.T) {
+	item := sampleItem()
+	repo := &mockRepo{
+		findAllItemsFn: func() ([]models.TodoItem, error) {
+			return []models.TodoItem{*item}, nil
+		},
+	}
+	svc := service.NewTodoItemService(repo)
+
+	content, err := svc.ExportCSV()
+
+	require.NoError(t, err)
+	assert.Contains(t, content, "id,title,description,is_completed,created_at,updated_at")
+	assert.Contains(t, content, item.Title)
+}
+
+func TestExportCSV_RepoError_Propagates(t *testing.T) {
+	repo := &mockRepo{
+		findAllItemsFn: func() ([]models.TodoItem, error) {
+			return nil, errors.New("db error")
+		},
+	}
+	svc := service.NewTodoItemService(repo)
+
+	_, err := svc.ExportCSV()
 	require.Error(t, err)
 }

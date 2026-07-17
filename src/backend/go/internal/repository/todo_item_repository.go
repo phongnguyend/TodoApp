@@ -43,6 +43,15 @@ func (r *todoItemRepository) FindIncomplete(skip, limit int) (PaginatedResult, e
 	return PaginatedResult{Items: items, Total: total}, nil
 }
 
+// FindAllItems returns every todo item, unpaginated - used to build the CSV/Excel export.
+func (r *todoItemRepository) FindAllItems() ([]models.TodoItem, error) {
+	var items []models.TodoItem
+	if err := r.db.Order("created_at desc").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 func (r *todoItemRepository) FindByID(id uint) (*models.TodoItem, error) {
 	var item models.TodoItem
 	if err := r.db.First(&item, id).Error; err != nil {

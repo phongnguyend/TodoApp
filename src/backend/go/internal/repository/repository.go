@@ -13,6 +13,7 @@ type PaginatedResult struct {
 type TodoItemRepository interface {
 	FindAll(skip, limit int) (PaginatedResult, error)
 	FindIncomplete(skip, limit int) (PaginatedResult, error)
+	FindAllItems() ([]models.TodoItem, error)
 	FindByID(id uint) (*models.TodoItem, error)
 	Create(item *models.TodoItem) (*models.TodoItem, error)
 	Update(item *models.TodoItem) (*models.TodoItem, error)
