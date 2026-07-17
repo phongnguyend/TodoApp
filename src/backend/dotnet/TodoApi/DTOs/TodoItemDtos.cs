@@ -29,3 +29,14 @@ public record PaginatedResponse<T>(
     int PageSize,
     int TotalPages
 );
+
+public record ImportResult(
+    int Imported,
+    int Failed,
+    IReadOnlyList<ImportRowError> Errors
+);
+
+public record ImportRowError(
+    int Row,
+    string Error
+);

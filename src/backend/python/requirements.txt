@@ -12,6 +12,9 @@ pydantic-settings==2.7.0
 # Multipart form parsing (required by FastAPI for file uploads)
 python-multipart==0.0.20
 
+# Excel import/export (.xlsx read/write)
+openpyxl==3.1.5
+
 # Background job scheduler (used by the worker process)
 apscheduler==3.11.0
 

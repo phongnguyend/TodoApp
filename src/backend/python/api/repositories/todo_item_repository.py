@@ -15,6 +15,9 @@ class ITodoItemRepository(IRepository[TodoItem]):
     @abstractmethod
     def get_incomplete(self, skip: int = 0, limit: int = 20) -> tuple[list[TodoItem], int]: ...
 
+    @abstractmethod
+    def get_all_items(self) -> list[TodoItem]: ...
+
 
 class TodoItemRepository(BaseRepository[TodoItem], ITodoItemRepository):
     """SQLAlchemy-backed todo-item repository (analogous to EF Repository implementation)."""
@@ -30,3 +33,6 @@ class TodoItemRepository(BaseRepository[TodoItem], ITodoItemRepository):
         total = query.count()
         items = query.offset(skip).limit(limit).all()
         return items, total
+
+    def get_all_items(self) -> list[TodoItem]:
+        return self._db.query(TodoItem).all()

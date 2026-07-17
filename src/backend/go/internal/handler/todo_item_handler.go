@@ -195,6 +195,100 @@ func (h *TodoItemHandler) Delete(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// ImportCSV godoc
+// @Summary      Import todo items from a CSV file
+// @Tags         Todo Items
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        file  formData  file  true  "CSV file to import"
+// @Success      200   {object}  dto.ImportResult
+// @Failure      400   {object}  map[string]string
+// @Router       /api/todo-items/import/csv [post]
+func (h *TodoItemHandler) ImportCSV(c *gin.Context) {
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file is required"})
+		return
+	}
+
+	src, err := fileHeader.Open()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unable to read uploaded file"})
+		return
+	}
+	defer src.Close()
+
+	result, err := h.svc.ImportCSV(src)
+	if err != nil {
+		handleServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+// ExportCSV godoc
+// @Summary      Export todo items as a CSV file
+// @Tags         Todo Items
+// @Produce      text/csv
+// @Success      200  {file}  binary
+// @Router       /api/todo-items/export/csv [get]
+func (h *TodoItemHandler) ExportCSV(c *gin.Context) {
+	content, err := h.svc.ExportCSV()
+	if err != nil {
+		handleServiceError(c, err)
+		return
+	}
+	c.Header("Content-Disposition", "attachment; filename=todo_items.csv")
+	c.Data(http.StatusOK, "text/csv", []byte(content))
+}
+
+// ImportExcel godoc
+// @Summary      Import todo items from an Excel file
+// @Tags         Todo Items
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        file  formData  file  true  "Excel file to import"
+// @Success      200   {object}  dto.ImportResult
+// @Failure      400   {object}  map[string]string
+// @Router       /api/todo-items/import/excel [post]
+func (h *TodoItemHandler) ImportExcel(c *gin.Context) {
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file is required"})
+		return
+	}
+
+	src, err := fileHeader.Open()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unable to read uploaded file"})
+		return
+	}
+	defer src.Close()
+
+	result, err := h.svc.ImportExcel(src)
+	if err != nil {
+		handleServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+// ExportExcel godoc
+// @Summary      Export todo items as an Excel file
+// @Tags         Todo Items
+// @Produce      application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+// @Success      200  {file}  binary
+// @Router       /api/todo-items/export/excel [get]
+func (h *TodoItemHandler) ExportExcel(c *gin.Context) {
+	content, err := h.svc.ExportExcel()
+	if err != nil {
+		handleServiceError(c, err)
+		return
+	}
+	c.Header("Content-Disposition", "attachment; filename=todo_items.xlsx")
+	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", content)
+}
+
 func parseID(c *gin.Context) (uint, error) {
 	raw := c.Param("id")
 	id, err := strconv.ParseUint(raw, 10, 64)

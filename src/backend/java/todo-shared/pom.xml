@@ -39,6 +39,13 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
 
+        <!-- Apache POI - Excel (.xlsx) import/export -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+
         <!-- Lombok - reduces boilerplate (getters, setters, constructors) -->
         <dependency>
             <groupId>org.projectlombok</groupId>

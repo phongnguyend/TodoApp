@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from shared.database import get_db
 from api.main import app
 from api.routers import todo_items
-from api.schemas.todo_item import PaginatedResponse, TodoItemResponse
+from api.schemas.todo_item import ImportResult, PaginatedResponse, TodoItemResponse
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -251,3 +251,109 @@ class TestDelete:
         client.delete("/api/todo-items/3")
 
         mock_service.delete.assert_called_once_with(3)
+
+
+# ── POST /api/todo-items/import/csv ───────────────────────────────────────────
+
+class TestImportCsv:
+    def test_returns_200_with_result(self, client, mock_service):
+        mock_service.import_csv.return_value = ImportResult(imported=2, failed=0, errors=[])
+
+        csv_content = b"title,description,is_completed\nBuy milk,Whole milk,false\n"
+        response = client.post(
+            "/api/todo-items/import/csv",
+            files={"file": ("todo_items.csv", csv_content, "text/csv")},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["imported"] == 2
+        assert data["failed"] == 0
+
+    def test_returns_result_with_errors(self, client, mock_service):
+        mock_service.import_csv.return_value = ImportResult(
+            imported=1, failed=1, errors=[{"row": 2, "error": "Title is required."}]
+        )
+
+        csv_content = b"title\n,\n"
+        response = client.post(
+            "/api/todo-items/import/csv",
+            files={"file": ("todo_items.csv", csv_content, "text/csv")},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["failed"] == 1
+        assert data["errors"][0]["row"] == 2
+
+    def test_returns_422_when_file_missing(self, client, mock_service):
+        response = client.post("/api/todo-items/import/csv")
+
+        assert response.status_code == 422
+
+
+# ── GET /api/todo-items/export/csv ────────────────────────────────────────────
+
+class TestExportCsv:
+    def test_returns_200_with_csv_content(self, client, mock_service):
+        mock_service.export_csv.return_value = "id,title,description,is_completed,created_at,updated_at\n"
+
+        response = client.get("/api/todo-items/export/csv")
+
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/csv")
+        assert "attachment" in response.headers["content-disposition"]
+        assert response.text == "id,title,description,is_completed,created_at,updated_at\n"
+
+
+# ── POST /api/todo-items/import/excel ─────────────────────────────────────────
+
+class TestImportExcel:
+    def test_returns_200_with_result(self, client, mock_service):
+        mock_service.import_excel.return_value = ImportResult(imported=2, failed=0, errors=[])
+
+        excel_content = b"fake xlsx bytes"
+        response = client.post(
+            "/api/todo-items/import/excel",
+            files={"file": ("todo_items.xlsx", excel_content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["imported"] == 2
+        assert data["failed"] == 0
+
+    def test_returns_result_with_errors(self, client, mock_service):
+        mock_service.import_excel.return_value = ImportResult(
+            imported=1, failed=1, errors=[{"row": 2, "error": "Title is required."}]
+        )
+
+        excel_content = b"fake xlsx bytes"
+        response = client.post(
+            "/api/todo-items/import/excel",
+            files={"file": ("todo_items.xlsx", excel_content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["failed"] == 1
+        assert data["errors"][0]["row"] == 2
+
+    def test_returns_422_when_file_missing(self, client, mock_service):
+        response = client.post("/api/todo-items/import/excel")
+
+        assert response.status_code == 422
+
+
+# ── GET /api/todo-items/export/excel ──────────────────────────────────────────
+
+class TestExportExcel:
+    def test_returns_200_with_excel_content(self, client, mock_service):
+        mock_service.export_excel.return_value = b"fake xlsx bytes"
+
+        response = client.get("/api/todo-items/export/excel")
+
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        assert "attachment" in response.headers["content-disposition"]
+        assert response.content == b"fake xlsx bytes"

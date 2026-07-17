@@ -1,10 +1,14 @@
+using System.Text;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Moq;
 using TodoApi.Data;
 using TodoApi.DTOs;
 using TodoApi.Repositories;
 using TodoApi.Services;
 using TodoShared.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace TodoApi.Tests.Services;
 
@@ -254,5 +258,146 @@ public class TodoItemServiceTests
 
         Assert.NotNull(item.UpdatedAt);
         Assert.True(item.UpdatedAt >= before);
+    }
+
+    // ── ImportCsvAsync ──────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ImportCsvAsync_CreatesValidRowsAndCollectsErrors()
+    {
+        var csv = "title,description,is_completed\nBuy milk,Whole milk,true\n,Missing title,false\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
+        var file = new FormFile(stream, 0, stream.Length, "file", "todo-items.csv")
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = "text/csv"
+        };
+
+        _repoMock.Setup(r => r.AddAsync(It.IsAny<TodoItem>(), It.IsAny<CancellationToken>()))
+                 .ReturnsAsync((TodoItem item, CancellationToken _) => item);
+
+        var result = await _sut.ImportCsvAsync(file);
+
+        Assert.Equal(1, result.Imported);
+        Assert.Equal(1, result.Failed);
+        Assert.Single(result.Errors);
+        Assert.Equal(3, result.Errors[0].Row);
+    }
+
+    // ── ExportCsvAsync ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ExportCsvAsync_ReturnsCsvContent()
+    {
+        var items = new List<TodoItem>
+        {
+            new() { Id = 1, Title = "Buy milk", Description = "Whole milk", IsCompleted = false, CreatedAt = DateTime.UtcNow },
+        };
+        _repoMock.Setup(r => r.GetAllItemsAsync(It.IsAny<CancellationToken>()))
+                 .ReturnsAsync(items);
+
+        var csv = await _sut.ExportCsvAsync();
+
+        Assert.StartsWith("id,title,description,is_completed,created_at,updated_at", csv);
+        Assert.Contains("Buy milk", csv);
+    }
+
+    // ── ImportExcelAsync ────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ImportExcelAsync_CreatesValidRowsAndCollectsErrors()
+    {
+        using var stream = new MemoryStream();
+        using (var package = SpreadsheetDocument.Create(stream, DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook, true))
+        {
+            var workbookPart = package.AddWorkbookPart();
+            workbookPart.Workbook = new Workbook(new Sheets());
+
+            var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+            worksheetPart.Worksheet = new Worksheet(new SheetData());
+            var sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+
+            AppendRow(sheetData, new[] { "title", "description", "is_completed" });
+            AppendRow(sheetData, new[] { "Buy milk", "Whole milk", "true" });
+            AppendRow(sheetData, new[] { string.Empty, "Missing title", "false" });
+
+            var sheets = workbookPart.Workbook.GetFirstChild<Sheets>()!;
+            sheets.Append(new Sheet { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "Todo Items" });
+            workbookPart.Workbook.Save();
+        }
+
+        stream.Position = 0;
+
+        var file = new FormFile(stream, 0, stream.Length, "file", "todo-items.xlsx")
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        };
+
+        _repoMock.Setup(r => r.AddAsync(It.IsAny<TodoItem>(), It.IsAny<CancellationToken>()))
+                 .ReturnsAsync((TodoItem item, CancellationToken _) => item);
+
+        var result = await _sut.ImportExcelAsync(file);
+
+        Assert.Equal(1, result.Imported);
+        Assert.Equal(1, result.Failed);
+        Assert.Single(result.Errors);
+        Assert.Equal(3, result.Errors[0].Row);
+    }
+
+    // ── ExportExcelAsync ────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ExportExcelAsync_ReturnsWorkbookBytes()
+    {
+        var items = new List<TodoItem>
+        {
+            new() { Id = 1, Title = "Buy milk", Description = "Whole milk", IsCompleted = false, CreatedAt = DateTime.UtcNow },
+        };
+        _repoMock.Setup(r => r.GetAllItemsAsync(It.IsAny<CancellationToken>()))
+                 .ReturnsAsync(items);
+
+        var bytes = await _sut.ExportExcelAsync();
+
+        using var stream = new MemoryStream(bytes);
+        using var package = SpreadsheetDocument.Open(stream, false);
+        var workbookPart = package.WorkbookPart!;
+        var sheet = workbookPart.Workbook.Descendants<Sheet>().First();
+        var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+        var rows = worksheetPart.Worksheet.Descendants<Row>().ToList();
+
+        Assert.Equal("Todo Items", sheet.Name);
+        Assert.Equal("id", GetCellValue(rows[0].Elements<Cell>().ElementAt(0), workbookPart.SharedStringTablePart));
+        Assert.Equal("Buy milk", GetCellValue(rows[1].Elements<Cell>().ElementAt(1), workbookPart.SharedStringTablePart));
+    }
+
+    private static void AppendRow(SheetData sheetData, IEnumerable<string> values)
+    {
+        var row = new Row();
+        foreach (var value in values)
+        {
+            row.AppendChild(new Cell(new InlineString(new Text(value))) { DataType = CellValues.InlineString });
+        }
+
+        sheetData.AppendChild(row);
+    }
+
+    private static string GetCellValue(Cell cell, SharedStringTablePart? sharedStringTablePart)
+    {
+        if (cell.CellValue is null)
+        {
+            return string.Empty;
+        }
+
+        var text = cell.CellValue.Text;
+        if (cell.DataType?.Value == CellValues.SharedString && sharedStringTablePart is not null)
+        {
+            if (int.TryParse(text, out var index) && index >= 0 && index < sharedStringTablePart.SharedStringTable.Count())
+            {
+                return sharedStringTablePart.SharedStringTable.ElementAt(index).InnerText;
+            }
+        }
+
+        return text;
     }
 }

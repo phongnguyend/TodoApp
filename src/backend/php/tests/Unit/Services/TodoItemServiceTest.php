@@ -7,9 +7,14 @@ use App\Http\Requests\UpdateTodoItemRequest;
 use App\Models\TodoItem;
 use App\Repositories\Contracts\TodoItemRepositoryInterface;
 use App\Services\TodoItemService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Mockery;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 
 class TodoItemServiceTest extends TestCase
@@ -156,5 +161,177 @@ class TodoItemServiceTest extends TestCase
 
         $this->expectException(ModelNotFoundException::class);
         $this->service->markComplete(99);
+    }
+
+    // ── importCsv ─────────────────────────────────────────────────────────────
+
+    public function test_importCsv_creates_valid_rows_and_collects_errors(): void
+    {
+        $csv = "title,description,is_completed\n"
+             . "Buy groceries,Milk and eggs,true\n"
+             . ",Missing title,false\n";
+        $file = UploadedFile::fake()->createWithContent('todos.csv', $csv);
+
+        $this->repository->shouldReceive('create')
+            ->once()
+            ->with([
+                'title'        => 'Buy groceries',
+                'description'  => 'Milk and eggs',
+                'is_completed' => true,
+            ])
+            ->andReturn(new TodoItem(['title' => 'Buy groceries']));
+
+        $result = $this->service->importCsv($file);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(1, $result['failed']);
+        $this->assertSame([['row' => 3, 'error' => 'Title is required.']], $result['errors']);
+    }
+
+    public function test_importCsv_treats_blank_description_as_null(): void
+    {
+        $csv = "title,description,is_completed\nRead a book,,false\n";
+        $file = UploadedFile::fake()->createWithContent('todos.csv', $csv);
+
+        $this->repository->shouldReceive('create')
+            ->once()
+            ->with([
+                'title'        => 'Read a book',
+                'description'  => null,
+                'is_completed' => false,
+            ])
+            ->andReturn(new TodoItem(['title' => 'Read a book']));
+
+        $result = $this->service->importCsv($file);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(0, $result['failed']);
+    }
+
+    // ── exportCsv ─────────────────────────────────────────────────────────────
+
+    public function test_exportCsv_returns_header_only_when_no_items(): void
+    {
+        $this->repository->shouldReceive('getAllOrdered')->once()->andReturn(new Collection([]));
+
+        $content = $this->service->exportCsv();
+
+        $this->assertSame("id,title,description,is_completed,created_at,updated_at\n", $content);
+    }
+
+    public function test_exportCsv_returns_header_and_rows(): void
+    {
+        $todo = new TodoItem(['title' => 'Buy groceries', 'description' => 'Milk', 'is_completed' => true]);
+        $todo->id = 1;
+        $this->repository->shouldReceive('getAllOrdered')->once()->andReturn(new Collection([$todo]));
+
+        $content = $this->service->exportCsv();
+        $rows = array_map('str_getcsv', array_filter(explode("\n", $content)));
+
+        $this->assertSame(['id', 'title', 'description', 'is_completed', 'created_at', 'updated_at'], $rows[0]);
+        $this->assertSame(['1', 'Buy groceries', 'Milk', 'true', '', ''], $rows[1]);
+    }
+
+    // ── importExcel ───────────────────────────────────────────────────────────
+
+    public function test_importExcel_creates_valid_rows_and_collects_errors(): void
+    {
+        $file = $this->makeExcelUploadFile([
+            ['title', 'description', 'is_completed'],
+            ['Buy groceries', 'Milk and eggs', true],
+            ['', 'Missing title', false],
+        ]);
+
+        $this->repository->shouldReceive('create')
+            ->once()
+            ->with([
+                'title'        => 'Buy groceries',
+                'description'  => 'Milk and eggs',
+                'is_completed' => true,
+            ])
+            ->andReturn(new TodoItem(['title' => 'Buy groceries']));
+
+        $result = $this->service->importExcel($file);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(1, $result['failed']);
+        $this->assertSame([['row' => 3, 'error' => 'Title is required.']], $result['errors']);
+    }
+
+    public function test_importExcel_treats_blank_description_as_null(): void
+    {
+        $file = $this->makeExcelUploadFile([
+            ['title', 'description', 'is_completed'],
+            ['Read a book', '', false],
+        ]);
+
+        $this->repository->shouldReceive('create')
+            ->once()
+            ->with([
+                'title'        => 'Read a book',
+                'description'  => null,
+                'is_completed' => false,
+            ])
+            ->andReturn(new TodoItem(['title' => 'Read a book']));
+
+        $result = $this->service->importExcel($file);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(0, $result['failed']);
+    }
+
+    // ── exportExcel ───────────────────────────────────────────────────────────
+
+    public function test_exportExcel_returns_header_only_when_no_items(): void
+    {
+        $this->repository->shouldReceive('getAllOrdered')->once()->andReturn(new Collection([]));
+
+        $rows = $this->readExcelRows($this->service->exportExcel());
+
+        $this->assertSame([['id', 'title', 'description', 'is_completed', 'created_at', 'updated_at']], $rows);
+    }
+
+    public function test_exportExcel_returns_header_and_rows(): void
+    {
+        $todo = new TodoItem(['title' => 'Buy groceries', 'description' => 'Milk', 'is_completed' => true]);
+        $todo->id = 1;
+        $this->repository->shouldReceive('getAllOrdered')->once()->andReturn(new Collection([$todo]));
+
+        $content = $this->service->exportExcel();
+        $rows = $this->readExcelRows($content);
+
+        $this->assertSame(['id', 'title', 'description', 'is_completed', 'created_at', 'updated_at'], $rows[0]);
+        $this->assertSame([1, 'Buy groceries', 'Milk', true, null, null], $rows[1]);
+    }
+
+    // ── Excel test helpers ───────────────────────────────────────────────────
+
+    private function makeExcelUploadFile(array $rows): UploadedFile
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        foreach ($rows as $rowIndex => $row) {
+            $sheet->fromArray($row, null, 'A' . ($rowIndex + 1));
+        }
+
+        $stream = fopen('php://temp', 'r+');
+        (new Xlsx($spreadsheet))->save($stream);
+        rewind($stream);
+        $content = (string) stream_get_contents($stream);
+        fclose($stream);
+
+        return UploadedFile::fake()->createWithContent('todos.xlsx', $content);
+    }
+
+    private function readExcelRows(string $content): array
+    {
+        $path = tempnam(sys_get_temp_dir(), 'xlsx');
+        file_put_contents($path, $content);
+
+        try {
+            return IOFactory::load($path)->getActiveSheet()->toArray(null, true, false, false);
+        } finally {
+            unlink($path);
+        }
     }
 }

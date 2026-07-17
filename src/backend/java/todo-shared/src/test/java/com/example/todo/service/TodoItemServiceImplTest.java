@@ -1,11 +1,13 @@
 package com.example.todo.service;
 
 import com.example.todo.dto.CreateTodoItemRequest;
+import com.example.todo.dto.ImportResult;
 import com.example.todo.dto.PaginatedResponse;
 import com.example.todo.dto.TodoItemResponse;
 import com.example.todo.dto.UpdateTodoItemRequest;
 import com.example.todo.entity.TodoItem;
 import com.example.todo.repository.TodoItemRepository;
+import com.example.todo.util.ExcelUtil;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -213,5 +216,151 @@ class TodoItemServiceImplTest {
         assertThatThrownBy(() -> service.delete(99L))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("99");
+    }
+
+    // ── importCsv ──────────────────────────────────────────────────────
+
+    @Test
+    void importCsv_validRows_importsAndReturnsSummary() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "todo_items.csv", "text/csv",
+                "title,description,is_completed\nBuy milk,Whole milk,true\nBuy eggs,,false\n".getBytes());
+        when(repository.save(any(TodoItem.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ImportResult result = service.importCsv(file);
+
+        assertThat(result.imported()).isEqualTo(2);
+        assertThat(result.failed()).isZero();
+        assertThat(result.errors()).isEmpty();
+        verify(repository, org.mockito.Mockito.times(2)).save(any(TodoItem.class));
+    }
+
+    @Test
+    void importCsv_blankTitle_recordsRowError() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "todo_items.csv", "text/csv",
+                "title,description,is_completed\n,,false\n".getBytes());
+
+        ImportResult result = service.importCsv(file);
+
+        assertThat(result.imported()).isZero();
+        assertThat(result.failed()).isEqualTo(1);
+        assertThat(result.errors()).hasSize(1);
+        assertThat(result.errors().get(0).row()).isEqualTo(2);
+        assertThat(result.errors().get(0).error()).isEqualTo("Title is required.");
+    }
+
+    @Test
+    void importCsv_emptyFile_returnsEmptySummary() {
+        MockMultipartFile file = new MockMultipartFile("file", "todo_items.csv", "text/csv", new byte[0]);
+
+        ImportResult result = service.importCsv(file);
+
+        assertThat(result.imported()).isZero();
+        assertThat(result.failed()).isZero();
+        assertThat(result.errors()).isEmpty();
+    }
+
+    // ── exportCsv ───────────────────────────────────────────────────
+
+    @Test
+    void exportCsv_returnsHeaderAndRows() {
+        when(repository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(item));
+
+        String csv = service.exportCsv();
+        List<String> lines = List.of(csv.split("\r\n"));
+
+        assertThat(lines.get(0)).isEqualTo("id,title,description,is_completed,created_at,updated_at");
+        assertThat(lines.get(1)).contains("1,Buy groceries,\"Milk, eggs, bread\",false");
+    }
+
+    @Test
+    void exportCsv_noItems_returnsHeaderOnly() {
+        when(repository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of());
+
+        String csv = service.exportCsv();
+
+        assertThat(csv).isEqualTo("id,title,description,is_completed,created_at,updated_at\r\n");
+    }
+
+    // ── importExcel ────────────────────────────────────────────────────
+
+    @Test
+    void importExcel_validRows_importsAndReturnsSummary() {
+        byte[] bytes = ExcelUtil.write(
+                List.of("title", "description", "is_completed"),
+                List.of(
+                        List.of("Buy milk", "Whole milk", true),
+                        List.of("Buy eggs", "", false)));
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "todo_items.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", bytes);
+        when(repository.save(any(TodoItem.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ImportResult result = service.importExcel(file);
+
+        assertThat(result.imported()).isEqualTo(2);
+        assertThat(result.failed()).isZero();
+        assertThat(result.errors()).isEmpty();
+        verify(repository, org.mockito.Mockito.times(2)).save(any(TodoItem.class));
+    }
+
+    @Test
+    void importExcel_blankTitle_recordsRowError() {
+        byte[] bytes = ExcelUtil.write(
+                List.of("title", "description", "is_completed"),
+                List.of(List.of("", "", false)));
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "todo_items.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", bytes);
+
+        ImportResult result = service.importExcel(file);
+
+        assertThat(result.imported()).isZero();
+        assertThat(result.failed()).isEqualTo(1);
+        assertThat(result.errors()).hasSize(1);
+        assertThat(result.errors().get(0).row()).isEqualTo(2);
+        assertThat(result.errors().get(0).error()).isEqualTo("Title is required.");
+    }
+
+    @Test
+    void importExcel_headerOnly_returnsEmptySummary() {
+        byte[] bytes = ExcelUtil.write(List.of("title", "description", "is_completed"), List.of());
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "todo_items.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", bytes);
+
+        ImportResult result = service.importExcel(file);
+
+        assertThat(result.imported()).isZero();
+        assertThat(result.failed()).isZero();
+        assertThat(result.errors()).isEmpty();
+    }
+
+    // ── exportExcel ──────────────────────────────────────────────────
+
+    @Test
+    void exportExcel_returnsHeaderAndRows() {
+        when(repository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(item));
+
+        byte[] bytes = service.exportExcel();
+        List<List<String>> rows = ExcelUtil.parse(new java.io.ByteArrayInputStream(bytes));
+
+        assertThat(rows.get(0)).containsExactly("id", "title", "description", "is_completed", "created_at",
+                "updated_at");
+        assertThat(rows.get(1).get(1)).isEqualTo("Buy groceries");
+        assertThat(rows.get(1).get(2)).isEqualTo("Milk, eggs, bread");
+    }
+
+    @Test
+    void exportExcel_noItems_returnsHeaderOnly() {
+        when(repository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of());
+
+        byte[] bytes = service.exportExcel();
+        List<List<String>> rows = ExcelUtil.parse(new java.io.ByteArrayInputStream(bytes));
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0)).containsExactly("id", "title", "description", "is_completed", "created_at",
+                "updated_at");
     }
 }

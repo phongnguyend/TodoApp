@@ -23,6 +23,10 @@ func Setup(r *gin.Engine, h *handler.TodoItemHandler, fh *handler.FileHandler) {
 		api.PUT("/:id", h.Update)
 		api.PATCH("/:id/complete", h.MarkComplete)
 		api.DELETE("/:id", h.Delete)
+		api.POST("/import/csv", h.ImportCSV)
+		api.GET("/export/csv", h.ExportCSV)
+		api.POST("/import/excel", h.ImportExcel)
+		api.GET("/export/excel", h.ExportExcel)
 	}
 
 	files := r.Group("/api/files")

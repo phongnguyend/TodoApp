@@ -2,6 +2,14 @@
 FROM composer:2 AS vendor
 WORKDIR /app
 
+# phpoffice/phpspreadsheet requires the gd extension; install it before running
+# composer install so composer's platform check succeeds.
+RUN apk add --no-cache libpng libjpeg-turbo freetype \
+    && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS libpng-dev libjpeg-turbo-dev freetype-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) gd \
+    && apk del .build-deps
+
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 

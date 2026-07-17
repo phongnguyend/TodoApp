@@ -6,9 +6,10 @@
     "type": "project",
     "require": {
         "php": "^8.2",
+        "darkaonline/l5-swagger": "^11.0",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.9",
-        "darkaonline/l5-swagger": "^11.0"
+        "phpoffice/phpspreadsheet": "^5.8"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

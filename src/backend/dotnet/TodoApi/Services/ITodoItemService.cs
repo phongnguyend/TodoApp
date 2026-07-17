@@ -11,4 +11,8 @@ public interface ITodoItemService
     Task<TodoItemResponse> UpdateAsync(int id, UpdateTodoItemRequest request, CancellationToken ct = default);
     Task DeleteAsync(int id, CancellationToken ct = default);
     Task<TodoItemResponse> MarkCompleteAsync(int id, CancellationToken ct = default);
+    Task<ImportResult> ImportCsvAsync(IFormFile file, CancellationToken ct = default);
+    Task<string> ExportCsvAsync(CancellationToken ct = default);
+    Task<ImportResult> ImportExcelAsync(IFormFile file, CancellationToken ct = default);
+    Task<byte[]> ExportExcelAsync(CancellationToken ct = default);
 }

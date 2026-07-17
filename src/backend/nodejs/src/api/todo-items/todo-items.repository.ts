@@ -36,6 +36,10 @@ export class TodoItemRepository {
     return this.prisma.todoItem.findUnique({ where: { id } });
   }
 
+  async findAllOrdered(): Promise<TodoItem[]> {
+    return this.prisma.todoItem.findMany({ orderBy: { createdAt: 'desc' } });
+  }
+
   async create(data: Prisma.TodoItemCreateInput): Promise<TodoItem> {
     return this.prisma.todoItem.create({ data });
   }

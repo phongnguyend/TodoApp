@@ -34,3 +34,17 @@ type PaginatedResponse[T any] struct {
 	PageSize   int   `json:"pageSize"`
 	TotalPages int   `json:"totalPages"`
 }
+
+// ImportRowError describes a single failed row encountered during CSV/Excel import.
+type ImportRowError struct {
+	Row   int    `json:"row"`
+	Error string `json:"error"`
+}
+
+// ImportResult is returned from the CSV/Excel import endpoints - mirrors ImportResult in the
+// Python/PHP/Java implementations.
+type ImportResult struct {
+	Imported int              `json:"imported"`
+	Failed   int              `json:"failed"`
+	Errors   []ImportRowError `json:"errors"`
+}
