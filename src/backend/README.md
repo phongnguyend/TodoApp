@@ -101,6 +101,30 @@ All implementations expose the same REST endpoints under the `/api/todo-items` p
 | `POST`   | `/api/files`               | Upload a file (`multipart/form-data`) |
 | `DELETE` | `/api/files/{id}`          | Delete a file                         |
 
+### Users Endpoints
+
+#### User Management
+
+| Method  | Path                         | Description               |
+| ------- | ---------------------------- | ------------------------- |
+| `GET`   | `/api/users`                 | List users (paginated)    |
+| `GET`   | `/api/users/{id}`            | Get a single user by id   |
+| `POST`  | `/api/users`                 | Create a new user         |
+| `PUT`   | `/api/users/{id}`            | Update a user's details   |
+| `PATCH` | `/api/users/{id}/activate`   | Activate a user account   |
+| `PATCH` | `/api/users/{id}/deactivate` | Deactivate a user account |
+
+#### User Self Management
+
+| Method | Path                          | Description                             |
+| ------ | ----------------------------- | --------------------------------------- |
+| `POST` | `/api/users/signup`           | Register a new account                  |
+| `POST` | `/api/users/password/change`  | Change the current user's password      |
+| `POST` | `/api/users/password/reset`   | Request a password reset email          |
+| `POST` | `/api/users/password/confirm` | Confirm a password reset with a token   |
+| `GET`  | `/api/users/profile`          | Read the authenticated user's profile   |
+| `PUT`  | `/api/users/profile`          | Update the authenticated user's profile |
+
 ### Pagination Query Parameters
 
 All paginated endpoints (`GET /api/todo-items`, `GET /api/todo-items/incomplete`, and `GET /api/files`) accept the following query parameters. The parameter name casing may differ per implementation but must convey the same semantics.
@@ -114,11 +138,11 @@ All paginated endpoints (`GET /api/todo-items`, `GET /api/todo-items/incomplete`
 
 ## Implementations
 
-| Language / Framework          | Path      |
-| ----------------------------- | --------- |
-| Python (FastAPI + SQLAlchemy) | `python/` |
-| .NET (ASP.NET Core + EF Core) | `dotnet/` |
-| Go (net/http)                 | `go/`     |
-| Java (Spring Boot)            | `java/`   |
-| Node.js (NestJS + Prisma)     | `nodejs/` |
-| PHP (Laravel)                 | `php/`    |
+| Language / Framework                                  | Path      |
+| ----------------------------------------------------- | --------- |
+| Python (FastAPI + SQLAlchemy + JWT/Auth)              | `python/` |
+| .NET (ASP.NET Core + EF Core + ASP.NET Core Identity) | `dotnet/` |
+| Go (net/http + GORM + JWT/Auth)                       | `go/`     |
+| Java (Spring Boot + JPA + Spring Security)            | `java/`   |
+| Node.js (NestJS + Prisma + Passport/JWT)              | `nodejs/` |
+| PHP (Laravel + Eloquent + Sanctum/Passport)           | `php/`    |
