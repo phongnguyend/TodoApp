@@ -10,12 +10,14 @@ namespace TodoApi.Tests.Controllers;
 public class TodoItemsControllerTests
 {
     private readonly Mock<ITodoItemService> _serviceMock;
+    private readonly Mock<ITodoItemAttachmentService> _attachmentServiceMock;
     private readonly TodoItemsController _sut;
 
     public TodoItemsControllerTests()
     {
         _serviceMock = new Mock<ITodoItemService>();
-        _sut = new TodoItemsController(_serviceMock.Object);
+        _attachmentServiceMock = new Mock<ITodoItemAttachmentService>();
+        _sut = new TodoItemsController(_serviceMock.Object, _attachmentServiceMock.Object);
     }
 
     // ── GetAll ────────────────────────────────────────────────────────────────
@@ -86,6 +88,43 @@ public class TodoItemsControllerTests
 
         var notFound = Assert.IsType<NotFoundObjectResult>(result);
         Assert.Equal(404, notFound.StatusCode);
+    }
+
+    // ── Attachments ────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetAttachments_Returns200WithAttachments()
+    {
+        var attachments = new List<TodoItemAttachmentResponse>
+        {
+            new(1, 10, 1, DateTime.UtcNow, null)
+        };
+        _attachmentServiceMock.Setup(s => s.GetAllAsync(10, It.IsAny<CancellationToken>()))
+                               .ReturnsAsync(attachments);
+
+        var result = await _sut.GetAttachments(10);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+        Assert.Same(attachments, ok.Value);
+    }
+
+    [Fact]
+    public async Task CreateAttachment_Returns201WithCreatedAttachment()
+    {
+        var request = new CreateTodoItemAttachmentRequest(5);
+        var created = new TodoItemAttachmentResponse(1, 10, 5, DateTime.UtcNow, null);
+        _attachmentServiceMock.Setup(s => s.CreateAsync(10, request, It.IsAny<CancellationToken>()))
+                               .ReturnsAsync(created);
+
+        var result = await _sut.CreateAttachment(10, request);
+
+        var createdResult = Assert.IsType<CreatedAtActionResult>(result);
+        Assert.Equal(201, createdResult.StatusCode);
+        Assert.Same(created, createdResult.Value);
+        Assert.Equal(nameof(TodoItemsController.GetAttachmentById), createdResult.ActionName);
+        Assert.Equal(10, createdResult.RouteValues!["id"]);
+        Assert.Equal(1, createdResult.RouteValues!["attachmentId"]);
     }
 
     // ── Create ────────────────────────────────────────────────────────────────

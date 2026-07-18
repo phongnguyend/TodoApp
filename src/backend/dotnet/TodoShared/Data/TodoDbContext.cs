@@ -6,6 +6,7 @@ namespace TodoShared.Data;
 public abstract class TodoDbContext(DbContextOptions options) : DbContext(options)
 {
     public DbSet<TodoItem> TodoItems => Set<TodoItem>();
+    public DbSet<TodoItemAttachment> TodoItemAttachments => Set<TodoItemAttachment>();
     public DbSet<EmailLog> EmailLogs => Set<EmailLog>();
     public DbSet<FileEntity> Files => Set<FileEntity>();
 
@@ -39,6 +40,21 @@ public abstract class TodoDbContext(DbContextOptions options) : DbContext(option
             entity.Property(e => e.ContentType).HasMaxLength(100);
             entity.Property(e => e.Location).IsRequired().HasMaxLength(500);
             entity.Property(e => e.CreatedAt).IsRequired();
+        });
+
+        modelBuilder.Entity<TodoItemAttachment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.HasIndex(e => new { e.TodoItemId, e.FileId }).IsUnique();
+            entity.HasOne(e => e.TodoItem)
+                .WithMany()
+                .HasForeignKey(e => e.TodoItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.File)
+                .WithMany()
+                .HasForeignKey(e => e.FileId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

@@ -127,6 +127,53 @@ namespace TodoApi.Data.Migrations
 
                     b.ToTable("TodoItems");
                 });
+
+            modelBuilder.Entity("TodoShared.Models.TodoItemAttachment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FileId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TodoItemId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FileId");
+
+                    b.HasIndex("TodoItemId", "FileId")
+                        .IsUnique();
+
+                    b.ToTable("TodoItemAttachments");
+                });
+
+            modelBuilder.Entity("TodoShared.Models.TodoItemAttachment", b =>
+                {
+                    b.HasOne("TodoShared.Models.FileEntity", "File")
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TodoShared.Models.TodoItem", "TodoItem")
+                        .WithMany()
+                        .HasForeignKey("TodoItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("File");
+
+                    b.Navigation("TodoItem");
+                });
 #pragma warning restore 612, 618
         }
     }

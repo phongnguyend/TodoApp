@@ -8,7 +8,7 @@ namespace TodoApi.Controllers;
 [ApiController]
 [Route("api/todo-items")]
 [Produces("application/json")]
-public class TodoItemsController(ITodoItemService service) : ControllerBase
+public class TodoItemsController(ITodoItemService service, ITodoItemAttachmentService attachmentService) : ControllerBase
 {
     // GET api/todo-items?page=1&pageSize=20
     [HttpGet]
@@ -88,6 +88,91 @@ public class TodoItemsController(ITodoItemService service) : ControllerBase
         {
             var result = await service.MarkCompleteAsync(id, ct);
             return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    // GET api/todo-items/{id}/attachments
+    [HttpGet("{id:int}/attachments")]
+    [ProducesResponseType(typeof(IReadOnlyList<TodoItemAttachmentResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAttachments(int id, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await attachmentService.GetAllAsync(id, ct);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    // POST api/todo-items/{id}/attachments
+    [HttpPost("{id:int}/attachments")]
+    [ProducesResponseType(typeof(TodoItemAttachmentResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreateAttachment(int id, [FromBody] CreateTodoItemAttachmentRequest request, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await attachmentService.CreateAsync(id, request, ct);
+            return CreatedAtAction(nameof(GetAttachmentById), new { id, attachmentId = result.Id }, result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    // GET api/todo-items/{id}/attachments/{attachmentId}
+    [HttpGet("{id:int}/attachments/{attachmentId:int}")]
+    [ProducesResponseType(typeof(TodoItemAttachmentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAttachmentById(int id, int attachmentId, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await attachmentService.GetByIdAsync(id, attachmentId, ct);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    // PUT api/todo-items/{id}/attachments/{attachmentId}
+    [HttpPut("{id:int}/attachments/{attachmentId:int}")]
+    [ProducesResponseType(typeof(TodoItemAttachmentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateAttachment(int id, int attachmentId, [FromBody] CreateTodoItemAttachmentRequest request, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await attachmentService.UpdateAsync(id, attachmentId, request, ct);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    // DELETE api/todo-items/{id}/attachments/{attachmentId}
+    [HttpDelete("{id:int}/attachments/{attachmentId:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteAttachment(int id, int attachmentId, CancellationToken ct = default)
+    {
+        try
+        {
+            await attachmentService.DeleteAsync(id, attachmentId, ct);
+            return NoContent();
         }
         catch (KeyNotFoundException ex)
         {

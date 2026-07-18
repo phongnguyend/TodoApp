@@ -4,21 +4,21 @@ A RESTful API for managing todo items built with **Spring Boot**, **Spring Data 
 
 ## Tech-stack mapping
 
-| ASP.NET Core + EF | Java equivalent |
-|---|---|
-| ASP.NET Core | **Spring Boot** |
-| Entity Framework Core | **Spring Data JPA** + Hibernate |
-| EF Migrations | **Flyway** (`V1__*.sql` scripts) |
-| `DbContext` | `JpaRepository` / `EntityManager` |
-| `[ApiController]` / Controllers | `@RestController` |
-| Services (`IService` / `Service`) | `@Service` interface + `@Service` impl |
-| DTOs / Data Annotations | Java records + **Jakarta Bean Validation** |
-| `appsettings.json` / `IConfiguration` | `application.yml` + Spring Environment |
-| Dependency Injection | Spring DI (`@Autowired` / constructor injection) |
-| Swagger / OpenAPI | **SpringDoc OpenAPI** at `/swagger` |
-| `ProblemDetails` middleware | `@RestControllerAdvice` + `ProblemDetail` |
-| `Program.cs` / `Startup.cs` | `TodoApplication.java` + auto-configuration |
-| xUnit / NUnit | **JUnit 5** + **Mockito** + **Spring Boot Test** (`@WebMvcTest`, `@DataJpaTest`) |
+| ASP.NET Core + EF                     | Java equivalent                                                                  |
+| ------------------------------------- | -------------------------------------------------------------------------------- |
+| ASP.NET Core                          | **Spring Boot**                                                                  |
+| Entity Framework Core                 | **Spring Data JPA** + Hibernate                                                  |
+| EF Migrations                         | **Flyway** (`V1__*.sql` scripts)                                                 |
+| `DbContext`                           | `JpaRepository` / `EntityManager`                                                |
+| `[ApiController]` / Controllers       | `@RestController`                                                                |
+| Services (`IService` / `Service`)     | `@Service` interface + `@Service` impl                                           |
+| DTOs / Data Annotations               | Java records + **Jakarta Bean Validation**                                       |
+| `appsettings.json` / `IConfiguration` | `application.yml` + Spring Environment                                           |
+| Dependency Injection                  | Spring DI (`@Autowired` / constructor injection)                                 |
+| Swagger / OpenAPI                     | **SpringDoc OpenAPI** at `/swagger`                                              |
+| `ProblemDetails` middleware           | `@RestControllerAdvice` + `ProblemDetail`                                        |
+| `Program.cs` / `Startup.cs`           | `TodoApplication.java` + auto-configuration                                      |
+| xUnit / NUnit                         | **JUnit 5** + **Mockito** + **Spring Boot Test** (`@WebMvcTest`, `@DataJpaTest`) |
 
 ## Project structure
 
@@ -38,32 +38,40 @@ src/backend/java/
 │       │   │   │   ├── TodoItemResponse.java          # record with factory method
 │       │   │   │   ├── PaginatedResponse.java         # generic record
 │       │   │   │   ├── FileResponse.java              # record with factory method (file metadata)
-│       │   │   │   └── FileDownloadTarget.java        # record - path/name/contentType for downloads
+│       │   │   │   ├── FileDownloadTarget.java        # record - path/name/contentType for downloads
+│       │   │   │   ├── SaveTodoItemAttachmentRequest.java # validated file reference request
+│       │   │   │   └── TodoItemAttachmentResponse.java # attachment response record
 │       │   │   ├── entity/
 │       │   │   │   ├── TodoItem.java                  # @Entity (JPA model)
 │       │   │   │   ├── EmailLog.java                  # @Entity - email audit log
-│       │   │   │   └── FileEntity.java                # @Entity - uploaded file metadata
+│       │   │   │   ├── FileEntity.java                # @Entity - uploaded file metadata
+│       │   │   │   └── TodoItemAttachment.java         # @Entity - todo item/file association
 │       │   │   ├── exception/
 │       │   │   │   └── PayloadTooLargeException.java  # thrown when an upload exceeds the size limit
 │       │   │   ├── repository/
 │       │   │   │   ├── TodoItemRepository.java        # JpaRepository<TodoItem, Long>
 │       │   │   │   ├── EmailLogRepository.java        # JpaRepository<EmailLog, Long>
-│       │   │   │   └── FileRepository.java            # JpaRepository<FileEntity, Long>
+│       │   │   │   ├── FileRepository.java            # JpaRepository<FileEntity, Long>
+│       │   │   │   └── TodoItemAttachmentRepository.java # attachment queries scoped to a todo item
 │       │   │   └── service/
 │       │   │       ├── TodoItemService.java           # interface
 │       │   │       ├── TodoItemServiceImpl.java       # @Service implementation
 │       │   │       ├── FileService.java               # interface
-│       │   │       └── FileServiceImpl.java           # @Service implementation (upload/download/delete on disk)
+│       │   │       ├── FileServiceImpl.java           # @Service implementation (upload/download/delete on disk)
+│       │   │       ├── TodoItemAttachmentService.java # interface
+│       │   │       └── TodoItemAttachmentServiceImpl.java # attachment CRUD implementation
 │       │   └── resources/db/migration/
 │       │       ├── V1__create_todo_items.sql          # Flyway migration
 │       │       ├── V2__create_email_logs.sql          # Flyway migration
-│       │       └── V3__create_files.sql               # Flyway migration
+│       │       ├── V3__create_files.sql               # Flyway migration
+│       │       └── V4__create_todo_item_attachments.sql # Flyway migration
 │       └── test/
 │           ├── java/com/example/todo/
 │           │   ├── repository/TodoItemRepositoryTest.java  # @DataJpaTest - JPA slice
 │           │   ├── repository/FileRepositoryTest.java      # @DataJpaTest - JPA slice
 │           │   ├── service/TodoItemServiceImplTest.java    # Mockito - pure unit tests
-│           │   └── service/FileServiceImplTest.java        # Mockito - pure unit tests (uses @TempDir)
+│           │   ├── service/FileServiceImplTest.java        # Mockito - pure unit tests (uses @TempDir)
+│           │   └── service/TodoItemAttachmentServiceImplTest.java # Mockito - attachment service tests
 │           └── resources/application.yml                   # test config (H2 in-memory)
 ├── todo-api/                                          # REST API (analogous to TodoApi.csproj)
 │   ├── pom.xml
@@ -75,13 +83,15 @@ src/backend/java/
 │       │   │   ├── config/OpenApiConfig.java          # Swagger config
 │       │   │   ├── controller/TodoItemController.java # @RestController
 │       │   │   ├── controller/FileController.java     # @RestController - /api/files
+│       │   │   ├── controller/TodoItemAttachmentController.java # nested attachment endpoints
 │       │   │   └── exception/GlobalExceptionHandler.java  # @RestControllerAdvice
 │       │   └── resources/application.yml             # API config (H2 + Swagger + file storage)
 │       └── test/
 │           ├── java/com/example/todo/api/
 │           │   ├── TodoApiApplicationTests.java       # context load smoke test
 │           │   ├── controller/TodoItemControllerTest.java  # @WebMvcTest - HTTP layer
-│           │   └── controller/FileControllerTest.java      # @WebMvcTest - HTTP layer (multipart)
+│           │   ├── controller/FileControllerTest.java      # @WebMvcTest - HTTP layer (multipart)
+│           │   └── controller/TodoItemAttachmentControllerTest.java # @WebMvcTest - attachment endpoints
 │           └── resources/application.yml             # test config (H2 in-memory)
 └── todo-worker/                                       # Background worker (analogous to TodoWorker.csproj)
     ├── pom.xml
@@ -161,9 +171,9 @@ retrieved only via `GET /api/files/{id}/download`.
 
 ### Environment variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `FILE_STORAGE_PATH` | `./uploads` | Directory where uploaded file content is stored |
+| Variable                | Default            | Description                                                 |
+| ----------------------- | ------------------ | ----------------------------------------------------------- |
+| `FILE_STORAGE_PATH`     | `./uploads`        | Directory where uploaded file content is stored             |
 | `MAX_UPLOAD_SIZE_BYTES` | `10485760` (10 MB) | Maximum accepted upload size, enforced by the service layer |
 
 These map to `app.file.storage-path` / `app.file.max-upload-size-bytes` in `application.yml`. The
@@ -186,17 +196,17 @@ The worker runs as a standalone Spring Boot application (`todo-worker` module) w
 
 ### Environment variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `WORKER_INTERVAL_MINUTES` | `60` | How often the job runs |
-| `EMAIL_RECIPIENT` | `admin@example.com` | Destination address for the digest |
-| `EMAIL_SENDER` | `noreply@example.com` | From address |
-| `SMTP_HOST` | `localhost` | SMTP server hostname |
-| `SMTP_PORT` | `587` | SMTP server port |
-| `SMTP_USERNAME` | _(empty)_ | SMTP auth username |
-| `SMTP_PASSWORD` | _(empty)_ | SMTP auth password |
-| `SMTP_AUTH` | `false` | Enable SMTP authentication |
-| `SMTP_STARTTLS` | `false` | Enable STARTTLS |
+| Variable                  | Default               | Description                        |
+| ------------------------- | --------------------- | ---------------------------------- |
+| `WORKER_INTERVAL_MINUTES` | `60`                  | How often the job runs             |
+| `EMAIL_RECIPIENT`         | `admin@example.com`   | Destination address for the digest |
+| `EMAIL_SENDER`            | `noreply@example.com` | From address                       |
+| `SMTP_HOST`               | `localhost`           | SMTP server hostname               |
+| `SMTP_PORT`               | `587`                 | SMTP server port                   |
+| `SMTP_USERNAME`           | _(empty)_             | SMTP auth username                 |
+| `SMTP_PASSWORD`           | _(empty)_             | SMTP auth password                 |
+| `SMTP_AUTH`               | `false`               | Enable SMTP authentication         |
+| `SMTP_STARTTLS`           | `false`               | Enable STARTTLS                    |
 
 ### Run the worker locally
 

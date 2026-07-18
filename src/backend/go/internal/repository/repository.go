@@ -41,3 +41,12 @@ type FileRepository interface {
 	Create(file *models.File) (*models.File, error)
 	Delete(file *models.File) error
 }
+
+type TodoItemAttachmentRepository interface {
+	FindAllByTodoItemID(todoItemID uint) ([]models.TodoItemAttachment, error)
+	FindByIDAndTodoItemID(id, todoItemID uint) (*models.TodoItemAttachment, error)
+	FindByTodoItemIDAndFileID(todoItemID, fileID uint) (*models.TodoItemAttachment, error)
+	Create(attachment *models.TodoItemAttachment) (*models.TodoItemAttachment, error)
+	Update(attachment *models.TodoItemAttachment) (*models.TodoItemAttachment, error)
+	Delete(attachment *models.TodoItemAttachment) error
+}

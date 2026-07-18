@@ -37,26 +37,33 @@ src/backend/go/
 │   │   └── database.go                    # GORM setup (DbContext)
 │   ├── models/
 │   │   ├── todo_item.go                   # GORM entity - TodoItem
+│   │   ├── todo_item_attachment.go        # GORM entity - todo-to-file attachment
 │   │   ├── email_log.go                   # GORM entity - EmailLog
 │   │   └── file.go                        # GORM entity - File (uploaded-file metadata)
 │   ├── dto/
 │   │   ├── todo_item.go                   # Request/response DTOs
+│   │   ├── todo_item_attachment.go        # Attachment request/response DTOs
 │   │   └── file.go                        # File metadata response DTO
 │   ├── repository/
 │   │   ├── repository.go                  # Repository interfaces
 │   │   ├── todo_item_repository.go        # GORM implementation - TodoItem
+│   │   ├── todo_item_attachment_repository.go # GORM implementation - attachments
 │   │   ├── email_log_repository.go        # GORM implementation - EmailLog
 │   │   └── file_repository.go             # GORM implementation - File
 │   ├── service/
 │   │   ├── todo_item_service.go           # Business logic
 │   │   ├── todo_item_service_test.go      # Service unit tests
 │   │   ├── file_service.go                # Business logic (upload/download/delete on disk)
-│   │   └── file_service_test.go           # Service unit tests
+│   │   ├── file_service_test.go           # Service unit tests
+│   │   ├── todo_item_attachment_service.go # Attachment business logic
+│   │   └── todo_item_attachment_service_test.go # Attachment service tests
 │   ├── handler/
 │   │   ├── todo_item_handler.go           # HTTP handlers (Controller)
 │   │   ├── todo_item_handler_test.go      # Handler unit tests
 │   │   ├── file_handler.go                # HTTP handlers - /api/files (Controller)
-│   │   └── file_handler_test.go           # Handler unit tests
+│   │   ├── file_handler_test.go           # Handler unit tests
+│   │   ├── todo_item_attachment_handler.go # Nested attachment HTTP handlers
+│   │   └── todo_item_attachment_handler_test.go # Attachment handler tests
 │   ├── router/
 │   │   └── router.go                      # Route registration
 │   └── worker/
