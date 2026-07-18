@@ -4,15 +4,15 @@ A RESTful API for managing todo items built with **ASP.NET Core**, **Entity Fram
 
 ## Tech stack
 
-| Concern | Technology |
-|---|---|
-| Web framework | ASP.NET Core 10 Web API |
-| ORM | Entity Framework Core 10 |
-| Database (default) | SQLite (via `Microsoft.EntityFrameworkCore.Sqlite`) |
-| Migrations | EF Core Migrations (`dotnet ef`) |
-| API docs | Built-in OpenAPI + **Scalar** UI |
-| Dependency Injection | Built-in ASP.NET Core DI |
-| Unit testing | xUnit + Moq |
+| Concern              | Technology                                          |
+| -------------------- | --------------------------------------------------- |
+| Web framework        | ASP.NET Core 10 Web API                             |
+| ORM                  | Entity Framework Core 10                            |
+| Database (default)   | SQLite (via `Microsoft.EntityFrameworkCore.Sqlite`) |
+| Migrations           | EF Core Migrations (`dotnet ef`)                    |
+| API docs             | Built-in OpenAPI + **Scalar** UI                    |
+| Dependency Injection | Built-in ASP.NET Core DI                            |
+| Unit testing         | xUnit + Moq                                         |
 
 ## Project structure
 
@@ -21,7 +21,6 @@ src/backend/dotnet/
 ├── TodoApp.slnx
 ├── TodoApi/
 │   ├── Dockerfile                          # API container image
-├── TodoApi/
 │   ├── Program.cs                          # App bootstrap & DI registration
 │   ├── appsettings.json                    # Connection string, file storage & logging
 │   ├── Controllers/
@@ -32,6 +31,7 @@ src/backend/dotnet/
 │   │   └── Migrations/                     # EF Core migrations
 │   ├── DTOs/
 │   │   ├── TodoItemDtos.cs                 # Request / response models
+│   │   ├── TodoItemAttachmentDtos.cs       # Attachment request / response models
 │   │   └── FileDtos.cs                     # FileResponse / FileDownloadTarget models
 │   ├── Repositories/
 │   │   ├── IRepository.cs                  # Generic IRepository<T>
@@ -41,13 +41,25 @@ src/backend/dotnet/
 │   │   ├── IEmailLogRepository.cs
 │   │   ├── EmailLogRepository.cs
 │   │   ├── IFileRepository.cs
-│   │   └── FileRepository.cs
+│   │   ├── FileRepository.cs
+│   │   ├── ITodoItemAttachmentRepository.cs
+│   │   └── TodoItemAttachmentRepository.cs
 │   └── Services/
 │       ├── ITodoItemService.cs
 │       ├── TodoItemService.cs
 │       ├── IFileService.cs                 # upload/download/delete on disk
 │       ├── FileService.cs
+│       ├── ITodoItemAttachmentService.cs
+│       ├── TodoItemAttachmentService.cs
 │       └── FileTooLargeException.cs        # thrown when upload exceeds MaxUploadSizeBytes
+├── TodoShared/
+│   ├── Data/
+│   │   └── TodoDbContext.cs                # Shared EF Core model configuration
+│   └── Models/
+│       ├── TodoItem.cs                     # Todo item entity
+│       ├── TodoItemAttachment.cs           # Todo item attachment entity
+│       ├── EmailLog.cs                     # Email audit log entity
+│       └── FileEntity.cs                   # File metadata entity
 ├── TodoWorker/
 │   ├── Dockerfile                          # Worker container image
 │   ├── Program.cs                          # Worker bootstrap & DI registration
@@ -67,6 +79,7 @@ src/backend/dotnet/
     │   └── FilesControllerTests.cs         # Controller unit tests
     └── Services/
         ├── TodoItemServiceTests.cs         # Service unit tests
+        ├── TodoItemAttachmentServiceTests.cs # Attachment service tests
         └── FileServiceTests.cs             # Service unit tests
 ```
 
@@ -206,11 +219,11 @@ dotnet ef migrations remove
 
 Update `ConnectionStrings:DefaultConnection` in `appsettings.json` and swap the EF provider package:
 
-| Database | Package | Connection string |
-|----------|---------|-------------------|
-| SQLite (default) | `Microsoft.EntityFrameworkCore.Sqlite` | `Data Source=todo.db` |
-| SQL Server | `Microsoft.EntityFrameworkCore.SqlServer` | `Server=.;Database=TodoDb;Trusted_Connection=True` |
-| PostgreSQL | `Npgsql.EntityFrameworkCore.PostgreSQL` | `Host=localhost;Database=todo_db;Username=user;Password=pass` |
+| Database         | Package                                   | Connection string                                             |
+| ---------------- | ----------------------------------------- | ------------------------------------------------------------- |
+| SQLite (default) | `Microsoft.EntityFrameworkCore.Sqlite`    | `Data Source=todo.db`                                         |
+| SQL Server       | `Microsoft.EntityFrameworkCore.SqlServer` | `Server=.;Database=TodoDb;Trusted_Connection=True`            |
+| PostgreSQL       | `Npgsql.EntityFrameworkCore.PostgreSQL`   | `Host=localhost;Database=todo_db;Username=user;Password=pass` |
 
 ## Docker
 
