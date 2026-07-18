@@ -4,27 +4,30 @@ A RESTful API for managing todo items built with **NestJS**, **Prisma**, and **T
 
 ## Tech-stack mapping
 
-| ASP.NET Core + EF | Node.js equivalent |
-|---|---|
-| ASP.NET Core | **NestJS** + Express |
-| Entity Framework Core | **Prisma** (ORM) |
-| EF Migrations (`dotnet ef migrations`) | `prisma migrate dev` |
-| `DbContext` | `PrismaService` (wraps `PrismaClient`) |
-| Controllers | NestJS **Controllers** |
-| Services (`IService` / `Service`) | NestJS **Services** |
-| Repository pattern | `TodoItemRepository` provider |
-| DTOs / Data Annotations | **class-validator** + **class-transformer** |
-| `appsettings.json` / `IConfiguration` | `@nestjs/config` + `.env` |
-| Dependency Injection | NestJS DI container |
-| Swagger / OpenAPI | `@nestjs/swagger` at `/swagger` |
-| Startup.cs / Program.cs | `main.ts` + `AppModule` |
-| xUnit / Moq | **Jest** + `@nestjs/testing` |
+| ASP.NET Core + EF                      | Node.js equivalent                          |
+| -------------------------------------- | ------------------------------------------- |
+| ASP.NET Core                           | **NestJS** + Express                        |
+| Entity Framework Core                  | **Prisma** (ORM)                            |
+| EF Migrations (`dotnet ef migrations`) | `prisma migrate dev`                        |
+| `DbContext`                            | `PrismaService` (wraps `PrismaClient`)      |
+| Controllers                            | NestJS **Controllers**                      |
+| Services (`IService` / `Service`)      | NestJS **Services**                         |
+| Repository pattern                     | `TodoItemRepository` provider               |
+| DTOs / Data Annotations                | **class-validator** + **class-transformer** |
+| `appsettings.json` / `IConfiguration`  | `@nestjs/config` + `.env`                   |
+| Dependency Injection                   | NestJS DI container                         |
+| Swagger / OpenAPI                      | `@nestjs/swagger` at `/swagger`             |
+| Startup.cs / Program.cs                | `main.ts` + `AppModule`                     |
+| xUnit / Moq                            | **Jest** + `@nestjs/testing`                |
 
 ## Project structure
 
 ```
 src/backend/nodejs/
 ├── prisma/
+│   ├── migrations/
+│   │   └── 20260718130000_add_todo_item_attachments/
+│   │       └── migration.sql          # Attachment table migration
 │   └── schema.prisma                  # Prisma schema (EF model + DbContext)
 ├── src/
 │   ├── api/
@@ -43,6 +46,16 @@ src/backend/nodejs/
 │   │   │       ├── create-todo-item.dto.ts
 │   │   │       ├── update-todo-item.dto.ts
 │   │   │       └── todo-item-response.dto.ts
+│   │   ├── todo-item-attachments/
+│   │   │   ├── todo-item-attachments.module.ts
+│   │   │   ├── todo-item-attachments.controller.ts
+│   │   │   ├── todo-item-attachments.controller.spec.ts
+│   │   │   ├── todo-item-attachments.service.ts
+│   │   │   ├── todo-item-attachments.service.spec.ts
+│   │   │   ├── todo-item-attachments.repository.ts
+│   │   │   └── dto/
+│   │   │       ├── save-todo-item-attachment.dto.ts
+│   │   │       └── todo-item-attachment-response.dto.ts
 │   │   └── files/
 │   │       ├── files.module.ts            # Feature module
 │   │       ├── files.controller.ts        # Controller (list/get/download/upload/delete)
@@ -143,9 +156,9 @@ The `files` feature (`src/api/files/`) stores uploaded file content on disk and 
 
 Uploads are handled with `@nestjs/platform-express`'s `FileInterceptor`, buffered in memory, then written to `FILE_STORAGE_PATH` under a randomly-prefixed file name (to avoid collisions/overwrites between uploads that share a name). The client-supplied file name is stripped of any directory components before being stored, to prevent path traversal.
 
-| Variable | Default | Description |
-|---|---|---|
-| `FILE_STORAGE_PATH` | `./uploads` | Directory where uploaded file content is stored |
+| Variable                | Default            | Description                                                                          |
+| ----------------------- | ------------------ | ------------------------------------------------------------------------------------ |
+| `FILE_STORAGE_PATH`     | `./uploads`        | Directory where uploaded file content is stored                                      |
 | `MAX_UPLOAD_SIZE_BYTES` | `10485760` (10 MB) | Maximum accepted upload size; larger files are rejected with `413 Payload Too Large` |
 
 ## Background worker
@@ -166,17 +179,17 @@ If there are no incomplete todos, the job is skipped and no email is sent.
 
 ### Worker environment variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `DATABASE_URL` | *(required)* | Same value as the API - both containers share the same database |
-| `SMTP_HOST` | `localhost` | SMTP server hostname |
-| `SMTP_PORT` | `587` | SMTP server port |
-| `SMTP_SECURE` | `false` | `true` → implicit TLS (port 465); `false` → STARTTLS (port 587) |
-| `SMTP_USERNAME` | *(empty)* | SMTP auth username |
-| `SMTP_PASSWORD` | *(empty)* | SMTP auth password |
-| `EMAIL_SENDER` | `noreply@example.com` | From address |
-| `EMAIL_RECIPIENT` | `admin@example.com` | Destination address for digests |
-| `WORKER_INTERVAL_MINUTES` | `60` | How often the job runs |
+| Variable                  | Default               | Description                                                     |
+| ------------------------- | --------------------- | --------------------------------------------------------------- |
+| `DATABASE_URL`            | _(required)_          | Same value as the API - both containers share the same database |
+| `SMTP_HOST`               | `localhost`           | SMTP server hostname                                            |
+| `SMTP_PORT`               | `587`                 | SMTP server port                                                |
+| `SMTP_SECURE`             | `false`               | `true` → implicit TLS (port 465); `false` → STARTTLS (port 587) |
+| `SMTP_USERNAME`           | _(empty)_             | SMTP auth username                                              |
+| `SMTP_PASSWORD`           | _(empty)_             | SMTP auth password                                              |
+| `EMAIL_SENDER`            | `noreply@example.com` | From address                                                    |
+| `EMAIL_RECIPIENT`         | `admin@example.com`   | Destination address for digests                                 |
+| `WORKER_INTERVAL_MINUTES` | `60`                  | How often the job runs                                          |
 
 ## Switching databases
 

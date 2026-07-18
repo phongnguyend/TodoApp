@@ -17,6 +17,7 @@ model TodoItem {
   isCompleted Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime? @updatedAt
+  attachments TodoItemAttachment[]
 
   @@map("todo_items")
 }
@@ -43,6 +44,21 @@ model File {
   location    String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime? @updatedAt
+  attachments TodoItemAttachment[]
 
   @@map("files")
+}
+
+model TodoItemAttachment {
+  id         Int       @id @default(autoincrement())
+  todoItemId Int
+  fileId     Int
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime? @updatedAt
+  todoItem   TodoItem  @relation(fields: [todoItemId], references: [id], onDelete: Cascade)
+  file       File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([todoItemId, fileId])
+  @@index([fileId])
+  @@map("todo_item_attachments")
 }
