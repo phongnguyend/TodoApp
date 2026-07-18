@@ -4,20 +4,20 @@ A RESTful API for managing todo items built with **FastAPI**, **SQLAlchemy**, an
 
 ## Tech-stack mapping
 
-| ASP.NET Core + EF | Python equivalent |
-|---|---|
-| ASP.NET Core | **FastAPI** + Uvicorn |
-| Entity Framework Core | **SQLAlchemy** (ORM) |
-| EF Migrations (`dotnet ef migrations`) | **Alembic** |
-| `DbContext` | `SessionLocal` / `Session` |
-| Controllers | FastAPI **Routers** |
-| Services (`IService` / `Service`) | `ITodoItemService` / `TodoItemService` |
-| Repository pattern | `IRepository<T>` / `BaseRepository` |
-| DTOs / Request models | **Pydantic** schemas |
-| `appsettings.json` / `IConfiguration` | `pydantic-settings` + `.env` |
-| Dependency Injection | FastAPI `Depends()` |
-| Swagger / OpenAPI | Built-in at `/swagger` |
-| Unit tests (`xUnit` / `NUnit`) | **pytest** + `unittest.mock` |
+| ASP.NET Core + EF                      | Python equivalent                      |
+| -------------------------------------- | -------------------------------------- |
+| ASP.NET Core                           | **FastAPI** + Uvicorn                  |
+| Entity Framework Core                  | **SQLAlchemy** (ORM)                   |
+| EF Migrations (`dotnet ef migrations`) | **Alembic**                            |
+| `DbContext`                            | `SessionLocal` / `Session`             |
+| Controllers                            | FastAPI **Routers**                    |
+| Services (`IService` / `Service`)      | `ITodoItemService` / `TodoItemService` |
+| Repository pattern                     | `IRepository<T>` / `BaseRepository`    |
+| DTOs / Request models                  | **Pydantic** schemas                   |
+| `appsettings.json` / `IConfiguration`  | `pydantic-settings` + `.env`           |
+| Dependency Injection                   | FastAPI `Depends()`                    |
+| Swagger / OpenAPI                      | Built-in at `/swagger`                 |
+| Unit tests (`xUnit` / `NUnit`)         | **pytest** + `unittest.mock`           |
 
 ## Project structure
 
@@ -25,34 +25,33 @@ A RESTful API for managing todo items built with **FastAPI**, **SQLAlchemy**, an
 src/backend/python/
 ├── api/                           # API project (analogous to dotnet/TodoApi)
 │   ├── main.py                        # App entry point (Program.cs)
-│   ├── config.py                      # Settings (appsettings.json)
-│   ├── database.py                    # DB session + Base (DbContext)
-│   ├── models/
-│   │   ├── todo_item.py               # SQLAlchemy entity
-│   │   ├── email_log.py               # Email audit-log entity
-│   │   └── file.py                    # Uploaded-file entity
 │   ├── schemas/
 │   │   ├── todo_item.py               # Pydantic DTOs (request/response)
-│   │   └── file.py                    # File metadata DTO (response)
+│   │   ├── file.py                    # File metadata DTO (response)
+│   │   └── todo_item_attachment.py     # Attachment request/response DTOs
 │   ├── repositories/
 │   │   ├── base_repository.py         # IRepository<T> + BaseRepository<T>
 │   │   ├── todo_item_repository.py    # ITodoItemRepository + impl
-│   │   └── file_repository.py         # IFileRepository + impl
+│   │   ├── file_repository.py         # IFileRepository + impl
+│   │   └── todo_item_attachment_repository.py # Attachment repository + impl
 │   ├── services/
 │   │   ├── todo_item_service.py       # ITodoItemService + impl
-│   │   └── file_service.py            # IFileService + impl (upload/download/delete)
+│   │   ├── file_service.py            # IFileService + impl (upload/download/delete)
+│   │   └── todo_item_attachment_service.py # Attachment business logic
 │   ├── routers/
 │   │   ├── todo_items.py              # TodoItemsController equivalent
 │   │   └── files.py                   # FilesController equivalent
 │   └── Dockerfile                     # API container
+├── shared/                        # Configuration, database, and shared entities
+│   ├── config.py                      # Settings (appsettings.json equivalent)
+│   ├── database.py                    # DB session + Base (DbContext)
+│   └── models/
+│       ├── todo_item.py               # Todo SQLAlchemy entity
+│       ├── email_log.py               # Email audit-log entity
+│       ├── file.py                    # Uploaded-file entity
+│       └── todo_item_attachment.py     # Todo-to-file attachment entity
 ├── worker/                        # Worker project (analogous to dotnet/TodoWorker)
 │   ├── main.py                        # Worker entry-point (scheduler)
-│   ├── config.py                      # Settings (appsettings.json)
-│   ├── database.py                    # DB session + Base (DbContext)
-│   ├── models/
-│   │   ├── todo_item.py               # SQLAlchemy entity
-│   │   ├── email_log.py               # Email audit-log entity
-│   │   └── file.py                    # Uploaded-file entity
 │   ├── jobs/
 │   │   └── incomplete_todos_email.py  # Digest email job
 │   └── Dockerfile                     # Background worker container
@@ -60,16 +59,19 @@ src/backend/python/
 │   └── unit/
 │       ├── services/
 │       │   ├── test_todo_item_service.py  # Service layer unit tests
-│       │   └── test_file_service.py       # File service unit tests
+│       │   ├── test_file_service.py       # File service unit tests
+│       │   └── test_todo_item_attachment_service.py # Attachment service tests
 │       └── routers/
 │           ├── test_todo_items.py         # Router / HTTP endpoint tests
-│           └── test_files.py              # File router / HTTP endpoint tests
+│           ├── test_files.py              # File router / HTTP endpoint tests
+│           └── test_todo_item_attachments.py # Attachment endpoint tests
 ├── alembic/
 │   ├── env.py
 │   ├── script.py.mako
 │   └── versions/
 │       ├── 20260630_0000_aabbccdd1122_initial_create.py     # todo_items + email_logs
-│       └── 20260702_0000_bbccddee2233_add_files_table.py    # files
+│       ├── 20260702_0000_bbccddee2233_add_files_table.py    # files
+│       └── 20260718_0000_ccddeeff3344_add_todo_item_attachments.py # attachments
 ├── alembic.ini
 ├── pytest.ini
 ├── requirements.txt
@@ -177,16 +179,16 @@ A separate process (and container) runs on a configurable interval and sends an 
 
 ### Email-log table
 
-| Column | Type | Description |
-|---|---|---|
-| `id` | `INTEGER` | Primary key |
-| `recipient` | `VARCHAR(255)` | Destination address |
-| `subject` | `VARCHAR(500)` | Email subject |
-| `body` | `TEXT` | Plain-text body |
-| `status` | `VARCHAR(50)` | `pending` / `sent` / `failed` |
-| `created_at` | `DATETIME` | Row creation time |
-| `sent_at` | `DATETIME` | Delivery time (nullable) |
-| `error_message` | `TEXT` | SMTP error details (nullable) |
+| Column          | Type           | Description                   |
+| --------------- | -------------- | ----------------------------- |
+| `id`            | `INTEGER`      | Primary key                   |
+| `recipient`     | `VARCHAR(255)` | Destination address           |
+| `subject`       | `VARCHAR(500)` | Email subject                 |
+| `body`          | `TEXT`         | Plain-text body               |
+| `status`        | `VARCHAR(50)`  | `pending` / `sent` / `failed` |
+| `created_at`    | `DATETIME`     | Row creation time             |
+| `sent_at`       | `DATETIME`     | Delivery time (nullable)      |
+| `error_message` | `TEXT`         | SMTP error details (nullable) |
 
 ### Configuration (`.env`)
 

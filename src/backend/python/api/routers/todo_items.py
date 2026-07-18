@@ -13,6 +13,11 @@ from api.schemas.todo_item import (
     UpdateTodoItemRequest,
 )
 from api.services.todo_item_service import ITodoItemService, get_todo_service
+from api.schemas.todo_item_attachment import CreateTodoItemAttachmentRequest, TodoItemAttachmentResponse
+from api.services.todo_item_attachment_service import (
+    ITodoItemAttachmentService,
+    get_todo_item_attachment_service,
+)
 
 router = APIRouter(prefix="/api/todo-items", tags=["Todo Items"])
 
@@ -26,6 +31,13 @@ def _service(db: DbDep) -> ITodoItemService:
 
 
 ServiceDep = Annotated[ITodoItemService, Depends(_service)]
+
+
+def _attachment_service(db: DbDep) -> ITodoItemAttachmentService:
+    return get_todo_item_attachment_service(db)
+
+
+AttachmentServiceDep = Annotated[ITodoItemAttachmentService, Depends(_attachment_service)]
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -98,6 +110,65 @@ def mark_complete(todo_id: int, service: ServiceDep, db: DbDep):
     todo = service.mark_complete(todo_id)
     db.commit()
     return todo
+
+
+@router.get(
+    "/{todo_id}/attachments",
+    response_model=list[TodoItemAttachmentResponse],
+    summary="Get a todo item's attachments",
+)
+def get_attachments(todo_id: int, service: AttachmentServiceDep):
+    return service.get_all(todo_id)
+
+
+@router.post(
+    "/{todo_id}/attachments",
+    response_model=TodoItemAttachmentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Attach a file to a todo item",
+)
+def create_attachment(
+    todo_id: int, request: CreateTodoItemAttachmentRequest, service: AttachmentServiceDep, db: DbDep
+):
+    attachment = service.create(todo_id, request)
+    db.commit()
+    return attachment
+
+
+@router.get(
+    "/{todo_id}/attachments/{attachment_id}",
+    response_model=TodoItemAttachmentResponse,
+    summary="Get a todo item attachment by ID",
+)
+def get_attachment_by_id(todo_id: int, attachment_id: int, service: AttachmentServiceDep):
+    return service.get_by_id(todo_id, attachment_id)
+
+
+@router.put(
+    "/{todo_id}/attachments/{attachment_id}",
+    response_model=TodoItemAttachmentResponse,
+    summary="Update a todo item attachment",
+)
+def update_attachment(
+    todo_id: int,
+    attachment_id: int,
+    request: CreateTodoItemAttachmentRequest,
+    service: AttachmentServiceDep,
+    db: DbDep,
+):
+    attachment = service.update(todo_id, attachment_id, request)
+    db.commit()
+    return attachment
+
+
+@router.delete(
+    "/{todo_id}/attachments/{attachment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a todo item attachment",
+)
+def delete_attachment(todo_id: int, attachment_id: int, service: AttachmentServiceDep, db: DbDep):
+    service.delete(todo_id, attachment_id)
+    db.commit()
 
 
 @router.delete("/{todo_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a todo item")
