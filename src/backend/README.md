@@ -57,6 +57,22 @@ Stores metadata about uploaded files.
 
 ---
 
+### Table: `users`
+
+Stores application users for authentication and profile-management features.
+
+| Column          | Data Type                | Constraints                           | Notes                         |
+| --------------- | ------------------------ | ------------------------------------- | ----------------------------- |
+| `id`            | INTEGER                  | PRIMARY KEY, AUTO INCREMENT, NOT NULL | Surrogate key                 |
+| `username`      | VARCHAR(50)              | NOT NULL, UNIQUE                      | Unique login or display name  |
+| `email`         | VARCHAR(255)             | NOT NULL, UNIQUE                      | Email address                 |
+| `password_hash` | VARCHAR(255)             | NOT NULL                              | Hashed password value         |
+| `is_active`     | BOOLEAN                  | NOT NULL, DEFAULT `true`              | Account active status         |
+| `created_at`    | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT `now()`             | Set by the database on insert |
+| `updated_at`    | TIMESTAMP WITH TIME ZONE | NULLABLE                              | Set by the database on update |
+
+---
+
 ## Naming Convention Mapping
 
 | Canonical (SQL) | Python / SQLAlchemy | .NET / EF Core | Go              | Java / JPA      | Node.js / Prisma | PHP / Eloquent  |
@@ -64,12 +80,15 @@ Stores metadata about uploaded files.
 | `todo_items`    | `todo_items`        | `TodoItems`    | `todo_items`    | `todo_items`    | `todo_items`     | `todo_items`    |
 | `email_logs`    | `email_logs`        | `EmailLogs`    | `email_logs`    | `email_logs`    | `email_logs`     | `email_logs`    |
 | `files`         | `files`             | `Files`        | `files`         | `files`         | `files`          | `files`         |
+| `users`         | `users`             | `Users`        | `users`         | `users`         | `users`          | `users`         |
 | `is_completed`  | `is_completed`      | `IsCompleted`  | `is_completed`  | `is_completed`  | `isCompleted`    | `is_completed`  |
 | `created_at`    | `created_at`        | `CreatedAt`    | `created_at`    | `created_at`    | `createdAt`      | `created_at`    |
 | `updated_at`    | `updated_at`        | `UpdatedAt`    | `updated_at`    | `updated_at`    | `updatedAt`      | `updated_at`    |
 | `sent_at`       | `sent_at`           | `SentAt`       | `sent_at`       | `sent_at`       | `sentAt`         | `sent_at`       |
 | `error_message` | `error_message`     | `ErrorMessage` | `error_message` | `error_message` | `errorMessage`   | `error_message` |
 | `content_type`  | `content_type`      | `ContentType`  | `content_type`  | `content_type`  | `contentType`    | `content_type`  |
+| `password_hash` | `password_hash`     | `PasswordHash` | `password_hash` | `password_hash` | `passwordHash`   | `password_hash` |
+| `is_active`     | `is_active`         | `IsActive`     | `is_active`     | `is_active`     | `isActive`       | `is_active`     |
 
 ## API Endpoints
 
