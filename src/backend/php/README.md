@@ -4,22 +4,22 @@ A RESTful API for managing todo items built with **Laravel 12**, **Eloquent ORM*
 
 ## Tech-stack mapping
 
-| ASP.NET Core + EF | PHP equivalent |
-|---|---|
-| ASP.NET Core | **Laravel 12** |
-| Entity Framework Core | **Eloquent ORM** |
-| EF Migrations (`dotnet ef migrations add`) | **Laravel Migrations** (`php artisan make:migration`) |
-| `DbContext` | Eloquent `Model` / `DB` facade |
-| Controllers (`ControllerBase`) | **Laravel Controllers** |
-| Services (`IService` / `Service`) | `TodoItemServiceInterface` / `TodoItemService` |
-| Repository pattern (`IRepository<T>`) | `RepositoryInterface` / `BaseRepository` |
-| DTOs / Request validators | **Form Requests** + **API Resources** |
-| `appsettings.json` / `IConfiguration` | `.env` + `config/` |
-| Dependency Injection (constructor DI) | Laravel **Service Container** (`AppServiceProvider`) |
-| Swagger / OpenAPI | **L5-Swagger** (`darkaonline/l5-swagger`) |
-| Global exception handler / ProblemDetails | `app/Exceptions/Handler.php` |
-| Unit tests (xUnit / NUnit) | **PHPUnit 11** + **Mockery** |
-| Background / hosted service | **Artisan command** + **Laravel Scheduler** (`schedule:work`) |
+| ASP.NET Core + EF                          | PHP equivalent                                                |
+| ------------------------------------------ | ------------------------------------------------------------- |
+| ASP.NET Core                               | **Laravel 12**                                                |
+| Entity Framework Core                      | **Eloquent ORM**                                              |
+| EF Migrations (`dotnet ef migrations add`) | **Laravel Migrations** (`php artisan make:migration`)         |
+| `DbContext`                                | Eloquent `Model` / `DB` facade                                |
+| Controllers (`ControllerBase`)             | **Laravel Controllers**                                       |
+| Services (`IService` / `Service`)          | `TodoItemServiceInterface` / `TodoItemService`                |
+| Repository pattern (`IRepository<T>`)      | `RepositoryInterface` / `BaseRepository`                      |
+| DTOs / Request validators                  | **Form Requests** + **API Resources**                         |
+| `appsettings.json` / `IConfiguration`      | `.env` + `config/`                                            |
+| Dependency Injection (constructor DI)      | Laravel **Service Container** (`AppServiceProvider`)          |
+| Swagger / OpenAPI                          | **L5-Swagger** (`darkaonline/l5-swagger`)                     |
+| Global exception handler / ProblemDetails  | `app/Exceptions/Handler.php`                                  |
+| Unit tests (xUnit / NUnit)                 | **PHPUnit 11** + **Mockery**                                  |
+| Background / hosted service                | **Artisan command** + **Laravel Scheduler** (`schedule:work`) |
 
 ## Project structure
 
@@ -34,16 +34,20 @@ src/backend/php/
 │   ├── Http/
 │   │   ├── Controllers/Api/
 │   │   │   ├── TodoItemController.php          # REST controller (ControllerBase)
+│   │   │   ├── TodoItemAttachmentController.php # REST controller for attachment references
 │   │   │   └── FileController.php               # REST controller for uploaded files
 │   │   ├── Requests/
 │   │   │   ├── CreateTodoItemRequest.php        # Validated create DTO
 │   │   │   ├── UpdateTodoItemRequest.php        # Validated update DTO
+│   │   │   ├── SaveTodoItemAttachmentRequest.php # Validated attachment-reference DTO
 │   │   │   └── UploadFileRequest.php            # Validated file-upload DTO (required/size rules)
 │   │   └── Resources/
 │   │       ├── TodoItemResource.php             # Response DTO (AutoMapper profile)
+│   │       ├── TodoItemAttachmentResource.php   # Response DTO for attachment references
 │   │       └── FileResource.php                 # Response DTO for file metadata
 │   ├── Models/
 │   │   ├── TodoItem.php                         # Eloquent entity
+│   │   ├── TodoItemAttachment.php               # Eloquent attachment-reference entity
 │   │   ├── EmailLog.php                         # Eloquent entity for email audit trail
 │   │   └── File.php                             # Eloquent entity for uploaded-file metadata
 │   ├── Providers/
@@ -52,15 +56,19 @@ src/backend/php/
 │   │   ├── Contracts/
 │   │   │   ├── RepositoryInterface.php          # IRepository<T>
 │   │   │   ├── TodoItemRepositoryInterface.php  # ITodoItemRepository
+│   │   │   ├── TodoItemAttachmentRepositoryInterface.php # Attachment repository contract
 │   │   │   └── FileRepositoryInterface.php      # IFileRepository
 │   │   ├── BaseRepository.php                   # GenericRepository<T>
 │   │   ├── TodoItemRepository.php               # Concrete implementation
+│   │   ├── TodoItemAttachmentRepository.php     # Attachment repository implementation
 │   │   └── FileRepository.php                   # Concrete implementation
 │   └── Services/
 │       ├── Contracts/
 │       │   ├── TodoItemServiceInterface.php     # ITodoItemService
+│       │   ├── TodoItemAttachmentServiceInterface.php # Attachment service contract
 │       │   └── FileServiceInterface.php         # IFileService
 │       ├── TodoItemService.php                  # Business logic
+│       ├── TodoItemAttachmentService.php        # Attachment-reference business logic
 │       └── FileService.php                      # Business logic - upload/download/delete on disk
 ├── database/
 │   ├── factories/
@@ -69,7 +77,8 @@ src/backend/php/
 │   └── migrations/
 │       ├── 2024_01_01_000000_create_todo_items_table.php
 │       ├── 2024_01_02_000000_create_email_logs_table.php
-│       └── 2024_01_03_000000_create_files_table.php
+│       ├── 2024_01_03_000000_create_files_table.php
+│       └── 2026_07_18_000000_create_todo_item_attachments_table.php
 ├── routes/
 │   └── api.php                                  # Route definitions
 ├── tests/
@@ -81,9 +90,11 @@ src/backend/php/
 │   │   │   └── UploadFileRequestTest.php        # Validation rule tests (required/max size)
 │   │   └── Services/
 │   │       ├── TodoItemServiceTest.php          # Service unit tests (Mockery)
+│   │       ├── TodoItemAttachmentServiceTest.php # Attachment service unit tests
 │   │       └── FileServiceTest.php              # Service unit tests (Mockery + real temp files)
 │   └── Feature/
 │       ├── TodoItemApiTest.php                  # HTTP integration tests
+│       ├── TodoItemAttachmentApiTest.php        # Attachment endpoint integration tests
 │       └── FileApiTest.php                      # HTTP integration tests (upload/download/delete)
 ├── phpunit.xml
 ├── composer.json
@@ -114,6 +125,7 @@ choco install php composer
 ```
 
 Or download manually:
+
 - PHP: <https://windows.php.net/download/> (grab a **Thread Safe** x64 zip, extract, and add to `PATH`)
 - Composer: <https://getcomposer.org/Composer-Setup.exe>
 
@@ -238,10 +250,12 @@ The test suite uses **PHPUnit 11** with an in-memory SQLite database - no extra 
 > The in-memory SQLite test database requires the `pdo_sqlite` and `sqlite3` extensions.  
 > On a default Windows PHP installation both extensions are present but **commented out** in `php.ini`.  
 > Open your active `php.ini` (run `php --ini` to find it) and uncomment the two lines:
+>
 > ```ini
 > extension=pdo_sqlite
 > extension=sqlite3
 > ```
+>
 > Without these, PHPUnit will fail with a `could not find driver` (PDO) error.
 
 ```bash
@@ -257,15 +271,15 @@ The test suite uses **PHPUnit 11** with an in-memory SQLite database - no extra 
 
 ### Test coverage
 
-| Suite | File | What is tested |
-|---|---|---|
-| Unit | `TodoItemServiceTest` | All service methods; repository mocked via Mockery |
-| Unit | `CreateTodoItemRequestTest` | `title` required/length, `description` optional/length |
-| Unit | `UpdateTodoItemRequestTest` | All fields optional, type/length constraints |
-| Unit | `FileServiceTest` | All service methods; repository mocked via Mockery, real temp files for upload/download/delete |
-| Unit | `UploadFileRequestTest` | `file` required, rejected when exceeding `MAX_UPLOAD_SIZE_BYTES` |
-| Feature | `TodoItemApiTest` | All 7 todo-item endpoints - status codes, response shape, database state |
-| Feature | `FileApiTest` | All 5 file endpoints - upload/download/delete round-trip against a temp storage dir |
+| Suite   | File                        | What is tested                                                                                 |
+| ------- | --------------------------- | ---------------------------------------------------------------------------------------------- |
+| Unit    | `TodoItemServiceTest`       | All service methods; repository mocked via Mockery                                             |
+| Unit    | `CreateTodoItemRequestTest` | `title` required/length, `description` optional/length                                         |
+| Unit    | `UpdateTodoItemRequestTest` | All fields optional, type/length constraints                                                   |
+| Unit    | `FileServiceTest`           | All service methods; repository mocked via Mockery, real temp files for upload/download/delete |
+| Unit    | `UploadFileRequestTest`     | `file` required, rejected when exceeding `MAX_UPLOAD_SIZE_BYTES`                               |
+| Feature | `TodoItemApiTest`           | All 7 todo-item endpoints - status codes, response shape, database state                       |
+| Feature | `FileApiTest`               | All 5 file endpoints - upload/download/delete round-trip against a temp storage dir            |
 
 ## Docker
 

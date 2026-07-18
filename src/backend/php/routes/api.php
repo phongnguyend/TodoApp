@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\FileController;
 use App\Http\Controllers\Api\TodoItemController;
+use App\Http\Controllers\Api\TodoItemAttachmentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -20,6 +21,11 @@ Route::prefix('todo-items')->group(function () {
     Route::post('/import/excel', [TodoItemController::class, 'importExcel']); // POST   /api/todo-items/import/excel
     Route::get('/export/csv',  [TodoItemController::class, 'exportCsv']);   // GET    /api/todo-items/export/csv
     Route::get('/export/excel', [TodoItemController::class, 'exportExcel']); // GET    /api/todo-items/export/excel
+    Route::get('/{id}/attachments', [TodoItemAttachmentController::class, 'index']);
+    Route::post('/{id}/attachments', [TodoItemAttachmentController::class, 'store']);
+    Route::get('/{id}/attachments/{attachmentId}', [TodoItemAttachmentController::class, 'show']);
+    Route::put('/{id}/attachments/{attachmentId}', [TodoItemAttachmentController::class, 'update']);
+    Route::delete('/{id}/attachments/{attachmentId}', [TodoItemAttachmentController::class, 'destroy']);
     Route::get('/{id}',        [TodoItemController::class, 'show']);        // GET    /api/todo-items/{id}
     Route::post('/',           [TodoItemController::class, 'store']);       // POST   /api/todo-items
     Route::put('/{id}',        [TodoItemController::class, 'update']);      // PUT    /api/todo-items/{id}
