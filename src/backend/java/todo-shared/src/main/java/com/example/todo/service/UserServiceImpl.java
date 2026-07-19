@@ -6,12 +6,14 @@ import com.example.todo.entity.User;
 import com.example.todo.exception.InvalidPasswordException;
 import com.example.todo.exception.InvalidPasswordResetTokenException;
 import com.example.todo.exception.UserConflictException;
+import com.example.todo.exception.UnauthorizedException;
 import com.example.todo.repository.EmailLogRepository;
 import com.example.todo.repository.UserRepository;
 import com.example.todo.security.PasswordHasher;
 import com.example.todo.security.UserTokenCodec;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -33,17 +35,30 @@ public class UserServiceImpl implements UserService {
     private final UserTokenCodec tokenCodec;
     private final long resetLifetimeMinutes;
     private final String resetConfirmationUrl;
+    private final long accessTokenLifetimeMinutes;
+    private final String dummyPasswordHash;
 
+    @Autowired
     public UserServiceImpl(UserRepository repository, EmailLogRepository emailLogRepository,
             PasswordHasher passwordHasher, UserTokenCodec tokenCodec,
             @Value("${app.user.password-reset.token-lifetime-minutes:60}") long resetLifetimeMinutes,
-            @Value("${app.user.password-reset.confirmation-url:/reset-password}") String resetConfirmationUrl) {
+            @Value("${app.user.password-reset.confirmation-url:/reset-password}") String resetConfirmationUrl,
+            @Value("${app.user.jwt-token-lifetime-minutes:60}") long accessTokenLifetimeMinutes) {
         this.repository = repository;
         this.emailLogRepository = emailLogRepository;
         this.passwordHasher = passwordHasher;
         this.tokenCodec = tokenCodec;
         this.resetLifetimeMinutes = Math.max(1, resetLifetimeMinutes);
         this.resetConfirmationUrl = resetConfirmationUrl;
+        this.accessTokenLifetimeMinutes = Math.max(1, accessTokenLifetimeMinutes);
+        this.dummyPasswordHash = passwordHasher.hash("not-a-real-password");
+    }
+
+    public UserServiceImpl(UserRepository repository, EmailLogRepository emailLogRepository,
+            PasswordHasher passwordHasher, UserTokenCodec tokenCodec,
+            long resetLifetimeMinutes, String resetConfirmationUrl) {
+        this(repository, emailLogRepository, passwordHasher, tokenCodec,
+                resetLifetimeMinutes, resetConfirmationUrl, 60);
     }
 
     @Override
@@ -143,6 +158,19 @@ public class UserServiceImpl implements UserService {
             throw invalidResetToken();
         user.setPasswordHash(passwordHasher.hash(request.newPassword()));
         repository.save(user);
+    }
+
+    @Override
+    public TokenResponse createToken(TokenRequest request) {
+        User user = repository.findByEmailIgnoreCase(normalizeEmail(request.email())).orElse(null);
+        boolean passwordValid = passwordHasher.matches(request.password(),
+                user == null ? dummyPasswordHash : user.getPasswordHash());
+        if (user == null || !passwordValid || !user.isActive())
+            throw new UnauthorizedException("Invalid email or password.");
+        Instant issuedAt = Instant.now();
+        long expiresIn = accessTokenLifetimeMinutes * 60;
+        String token = tokenCodec.createAccessToken(user.getId(), issuedAt, issuedAt.plusSeconds(expiresIn));
+        return new TokenResponse(token, "Bearer", expiresIn);
     }
 
     private User getOrThrow(Long id) {

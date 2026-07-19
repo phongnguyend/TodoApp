@@ -17,6 +17,7 @@ type Config struct {
 	DefaultPageSize                   int
 	MaxPageSize                       int
 	JWTSecretKey                      string
+	JWTTokenLifetimeMinutes           int
 	PasswordHashIterations            int
 	PasswordResetSecretKey            string
 	PasswordResetTokenLifetimeMinutes int
@@ -55,6 +56,7 @@ func Load() *Config {
 		DefaultPageSize:                   getEnvInt("DEFAULT_PAGE_SIZE", 20),
 		MaxPageSize:                       getEnvInt("MAX_PAGE_SIZE", 100),
 		JWTSecretKey:                      jwtSecret,
+		JWTTokenLifetimeMinutes:           getEnvInt("JWT_TOKEN_LIFETIME_MINUTES", 60),
 		PasswordHashIterations:            getEnvInt("PASSWORD_HASH_ITERATIONS", 120000),
 		PasswordResetSecretKey:            getEnv("PASSWORD_RESET_SECRET_KEY", jwtSecret),
 		PasswordResetTokenLifetimeMinutes: getEnvInt("PASSWORD_RESET_TOKEN_LIFETIME_MINUTES", 60),

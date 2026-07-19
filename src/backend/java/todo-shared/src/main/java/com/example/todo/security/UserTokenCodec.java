@@ -59,6 +59,20 @@ public class UserTokenCodec {
         }
     }
 
+    public String createAccessToken(long userId, Instant issuedAt, Instant expiresAt) {
+        try {
+            String header = ENCODER.encodeToString(JSON.writeValueAsBytes(Map.of("alg", "HS256", "typ", "JWT")));
+            String payload = ENCODER.encodeToString(JSON.writeValueAsBytes(Map.of(
+                    "sub", Long.toString(userId),
+                    "iat", issuedAt.getEpochSecond(),
+                    "exp", expiresAt.getEpochSecond())));
+            String content = header + "." + payload;
+            return content + "." + sign(content, jwtSecret);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Could not create an access token.", ex);
+        }
+    }
+
     public ResetTokenPayload decodePasswordResetToken(String token) {
         try {
             String[] parts = token.split("\\.", -1);

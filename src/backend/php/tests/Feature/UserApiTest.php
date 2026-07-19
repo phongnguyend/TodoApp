@@ -136,6 +136,45 @@ class UserApiTest extends TestCase
         $this->postJson('/api/users/password/confirm', $payload)->assertBadRequest();
     }
 
+    public function test_token_endpoint_issues_a_signed_jwt_for_active_user(): void
+    {
+        config(['users.jwt_secret' => 'test-secret', 'users.jwt_token_lifetime_minutes' => 60]);
+        $user = User::factory()->create([
+            'email' => 'alice@example.com',
+            'password_hash' => Hash::make('password123'),
+            'is_active' => true,
+        ]);
+
+        $response = $this->postJson('/api/tokens', [
+            'email' => ' Alice@Example.com ',
+            'password' => 'password123',
+        ])->assertOk()
+            ->assertHeader('Cache-Control')
+            ->assertHeader('Pragma', 'no-cache')
+            ->assertJsonPath('token_type', 'Bearer')
+            ->assertJsonPath('expires_in', 3600);
+
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+
+        [$header, $payload, $signature] = explode('.', $response->json('access_token'));
+        $this->assertSame('HS256', json_decode($this->decodeBase64Url($header), true)['alg']);
+        $this->assertSame((string) $user->id, json_decode($this->decodeBase64Url($payload), true)['sub']);
+        $this->assertNotEmpty($signature);
+    }
+
+    public function test_token_endpoint_does_not_disclose_authentication_failure(): void
+    {
+        $this->postJson('/api/tokens', ['email' => 'missing@example.com', 'password' => 'wrong'])
+            ->assertUnauthorized()
+            ->assertHeader('WWW-Authenticate', 'Bearer')
+            ->assertExactJson(['error' => 'Invalid email or password.']);
+    }
+
+    private function decodeBase64Url(string $value): string
+    {
+        return base64_decode(strtr($value, '-_', '+/').str_repeat('=', (4 - strlen($value) % 4) % 4), true);
+    }
+
     private function jwtFor(int $userId): string
     {
         $encode = static fn (string $value): string => rtrim(strtr(base64_encode($value), '+/', '-_'), '=');

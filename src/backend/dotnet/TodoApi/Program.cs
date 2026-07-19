@@ -3,6 +3,7 @@ using Scalar.AspNetCore;
 using TodoApi.Data;
 using TodoApi.Repositories;
 using TodoApi.Services;
+using TodoApi.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +44,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseMiddleware<JwtAuthenticationMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 

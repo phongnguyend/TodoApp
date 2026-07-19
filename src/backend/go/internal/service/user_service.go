@@ -23,6 +23,7 @@ var (
 	ErrInvalidCurrentPassword    = errors.New("the current password is incorrect")
 	ErrInactiveUser              = errors.New("the user account is inactive")
 	ErrInvalidPasswordResetToken = errors.New("the password reset token is invalid or expired")
+	ErrInvalidCredentials        = errors.New("invalid email or password")
 )
 
 type UserService interface {
@@ -37,15 +38,18 @@ type UserService interface {
 	ChangePassword(id uint, req dto.ChangePasswordRequest) error
 	RequestPasswordReset(req dto.ResetPasswordRequest) error
 	ConfirmPasswordReset(req dto.ConfirmPasswordResetRequest) error
+	CreateToken(req dto.TokenRequest) (dto.TokenResponse, error)
 }
 
 type userService struct {
-	repo repository.UserRepository
-	cfg  *config.Config
+	repo              repository.UserRepository
+	cfg               *config.Config
+	dummyPasswordHash string
 }
 
 func NewUserService(repo repository.UserRepository, cfg *config.Config) UserService {
-	return &userService{repo: repo, cfg: cfg}
+	dummyHash, _ := security.HashPassword("not-a-real-password", cfg.PasswordHashIterations)
+	return &userService{repo: repo, cfg: cfg, dummyPasswordHash: dummyHash}
 }
 
 func userResponse(u *models.User) dto.UserResponse {
@@ -233,4 +237,29 @@ func (s *userService) ConfirmPasswordReset(req dto.ConfirmPasswordResetRequest) 
 	u.UpdatedAt = &now
 	_, e = s.repo.Update(u)
 	return e
+}
+
+func (s *userService) CreateToken(req dto.TokenRequest) (dto.TokenResponse, error) {
+	u, err := s.repo.FindByEmail(strings.ToLower(strings.TrimSpace(req.Email)))
+	hash := s.dummyPasswordHash
+	if err == nil && u != nil {
+		hash = u.PasswordHash
+	}
+	valid := security.VerifyPassword(req.Password, hash)
+	if errors.Is(err, gorm.ErrRecordNotFound) || err == nil && (u == nil || !valid || !u.IsActive) {
+		return dto.TokenResponse{}, ErrInvalidCredentials
+	}
+	if err != nil {
+		return dto.TokenResponse{}, err
+	}
+	now := time.Now().UTC()
+	expiresIn := s.cfg.JWTTokenLifetimeMinutes * 60
+	if expiresIn < 60 {
+		expiresIn = 60
+	}
+	token, err := security.CreateJWT(u.ID, s.cfg.JWTSecretKey, now, now.Add(time.Duration(expiresIn)*time.Second))
+	if err != nil {
+		return dto.TokenResponse{}, err
+	}
+	return dto.TokenResponse{AccessToken: token, TokenType: "Bearer", ExpiresIn: expiresIn}, nil
 }

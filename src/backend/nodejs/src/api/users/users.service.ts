@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { User } from '@prisma/client';
 import { createHash, createHmac, pbkdf2Sync, randomBytes, timingSafeEqual } from 'crypto';
@@ -7,11 +7,16 @@ import { CreateUserDto, SignUpDto } from './dto/create-user.dto';
 import { ChangePasswordDto, ConfirmPasswordResetDto, ResetPasswordDto } from './dto/password.dto';
 import { UpdateProfileDto, UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { TokenRequestDto, TokenResponseDto } from './dto/token.dto';
 import { UsersRepository } from './users.repository';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly repository: UsersRepository, private readonly config: ConfigService) {}
+  private readonly dummyPasswordHash: string;
+
+  constructor(private readonly repository: UsersRepository, private readonly config: ConfigService) {
+    this.dummyPasswordHash = this.hashPassword('not-a-real-password');
+  }
 
   private static toDto(user: User): UserResponseDto {
     const { id, username, email, isActive, createdAt, updatedAt } = user;
@@ -89,6 +94,22 @@ export class UsersService {
 
   signup(dto: SignUpDto): Promise<UserResponseDto> {
     return this.create({ ...dto, isActive: true });
+  }
+
+  async createToken(dto: TokenRequestDto): Promise<TokenResponseDto> {
+    const user = await this.repository.findByEmail(dto.email.trim().toLowerCase());
+    const passwordValid = this.verifyPassword(dto.password, user?.passwordHash ?? this.dummyPasswordHash);
+    if (!user || !passwordValid || !user.isActive) {
+      throw new UnauthorizedException({ error: 'Invalid email or password.' });
+    }
+    const issuedAt = Math.floor(Date.now() / 1000);
+    const lifetime = Math.max(1, Number(this.config.get<string>('JWT_TOKEN_LIFETIME_MINUTES') ?? 60));
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+    const payload = Buffer.from(JSON.stringify({ sub: String(user.id), iat: issuedAt, exp: issuedAt + lifetime * 60 }))
+      .toString('base64url');
+    const secret = this.config.get<string>('JWT_SECRET_KEY') ?? 'change-me';
+    const signature = createHmac('sha256', secret).update(`${header}.${payload}`).digest('base64url');
+    return { access_token: `${header}.${payload}.${signature}`, token_type: 'Bearer', expires_in: lifetime * 60 };
   }
 
   getProfile(userId: number): Promise<UserResponseDto> {

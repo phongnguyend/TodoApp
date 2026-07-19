@@ -62,3 +62,5 @@ Route::prefix('users')->group(function () {
     Route::patch('/{id}/activate', [UserController::class, 'activate'])->whereNumber('id');
     Route::patch('/{id}/deactivate', [UserController::class, 'deactivate'])->whereNumber('id');
 });
+
+Route::post('tokens', [UserController::class, 'createToken']);

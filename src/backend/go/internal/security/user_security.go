@@ -72,6 +72,23 @@ type tokenPayload struct {
 	Password string `json:"password,omitempty"`
 }
 
+func CreateJWT(userID uint, secret string, issuedAt, expires time.Time) (string, error) {
+	header, err := json.Marshal(map[string]string{"alg": "HS256", "typ": "JWT"})
+	if err != nil {
+		return "", err
+	}
+	body, err := json.Marshal(map[string]any{
+		"sub": strconv.FormatUint(uint64(userID), 10),
+		"iat": issuedAt.Unix(),
+		"exp": expires.Unix(),
+	})
+	if err != nil {
+		return "", err
+	}
+	content := encode(header) + "." + encode(body)
+	return content + "." + sign(content, secret), nil
+}
+
 func payloadUserID(v any) (uint, error) {
 	var raw string
 	switch n := v.(type) {

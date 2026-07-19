@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\ConfirmPasswordResetRequest;
+use App\Http\Requests\CreateTokenRequest;
 use App\Http\Requests\CreateUserRequest;
 use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Requests\SignUpRequest;
@@ -96,6 +97,19 @@ class UserController extends Controller
         $this->service->confirmPasswordReset($request);
 
         return response()->noContent();
+    }
+
+    public function createToken(CreateTokenRequest $request): JsonResponse
+    {
+        $token = $this->service->createToken($request);
+        if ($token === null) {
+            return response()->json(['error' => 'Invalid email or password.'], 401)
+                ->header('WWW-Authenticate', 'Bearer');
+        }
+
+        return response()->json($token)
+            ->header('Cache-Control', 'no-store')
+            ->header('Pragma', 'no-cache');
     }
 
     private function currentUserId(Request $request): int

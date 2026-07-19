@@ -48,6 +48,7 @@ func Setup(r *gin.Engine, h *handler.TodoItemHandler, fh *handler.FileHandler, a
 
 // RegisterUsers registers user-management and authenticated self-service routes.
 func RegisterUsers(r *gin.Engine, h *handler.UserHandler) {
+	r.POST("/api/tokens", h.CreateToken)
 	users := r.Group("/api/users")
 	users.POST("/signup", h.SignUp)
 	users.POST("/password/change", h.ChangePassword)

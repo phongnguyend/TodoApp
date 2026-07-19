@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { User } from '@prisma/client';
 import { UsersRepository } from './users.repository';
 import { UsersService } from './users.service';
+import { pbkdf2Sync } from 'crypto';
 
 const user = (overrides: Partial<User> = {}): User => ({
   id: 1, username: 'alice', email: 'alice@example.com', passwordHash: 'hash', isActive: true,
@@ -40,6 +41,30 @@ describe('UsersService', () => {
   it('throws when a user is missing', async () => {
     repository.findById.mockResolvedValue(null);
     await expect(service.getById(99)).rejects.toThrow(NotFoundException);
+  });
+
+  it('creates a signed JWT for valid active credentials', async () => {
+    const salt = Buffer.from('00112233445566778899aabbccddeeff', 'hex');
+    const digest = pbkdf2Sync('password123', salt, 1, 32, 'sha256');
+    repository.findByEmail.mockResolvedValue(user({
+      passwordHash: `pbkdf2_sha256$1$${salt.toString('hex')}$${digest.toString('hex')}`,
+    }));
+
+    const result = await service.createToken({ email: ' Alice@Example.com ', password: 'password123' });
+
+    expect(repository.findByEmail).toHaveBeenCalledWith('alice@example.com');
+    expect(result.token_type).toBe('Bearer');
+    expect(result.expires_in).toBe(3600);
+    const [header, payload, signature] = result.access_token.split('.');
+    expect(JSON.parse(Buffer.from(header, 'base64url').toString())).toEqual({ alg: 'HS256', typ: 'JWT' });
+    expect(JSON.parse(Buffer.from(payload, 'base64url').toString())).toMatchObject({ sub: '1' });
+    expect(signature).toBeTruthy();
+  });
+
+  it('does not disclose whether credentials or account state failed', async () => {
+    repository.findByEmail.mockResolvedValue(null);
+    await expect(service.createToken({ email: 'missing@example.com', password: 'wrong' }))
+      .rejects.toMatchObject({ status: 401, response: { error: 'Invalid email or password.' } });
   });
 
   it('normalizes input, hashes passwords, and detects conflicts', async () => {

@@ -7,6 +7,7 @@ use App\Exceptions\InvalidPasswordResetTokenException;
 use App\Exceptions\UserConflictException;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\ConfirmPasswordResetRequest;
+use App\Http\Requests\CreateTokenRequest;
 use App\Http\Requests\CreateUserRequest;
 use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Requests\SignUpRequest;
@@ -24,6 +25,8 @@ use JsonException;
 
 class UserService implements UserServiceInterface
 {
+    private ?string $dummyPasswordHash = null;
+
     public function __construct(
         private readonly UserRepositoryInterface $repository
     ) {}
@@ -192,6 +195,45 @@ class UserService implements UserServiceInterface
             'password_hash' => Hash::make($request->validated('new_password')),
             'updated_at' => now(),
         ]);
+    }
+
+    public function createToken(CreateTokenRequest $request): ?array
+    {
+        $email = strtolower(trim((string) $request->validated('email')));
+        $password = (string) $request->validated('password');
+        $user = $this->repository->findByEmail($email);
+        $this->dummyPasswordHash ??= Hash::make('not-a-real-password');
+        $passwordValid = Hash::check($password, $user?->password_hash ?? $this->dummyPasswordHash);
+
+        if ($user === null || ! $passwordValid || ! $user->is_active) {
+            return null;
+        }
+
+        $issuedAt = time();
+        $expiresIn = max(1, (int) config('users.jwt_token_lifetime_minutes', 60)) * 60;
+        $header = $this->base64UrlEncode(json_encode(['alg' => 'HS256', 'typ' => 'JWT'], JSON_THROW_ON_ERROR));
+        $payload = $this->base64UrlEncode(json_encode([
+            'sub' => (string) $user->getKey(),
+            'iat' => $issuedAt,
+            'exp' => $issuedAt + $expiresIn,
+        ], JSON_THROW_ON_ERROR));
+        $signature = $this->base64UrlEncode(hash_hmac(
+            'sha256',
+            "{$header}.{$payload}",
+            (string) config('users.jwt_secret'),
+            true,
+        ));
+
+        return [
+            'access_token' => "{$header}.{$payload}.{$signature}",
+            'token_type' => 'Bearer',
+            'expires_in' => $expiresIn,
+        ];
+    }
+
+    private function base64UrlEncode(string $value): string
+    {
+        return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
     }
 
     private function ensureUnique(string $username, string $email, ?int $excludingId = null): void

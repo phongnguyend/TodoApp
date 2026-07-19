@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using TodoApi.Data;
@@ -15,6 +17,7 @@ public class UserService(
     IDataProtectionProvider dataProtectionProvider,
     IConfiguration configuration) : IUserService
 {
+    private readonly string _dummyPasswordHash = passwordHasher.HashPassword(new User(), "not-a-real-password");
     private readonly IDataProtector _resetTokenProtector =
         dataProtectionProvider.CreateProtector("TodoApi.UserPasswordReset.v1");
 
@@ -165,6 +168,39 @@ public class UserService(
         repository.Update(user);
         await db.SaveChangesAsync(ct);
     }
+
+    public async Task<TokenResponse> CreateTokenAsync(TokenRequest request, CancellationToken ct = default)
+    {
+        var user = await repository.GetByEmailAsync(NormalizeEmail(request.Email), ct);
+        var verificationUser = user ?? new User();
+        var verification = passwordHasher.VerifyHashedPassword(
+            verificationUser,
+            user?.PasswordHash ?? _dummyPasswordHash,
+            request.Password);
+        if (user is null || verification == PasswordVerificationResult.Failed || !user.IsActive)
+            throw new InvalidCredentialsException("Invalid email or password.");
+
+        var issuedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var lifetimeMinutes = Math.Max(1,
+            configuration.GetValue<int?>("JWT_TOKEN_LIFETIME_MINUTES")
+            ?? configuration.GetValue("Authentication:TokenLifetimeMinutes", 60));
+        var expiresIn = lifetimeMinutes * 60;
+        var secret = configuration["JWT_SECRET_KEY"] ?? configuration["Authentication:Secret"] ?? "change-me";
+        var header = Base64Url(JsonSerializer.SerializeToUtf8Bytes(new { alg = "HS256", typ = "JWT" }));
+        var payload = Base64Url(JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            sub = user.Id.ToString(),
+            iat = issuedAt,
+            exp = issuedAt + expiresIn
+        }));
+        var content = $"{header}.{payload}";
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
+        var signature = Base64Url(hmac.ComputeHash(Encoding.UTF8.GetBytes(content)));
+        return new TokenResponse($"{content}.{signature}", "Bearer", expiresIn);
+    }
+
+    private static string Base64Url(byte[] value) =>
+        Convert.ToBase64String(value).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
     private async Task EnsureUniqueAsync(string username, string email, int? excludingId, CancellationToken ct)
     {

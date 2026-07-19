@@ -43,6 +43,14 @@ def create_signed_token(payload: dict, secret: str) -> str:
     return f"{body}.{signature}"
 
 
+def create_jwt(payload: dict, secret: str) -> str:
+    header = _b64encode(json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode())
+    body = _b64encode(json.dumps(payload, separators=(",", ":"), sort_keys=True).encode())
+    signing_input = f"{header}.{body}"
+    signature = _b64encode(hmac.new(secret.encode(), signing_input.encode(), hashlib.sha256).digest())
+    return f"{signing_input}.{signature}"
+
+
 def decode_signed_token(token: str, secret: str) -> dict:
     try:
         body, supplied_signature = token.split(".", 1)

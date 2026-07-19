@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     # Authentication and password-reset signing keys should be overridden in production.
     JWT_SECRET_KEY: str = "change-me-in-production"
+    JWT_TOKEN_LIFETIME_MINUTES: int = 60
     PASSWORD_RESET_SECRET_KEY: str = "change-me-in-production-reset"
     PASSWORD_HASH_ITERATIONS: int = 600_000
     PASSWORD_RESET_TOKEN_LIFETIME_MINUTES: int = 60
