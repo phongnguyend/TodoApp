@@ -28,19 +28,24 @@ src/backend/python/
 │   ├── schemas/
 │   │   ├── todo_item.py               # Pydantic DTOs (request/response)
 │   │   ├── file.py                    # File metadata DTO (response)
-│   │   └── todo_item_attachment.py     # Attachment request/response DTOs
+│   │   ├── todo_item_attachment.py     # Attachment request/response DTOs
+│   │   └── user.py                     # User/account request and response DTOs
 │   ├── repositories/
 │   │   ├── base_repository.py         # IRepository<T> + BaseRepository<T>
 │   │   ├── todo_item_repository.py    # ITodoItemRepository + impl
 │   │   ├── file_repository.py         # IFileRepository + impl
-│   │   └── todo_item_attachment_repository.py # Attachment repository + impl
+│   │   ├── todo_item_attachment_repository.py # Attachment repository + impl
+│   │   └── user_repository.py          # IUserRepository + impl
 │   ├── services/
 │   │   ├── todo_item_service.py       # ITodoItemService + impl
 │   │   ├── file_service.py            # IFileService + impl (upload/download/delete)
-│   │   └── todo_item_attachment_service.py # Attachment business logic
+│   │   ├── todo_item_attachment_service.py # Attachment business logic
+│   │   └── user_service.py             # User and account business logic
 │   ├── routers/
 │   │   ├── todo_items.py              # TodoItemsController equivalent
-│   │   └── files.py                   # FilesController equivalent
+│   │   ├── files.py                   # FilesController equivalent
+│   │   └── users.py                   # UsersController equivalent
+│   ├── security.py                    # Password hashing and bearer-token validation
 │   └── Dockerfile                     # API container
 ├── shared/                        # Configuration, database, and shared entities
 │   ├── config.py                      # Settings (appsettings.json equivalent)
@@ -49,7 +54,8 @@ src/backend/python/
 │       ├── todo_item.py               # Todo SQLAlchemy entity
 │       ├── email_log.py               # Email audit-log entity
 │       ├── file.py                    # Uploaded-file entity
-│       └── todo_item_attachment.py     # Todo-to-file attachment entity
+│       ├── todo_item_attachment.py     # Todo-to-file attachment entity
+│       └── user.py                     # User SQLAlchemy entity
 ├── worker/                        # Worker project (analogous to dotnet/TodoWorker)
 │   ├── main.py                        # Worker entry-point (scheduler)
 │   ├── jobs/
@@ -60,18 +66,21 @@ src/backend/python/
 │       ├── services/
 │       │   ├── test_todo_item_service.py  # Service layer unit tests
 │       │   ├── test_file_service.py       # File service unit tests
-│       │   └── test_todo_item_attachment_service.py # Attachment service tests
+│       │   ├── test_todo_item_attachment_service.py # Attachment service tests
+│       │   └── test_user_service.py       # User service unit tests
 │       └── routers/
 │           ├── test_todo_items.py         # Router / HTTP endpoint tests
 │           ├── test_files.py              # File router / HTTP endpoint tests
-│           └── test_todo_item_attachments.py # Attachment endpoint tests
+│           ├── test_todo_item_attachments.py # Attachment endpoint tests
+│           └── test_users.py              # Users router / HTTP endpoint tests
 ├── alembic/
 │   ├── env.py
 │   ├── script.py.mako
 │   └── versions/
 │       ├── 20260630_0000_aabbccdd1122_initial_create.py     # todo_items + email_logs
 │       ├── 20260702_0000_bbccddee2233_add_files_table.py    # files
-│       └── 20260718_0000_ccddeeff3344_add_todo_item_attachments.py # attachments
+│       ├── 20260718_0000_ccddeeff3344_add_todo_item_attachments.py # attachments
+│       └── 20260719_0000_ddeeff445566_add_users_table.py # users table
 ├── alembic.ini
 ├── pytest.ini
 ├── requirements.txt

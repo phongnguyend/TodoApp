@@ -14,6 +14,13 @@ class Settings(BaseSettings):
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100
 
+    # Authentication and password-reset signing keys should be overridden in production.
+    JWT_SECRET_KEY: str = "change-me-in-production"
+    PASSWORD_RESET_SECRET_KEY: str = "change-me-in-production-reset"
+    PASSWORD_HASH_ITERATIONS: int = 600_000
+    PASSWORD_RESET_TOKEN_LIFETIME_MINUTES: int = 60
+    PASSWORD_RESET_CONFIRMATION_URL: str = "/reset-password"
+
     # ── SMTP (used by the background worker) ──────────────────────────────────
     SMTP_HOST: str = "localhost"
     SMTP_PORT: int = 587
