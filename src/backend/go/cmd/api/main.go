@@ -41,6 +41,9 @@ func main() {
 	attachmentRepo := repository.NewTodoItemAttachmentRepository(db)
 	attachmentSvc := service.NewTodoItemAttachmentService(attachmentRepo, repo, fileRepo)
 	ah := handler.NewTodoItemAttachmentHandler(attachmentSvc)
+	userRepo := repository.NewUserRepository(db)
+	userSvc := service.NewUserService(userRepo, cfg)
+	uh := handler.NewUserHandler(userSvc, cfg)
 
 	// ── Gin engine (analogous to app.Build() + middleware pipeline) ───────────
 	r := gin.Default()
@@ -50,6 +53,7 @@ func main() {
 
 	// ── Routes ────────────────────────────────────────────────────────────────
 	router.Setup(r, h, fh, ah)
+	router.RegisterUsers(r, uh)
 
 	log.Printf("Starting %s v%s on :%s", cfg.AppName, cfg.AppVersion, cfg.Port)
 	log.Printf("Swagger UI: http://localhost:%s/swagger/index.html", cfg.Port)

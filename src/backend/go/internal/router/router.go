@@ -36,7 +36,6 @@ func Setup(r *gin.Engine, h *handler.TodoItemHandler, fh *handler.FileHandler, a
 		api.PUT("/:id/attachments/:attachmentId", ah.Update)
 		api.DELETE("/:id/attachments/:attachmentId", ah.Delete)
 	}
-
 	files := r.Group("/api/files")
 	{
 		files.GET("", fh.GetAll)
@@ -45,4 +44,21 @@ func Setup(r *gin.Engine, h *handler.TodoItemHandler, fh *handler.FileHandler, a
 		files.POST("", fh.Upload)
 		files.DELETE("/:id", fh.Delete)
 	}
+}
+
+// RegisterUsers registers user-management and authenticated self-service routes.
+func RegisterUsers(r *gin.Engine, h *handler.UserHandler) {
+	users := r.Group("/api/users")
+	users.POST("/signup", h.SignUp)
+	users.POST("/password/change", h.ChangePassword)
+	users.POST("/password/reset", h.RequestPasswordReset)
+	users.POST("/password/confirm", h.ConfirmPasswordReset)
+	users.GET("/profile", h.GetProfile)
+	users.PUT("/profile", h.UpdateProfile)
+	users.GET("", h.GetAll)
+	users.POST("", h.Create)
+	users.GET("/:id", h.GetByID)
+	users.PUT("/:id", h.Update)
+	users.PATCH("/:id/activate", h.Activate)
+	users.PATCH("/:id/deactivate", h.Deactivate)
 }
