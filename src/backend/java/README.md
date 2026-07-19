@@ -40,38 +40,61 @@ src/backend/java/
 │       │   │   │   ├── FileResponse.java              # record with factory method (file metadata)
 │       │   │   │   ├── FileDownloadTarget.java        # record - path/name/contentType for downloads
 │       │   │   │   ├── SaveTodoItemAttachmentRequest.java # validated file reference request
-│       │   │   │   └── TodoItemAttachmentResponse.java # attachment response record
+│       │   │   │   ├── TodoItemAttachmentResponse.java # attachment response record
+│       │   │   │   ├── CreateUserRequest.java          # admin user creation request
+│       │   │   │   ├── UpdateUserRequest.java          # admin user update request
+│       │   │   │   ├── SignUpRequest.java              # self-registration request
+│       │   │   │   ├── UpdateProfileRequest.java       # self-service profile update
+│       │   │   │   ├── ChangePasswordRequest.java      # authenticated password change
+│       │   │   │   ├── ResetPasswordRequest.java       # password reset request
+│       │   │   │   ├── ConfirmPasswordResetRequest.java # signed-token password reset
+│       │   │   │   ├── UserResponse.java               # safe user response (no password hash)
+│       │   │   │   └── MessageResponse.java            # password-reset acknowledgement
 │       │   │   ├── entity/
 │       │   │   │   ├── TodoItem.java                  # @Entity (JPA model)
 │       │   │   │   ├── EmailLog.java                  # @Entity - email audit log
 │       │   │   │   ├── FileEntity.java                # @Entity - uploaded file metadata
-│       │   │   │   └── TodoItemAttachment.java         # @Entity - todo item/file association
+│       │   │   │   ├── TodoItemAttachment.java         # @Entity - todo item/file association
+│       │   │   │   └── User.java                       # @Entity - application user
 │       │   │   ├── exception/
-│       │   │   │   └── PayloadTooLargeException.java  # thrown when an upload exceeds the size limit
+│       │   │   │   ├── PayloadTooLargeException.java  # thrown when an upload exceeds the size limit
+│       │   │   │   ├── UserConflictException.java     # duplicate username/email
+│       │   │   │   ├── InvalidPasswordException.java  # rejected password change
+│       │   │   │   ├── InvalidPasswordResetTokenException.java # rejected reset token
+│       │   │   │   └── UnauthorizedException.java     # missing/invalid bearer token
 │       │   │   ├── repository/
 │       │   │   │   ├── TodoItemRepository.java        # JpaRepository<TodoItem, Long>
 │       │   │   │   ├── EmailLogRepository.java        # JpaRepository<EmailLog, Long>
 │       │   │   │   ├── FileRepository.java            # JpaRepository<FileEntity, Long>
-│       │   │   │   └── TodoItemAttachmentRepository.java # attachment queries scoped to a todo item
+│       │   │   │   ├── TodoItemAttachmentRepository.java # attachment queries scoped to a todo item
+│       │   │   │   └── UserRepository.java             # user lookup and uniqueness queries
+│       │   │   ├── security/
+│       │   │   │   ├── PasswordHasher.java             # PBKDF2 password hashing/verification
+│       │   │   │   └── UserTokenCodec.java             # JWT auth and signed reset tokens
 │       │   │   └── service/
 │       │   │       ├── TodoItemService.java           # interface
 │       │   │       ├── TodoItemServiceImpl.java       # @Service implementation
 │       │   │       ├── FileService.java               # interface
 │       │   │       ├── FileServiceImpl.java           # @Service implementation (upload/download/delete on disk)
 │       │   │       ├── TodoItemAttachmentService.java # interface
-│       │   │       └── TodoItemAttachmentServiceImpl.java # attachment CRUD implementation
+│       │   │       ├── TodoItemAttachmentServiceImpl.java # attachment CRUD implementation
+│       │   │       ├── UserService.java                 # user management/self-service interface
+│       │   │       └── UserServiceImpl.java             # user and password workflow implementation
 │       │   └── resources/db/migration/
 │       │       ├── V1__create_todo_items.sql          # Flyway migration
 │       │       ├── V2__create_email_logs.sql          # Flyway migration
 │       │       ├── V3__create_files.sql               # Flyway migration
-│       │       └── V4__create_todo_item_attachments.sql # Flyway migration
+│       │       ├── V4__create_todo_item_attachments.sql # Flyway migration
+│       │       └── V5__create_users.sql                # users Flyway migration
 │       └── test/
 │           ├── java/com/example/todo/
 │           │   ├── repository/TodoItemRepositoryTest.java  # @DataJpaTest - JPA slice
 │           │   ├── repository/FileRepositoryTest.java      # @DataJpaTest - JPA slice
 │           │   ├── service/TodoItemServiceImplTest.java    # Mockito - pure unit tests
 │           │   ├── service/FileServiceImplTest.java        # Mockito - pure unit tests (uses @TempDir)
-│           │   └── service/TodoItemAttachmentServiceImplTest.java # Mockito - attachment service tests
+│           │   ├── service/TodoItemAttachmentServiceImplTest.java # Mockito - attachment service tests
+│           │   ├── repository/UserRepositoryTest.java  # @DataJpaTest - user queries
+│           │   └── service/UserServiceImplTest.java    # user/password workflow unit tests
 │           └── resources/application.yml                   # test config (H2 in-memory)
 ├── todo-api/                                          # REST API (analogous to TodoApi.csproj)
 │   ├── pom.xml
@@ -84,6 +107,7 @@ src/backend/java/
 │       │   │   ├── controller/TodoItemController.java # @RestController
 │       │   │   ├── controller/FileController.java     # @RestController - /api/files
 │       │   │   ├── controller/TodoItemAttachmentController.java # nested attachment endpoints
+│       │   │   ├── controller/UserController.java     # /api/users management and self-service
 │       │   │   └── exception/GlobalExceptionHandler.java  # @RestControllerAdvice
 │       │   └── resources/application.yml             # API config (H2 + Swagger + file storage)
 │       └── test/
@@ -91,7 +115,8 @@ src/backend/java/
 │           │   ├── TodoApiApplicationTests.java       # context load smoke test
 │           │   ├── controller/TodoItemControllerTest.java  # @WebMvcTest - HTTP layer
 │           │   ├── controller/FileControllerTest.java      # @WebMvcTest - HTTP layer (multipart)
-│           │   └── controller/TodoItemAttachmentControllerTest.java # @WebMvcTest - attachment endpoints
+│           │   ├── controller/TodoItemAttachmentControllerTest.java # @WebMvcTest - attachment endpoints
+│           │   └── controller/UserControllerTest.java  # @WebMvcTest - users endpoints
 │           └── resources/application.yml             # test config (H2 in-memory)
 └── todo-worker/                                       # Background worker (analogous to TodoWorker.csproj)
     ├── pom.xml

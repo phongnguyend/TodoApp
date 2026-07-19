@@ -43,6 +43,13 @@ app:
   file:
     storage-path: ${FILE_STORAGE_PATH:./uploads}
     max-upload-size-bytes: ${MAX_UPLOAD_SIZE_BYTES:10485760}
+  user:
+    jwt-secret: ${JWT_SECRET_KEY:change-me}
+    password-hash-iterations: ${PASSWORD_HASH_ITERATIONS:120000}
+    password-reset:
+      secret: ${PASSWORD_RESET_SECRET_KEY:${JWT_SECRET_KEY:change-me}}
+      token-lifetime-minutes: ${PASSWORD_RESET_TOKEN_LIFETIME_MINUTES:60}
+      confirmation-url: ${PASSWORD_RESET_CONFIRMATION_URL:/reset-password}
 
 # ── Server ────────────────────────────────────────────────────────────────────
 server:
