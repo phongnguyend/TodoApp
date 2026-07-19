@@ -22,17 +22,19 @@ src/backend/dotnet/
 ├── TodoApi/
 │   ├── Dockerfile                          # API container image
 │   ├── Program.cs                          # App bootstrap & DI registration
-│   ├── appsettings.json                    # Connection string, file storage & logging
+│   ├── appsettings.json                    # Database, storage, reset-token & logging settings
 │   ├── Controllers/
 │   │   ├── TodoItemsController.cs          # REST endpoints - /api/todo-items
-│   │   └── FilesController.cs              # REST endpoints - /api/files
+│   │   ├── FilesController.cs              # REST endpoints - /api/files
+│   │   └── UsersController.cs              # REST endpoints - /api/users
 │   ├── Data/
 │   │   ├── AppDbContext.cs                 # EF Core DbContext
-│   │   └── Migrations/                     # EF Core migrations
+│   │   └── Migrations/                     # EF Core migrations, including AddUsers
 │   ├── DTOs/
 │   │   ├── TodoItemDtos.cs                 # Request / response models
 │   │   ├── TodoItemAttachmentDtos.cs       # Attachment request / response models
-│   │   └── FileDtos.cs                     # FileResponse / FileDownloadTarget models
+│   │   ├── FileDtos.cs                     # FileResponse / FileDownloadTarget models
+│   │   └── UserDtos.cs                     # User, profile and password request models
 │   ├── Repositories/
 │   │   ├── IRepository.cs                  # Generic IRepository<T>
 │   │   ├── BaseRepository.cs               # Generic BaseRepository<T>
@@ -43,7 +45,9 @@ src/backend/dotnet/
 │   │   ├── IFileRepository.cs
 │   │   ├── FileRepository.cs
 │   │   ├── ITodoItemAttachmentRepository.cs
-│   │   └── TodoItemAttachmentRepository.cs
+│   │   ├── TodoItemAttachmentRepository.cs
+│   │   ├── IUserRepository.cs
+│   │   └── UserRepository.cs
 │   └── Services/
 │       ├── ITodoItemService.cs
 │       ├── TodoItemService.cs
@@ -51,6 +55,8 @@ src/backend/dotnet/
 │       ├── FileService.cs
 │       ├── ITodoItemAttachmentService.cs
 │       ├── TodoItemAttachmentService.cs
+│       ├── IUserService.cs
+│       ├── UserService.cs                  # Profiles, passwords and reset tokens
 │       └── FileTooLargeException.cs        # thrown when upload exceeds MaxUploadSizeBytes
 ├── TodoShared/
 │   ├── Data/
@@ -59,28 +65,28 @@ src/backend/dotnet/
 │       ├── TodoItem.cs                     # Todo item entity
 │       ├── TodoItemAttachment.cs           # Todo item attachment entity
 │       ├── EmailLog.cs                     # Email audit log entity
-│       └── FileEntity.cs                   # File metadata entity
+│       ├── FileEntity.cs                   # File metadata entity
+│       └── User.cs                         # Application user entity
 ├── TodoWorker/
 │   ├── Dockerfile                          # Worker container image
 │   ├── Program.cs                          # Worker bootstrap & DI registration
 │   ├── appsettings.json                    # Connection string, SMTP & worker settings
 │   ├── Data/
 │   │   └── WorkerDbContext.cs              # EF Core DbContext (read-only schema, no migrations)
-│   ├── Models/
-│   │   ├── TodoItem.cs                     # Local POCO matching TodoItems table
-│   │   └── EmailLog.cs                     # Local POCO matching EmailLogs table
 │   └── Services/
 │       ├── IEmailService.cs
 │       ├── SmtpEmailService.cs             # SMTP delivery via System.Net.Mail
-│       └── WorkerService.cs               # BackgroundService - periodic email job
+│       └── WorkerService.cs                # Todo summaries and queued reset emails
 └── TodoApi.Tests/
     ├── Controllers/
     │   ├── TodoItemsControllerTests.cs     # Controller unit tests
-    │   └── FilesControllerTests.cs         # Controller unit tests
+    │   ├── FilesControllerTests.cs         # Controller unit tests
+    │   └── UsersControllerTests.cs         # Users endpoint unit tests
     └── Services/
         ├── TodoItemServiceTests.cs         # Service unit tests
         ├── TodoItemAttachmentServiceTests.cs # Attachment service tests
-        └── FileServiceTests.cs             # Service unit tests
+        ├── FileServiceTests.cs             # Service unit tests
+        └── UserServiceTests.cs             # User and password-flow tests
 ```
 
 ## Getting started
