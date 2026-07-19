@@ -8,6 +8,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+import jwt
 
 from shared.config import settings
 
@@ -44,11 +45,7 @@ def create_signed_token(payload: dict, secret: str) -> str:
 
 
 def create_jwt(payload: dict, secret: str) -> str:
-    header = _b64encode(json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode())
-    body = _b64encode(json.dumps(payload, separators=(",", ":"), sort_keys=True).encode())
-    signing_input = f"{header}.{body}"
-    signature = _b64encode(hmac.new(secret.encode(), signing_input.encode(), hashlib.sha256).digest())
-    return f"{signing_input}.{signature}"
+    return jwt.encode(payload, secret, algorithm="HS256", headers={"typ": "JWT"})
 
 
 def decode_signed_token(token: str, secret: str) -> dict:
@@ -73,25 +70,15 @@ def get_current_user_id(
 ) -> int:
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
-    token = credentials.credentials
-    if token.count(".") == 2:
-        # Accept a standard HS256 JWT issued by an authentication service.
-        try:
-            header, body, supplied_signature = token.split(".")
-            header_data = json.loads(_b64decode(header))
-            if header_data.get("alg") != "HS256":
-                raise ValueError
-            signing_input = f"{header}.{body}"
-            expected = _b64encode(hmac.new(settings.JWT_SECRET_KEY.encode(), signing_input.encode(), hashlib.sha256).digest())
-            if not hmac.compare_digest(supplied_signature, expected):
-                raise ValueError
-            payload = json.loads(_b64decode(body))
-            if "exp" in payload and payload["exp"] < int(time.time()):
-                raise ValueError
-        except (ValueError, TypeError, json.JSONDecodeError):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token.")
-    else:
-        payload = decode_signed_token(token, settings.JWT_SECRET_KEY)
+    try:
+        payload = jwt.decode(
+            credentials.credentials,
+            settings.JWT_SECRET_KEY,
+            algorithms=["HS256"],
+            options={"require": ["sub", "exp"]},
+        )
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token.")
     try:
         user_id = int(payload["sub"])
         if user_id < 1:

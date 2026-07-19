@@ -47,7 +47,7 @@ func Load() *Config {
 		log.Println("No .env file found, reading from environment")
 	}
 
-	jwtSecret := getEnv("JWT_SECRET_KEY", "change-me")
+	jwtSecret := getEnv("JWT_SECRET_KEY", "change-me-use-at-least-32-bytes-long")
 	return &Config{
 		AppName:                           getEnv("APP_NAME", "Todo API"),
 		AppVersion:                        getEnv("APP_VERSION", "1.0.0"),

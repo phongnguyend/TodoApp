@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use App\Models\User;
 use Closure;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -43,49 +45,13 @@ class AuthenticateUser
 
     private function decodeToken(string $token): ?array
     {
-        $parts = explode('.', $token);
-        $secret = (string) config('users.jwt_secret');
-
-        if (count($parts) === 3) {
-            [$encodedHeader, $encodedPayload, $signature] = $parts;
-            $header = $this->decodeJson($encodedHeader);
-            if (($header['alg'] ?? null) !== 'HS256') {
-                return null;
-            }
-            $expected = $this->base64UrlEncode(hash_hmac('sha256', "{$encodedHeader}.{$encodedPayload}", $secret, true));
-        } elseif (count($parts) === 2) {
-            [$encodedPayload, $signature] = $parts;
-            $expected = $this->base64UrlEncode(hash_hmac('sha256', $encodedPayload, $secret, true));
-        } else {
-            return null;
-        }
-
-        if (! hash_equals($expected, $signature)) {
-            return null;
-        }
-
-        $payload = $this->decodeJson($encodedPayload);
-        if ($payload === null || (isset($payload['exp']) && (int) $payload['exp'] < time())) {
+        try {
+            $payload = (array) JWT::decode($token, new Key((string) config('users.jwt_secret'), 'HS256'));
+        } catch (Throwable) {
             return null;
         }
 
         return $payload;
-    }
-
-    private function decodeJson(string $encoded): ?array
-    {
-        $decoded = base64_decode(strtr($encoded, '-_', '+/').str_repeat('=', (4 - strlen($encoded) % 4) % 4), true);
-        if ($decoded === false) {
-            return null;
-        }
-        $value = json_decode($decoded, true);
-
-        return is_array($value) ? $value : null;
-    }
-
-    private function base64UrlEncode(string $value): string
-    {
-        return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
     }
 
     private function unauthorized(string $message): JsonResponse

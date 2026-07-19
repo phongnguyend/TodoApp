@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
+import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import { UsersRepository } from './users.repository';
 import { UsersService } from './users.service';
@@ -25,7 +26,10 @@ describe('UsersService', () => {
       PASSWORD_RESET_TOKEN_LIFETIME_MINUTES: '60', PASSWORD_RESET_CONFIRMATION_URL: '/reset-password',
     })[key]) };
     const module = await Test.createTestingModule({ providers: [
-      UsersService, { provide: UsersRepository, useValue: repository }, { provide: ConfigService, useValue: config },
+      UsersService,
+      { provide: UsersRepository, useValue: repository },
+      { provide: ConfigService, useValue: config },
+      { provide: JwtService, useValue: new JwtService({ secret: 'test-secret', signOptions: { algorithm: 'HS256' } }) },
     ] }).compile();
     service = module.get(UsersService);
   });

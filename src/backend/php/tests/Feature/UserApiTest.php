@@ -85,7 +85,7 @@ class UserApiTest extends TestCase
 
     public function test_authenticated_user_can_read_update_profile_and_change_password(): void
     {
-        config(['users.jwt_secret' => 'test-secret']);
+        config(['users.jwt_secret' => 'test-secret-at-least-32-bytes-long']);
         $user = User::factory()->create(['password_hash' => Hash::make('old-password')]);
         $headers = ['Authorization' => 'Bearer '.$this->jwtFor($user->id)];
 
@@ -103,7 +103,7 @@ class UserApiTest extends TestCase
 
     public function test_password_change_rejects_incorrect_current_password(): void
     {
-        config(['users.jwt_secret' => 'test-secret']);
+        config(['users.jwt_secret' => 'test-secret-at-least-32-bytes-long']);
         $user = User::factory()->create();
 
         $this->withHeader('Authorization', 'Bearer '.$this->jwtFor($user->id))
@@ -138,7 +138,7 @@ class UserApiTest extends TestCase
 
     public function test_token_endpoint_issues_a_signed_jwt_for_active_user(): void
     {
-        config(['users.jwt_secret' => 'test-secret', 'users.jwt_token_lifetime_minutes' => 60]);
+        config(['users.jwt_secret' => 'test-secret-at-least-32-bytes-long', 'users.jwt_token_lifetime_minutes' => 60]);
         $user = User::factory()->create([
             'email' => 'alice@example.com',
             'password_hash' => Hash::make('password123'),
@@ -180,7 +180,7 @@ class UserApiTest extends TestCase
         $encode = static fn (string $value): string => rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
         $header = $encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT'], JSON_THROW_ON_ERROR));
         $payload = $encode(json_encode(['sub' => (string) $userId, 'exp' => time() + 300], JSON_THROW_ON_ERROR));
-        $signature = $encode(hash_hmac('sha256', "{$header}.{$payload}", 'test-secret', true));
+        $signature = $encode(hash_hmac('sha256', "{$header}.{$payload}", 'test-secret-at-least-32-bytes-long', true));
 
         return "{$header}.{$payload}.{$signature}";
     }

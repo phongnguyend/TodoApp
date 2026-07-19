@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using TodoApi.DTOs;
 using TodoApi.Services;
 
@@ -65,6 +66,7 @@ public class UsersController(IUserService service) : ControllerBase
     }
 
     [HttpGet("profile")]
+    [Authorize]
     public async Task<IActionResult> GetProfile(CancellationToken ct = default)
     {
         if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
@@ -72,6 +74,7 @@ public class UsersController(IUserService service) : ControllerBase
     }
 
     [HttpPut("profile")]
+    [Authorize]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken ct = default)
     {
         if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
@@ -79,6 +82,7 @@ public class UsersController(IUserService service) : ControllerBase
     }
 
     [HttpPost("password/change")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken ct = default)
     {

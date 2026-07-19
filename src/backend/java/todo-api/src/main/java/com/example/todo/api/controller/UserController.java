@@ -1,7 +1,6 @@
 package com.example.todo.api.controller;
 
 import com.example.todo.dto.*;
-import com.example.todo.security.UserTokenCodec;
 import com.example.todo.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -10,6 +9,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 @RestController
 @RequestMapping("/api/users")
@@ -17,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Users")
 public class UserController {
     private final UserService service;
-    private final UserTokenCodec tokenCodec;
 
     @GetMapping
     @Operation(summary = "List users (paginated)")
@@ -58,17 +58,17 @@ public class UserController {
     @GetMapping("/profile")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Read the authenticated user's profile")
-    public UserResponse profile(@RequestHeader(value = "Authorization", required = false) String authorization) {
-        return service.getProfile(tokenCodec.authenticatedUserId(authorization));
+    public UserResponse profile(@AuthenticationPrincipal Jwt jwt) {
+        return service.getProfile(Long.parseLong(jwt.getSubject()));
     }
 
     @PutMapping("/profile")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Update the authenticated user's profile")
     public UserResponse updateProfile(
-            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody UpdateProfileRequest request) {
-        return service.updateProfile(tokenCodec.authenticatedUserId(authorization), request);
+        return service.updateProfile(Long.parseLong(jwt.getSubject()), request);
     }
 
     @PostMapping("/password/change")
@@ -76,9 +76,9 @@ public class UserController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Change the authenticated user's password")
     public void changePassword(
-            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody ChangePasswordRequest request) {
-        service.changePassword(tokenCodec.authenticatedUserId(authorization), request);
+        service.changePassword(Long.parseLong(jwt.getSubject()), request);
     }
 
     @PostMapping("/password/reset")

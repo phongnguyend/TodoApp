@@ -70,7 +70,7 @@ src/backend/java/
 │       │   │   │   └── UserRepository.java             # user lookup and uniqueness queries
 │       │   │   ├── security/
 │       │   │   │   ├── PasswordHasher.java             # PBKDF2 password hashing/verification
-│       │   │   │   └── UserTokenCodec.java             # JWT auth and signed reset tokens
+│       │   │   │   └── UserTokenCodec.java             # Nimbus JWT issuance and signed reset tokens
 │       │   │   └── service/
 │       │   │       ├── TodoItemService.java           # interface
 │       │   │       ├── TodoItemServiceImpl.java       # @Service implementation

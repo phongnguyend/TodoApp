@@ -41,7 +41,7 @@ src/backend/php/
 │   │   │   ├── FileController.php               # REST controller for uploaded files
 │   │   │   └── UserController.php               # User management and self-service endpoints
 │   │   ├── Middleware/
-│   │   │   └── AuthenticateUser.php             # HS256 bearer-token authentication
+│   │   │   └── AuthenticateUser.php             # Firebase PHP-JWT bearer authentication
 │   │   ├── Requests/
 │   │   │   ├── CreateTodoItemRequest.php         # Validated todo create DTO
 │   │   │   ├── UpdateTodoItemRequest.php         # Validated todo update DTO

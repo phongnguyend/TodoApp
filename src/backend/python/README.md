@@ -45,7 +45,7 @@ src/backend/python/
 │   │   ├── todo_items.py              # TodoItemsController equivalent
 │   │   ├── files.py                   # FilesController equivalent
 │   │   └── users.py                   # UsersController equivalent
-│   ├── security.py                    # Password hashing and bearer-token validation
+│   ├── security.py                    # Password hashing and PyJWT token handling
 │   └── Dockerfile                     # API container
 ├── shared/                        # Configuration, database, and shared entities
 │   ├── config.py                      # Settings (appsettings.json equivalent)

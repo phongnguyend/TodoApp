@@ -234,6 +234,18 @@ an invalid request shape returns `400 Bad Request`. Issued access tokens are
 not persisted in the database. Refresh tokens, revocation, logout, MFA,
 scopes, and roles are outside this endpoint's initial scope.
 
+JWT signing and bearer-token validation must use the standard maintained
+library for each stack rather than application-owned JWT parsing or HMAC code:
+
+| Implementation | JWT/authentication library                                      |
+| -------------- | --------------------------------------------------------------- |
+| Python         | PyJWT                                                           |
+| .NET           | ASP.NET Core JwtBearer + Microsoft IdentityModel                |
+| Go             | `github.com/golang-jwt/jwt/v5`                                  |
+| Java           | Spring Security OAuth2 Resource Server + Nimbus JOSE JWT         |
+| Node.js        | `@nestjs/jwt` + Passport JWT                                    |
+| PHP            | `firebase/php-jwt`                                              |
+
 ### Pagination Query Parameters
 
 All paginated endpoints (`GET /api/todo-items`, `GET /api/todo-items/incomplete`, and `GET /api/files`) accept the following query parameters. The parameter name casing may differ per implementation but must convey the same semantics.
@@ -254,4 +266,4 @@ All paginated endpoints (`GET /api/todo-items`, `GET /api/todo-items/incomplete`
 | Go (net/http + GORM + JWT/Auth)                       | `go/`     |
 | Java (Spring Boot + JPA + Spring Security)            | `java/`   |
 | Node.js (NestJS + Prisma + Passport/JWT)              | `nodejs/` |
-| PHP (Laravel + Eloquent + Sanctum/Passport)           | `php/`    |
+| PHP (Laravel + Eloquent + Firebase PHP-JWT)           | `php/`    |

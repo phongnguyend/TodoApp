@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/pbkdf2"
 )
 
@@ -73,20 +74,12 @@ type tokenPayload struct {
 }
 
 func CreateJWT(userID uint, secret string, issuedAt, expires time.Time) (string, error) {
-	header, err := json.Marshal(map[string]string{"alg": "HS256", "typ": "JWT"})
-	if err != nil {
-		return "", err
+	claims := jwt.RegisteredClaims{
+		Subject:   strconv.FormatUint(uint64(userID), 10),
+		IssuedAt:  jwt.NewNumericDate(issuedAt),
+		ExpiresAt: jwt.NewNumericDate(expires),
 	}
-	body, err := json.Marshal(map[string]any{
-		"sub": strconv.FormatUint(uint64(userID), 10),
-		"iat": issuedAt.Unix(),
-		"exp": expires.Unix(),
-	})
-	if err != nil {
-		return "", err
-	}
-	content := encode(header) + "." + encode(body)
-	return content + "." + sign(content, secret), nil
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
 }
 
 func payloadUserID(v any) (uint, error) {
@@ -112,26 +105,19 @@ func AuthenticatedUserID(header, secret string, now time.Time) (uint, error) {
 	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
 		return 0, ErrInvalidToken
 	}
-	token := strings.Split(parts[1], ".")
-	if len(token) != 3 || !validSignature(token[0]+"."+token[1], token[2], secret) {
+	claims := &jwt.RegisteredClaims{}
+	token, err := jwt.ParseWithClaims(
+		parts[1],
+		claims,
+		func(token *jwt.Token) (any, error) { return []byte(secret), nil },
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithExpirationRequired(),
+		jwt.WithTimeFunc(func() time.Time { return now }),
+	)
+	if err != nil || !token.Valid {
 		return 0, ErrInvalidToken
 	}
-	var headerData struct {
-		Alg string `json:"alg"`
-	}
-	hb, err := base64.RawURLEncoding.DecodeString(token[0])
-	if err != nil || json.Unmarshal(hb, &headerData) != nil || headerData.Alg != "HS256" {
-		return 0, ErrInvalidToken
-	}
-	body, err := base64.RawURLEncoding.DecodeString(token[1])
-	if err != nil {
-		return 0, ErrInvalidToken
-	}
-	var payload tokenPayload
-	if json.Unmarshal(body, &payload) != nil || (payload.Exp != 0 && payload.Exp < now.Unix()) {
-		return 0, ErrInvalidToken
-	}
-	return payloadUserID(payload.Sub)
+	return payloadUserID(claims.Subject)
 }
 
 func PasswordFingerprint(hash string) string {

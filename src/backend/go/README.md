@@ -73,7 +73,7 @@ src/backend/go/
 │   │   ├── user_handler.go                # HTTP handlers - /api/users
 │   │   └── user_handler_test.go           # User endpoint handler tests
 │   ├── security/
-│   │   ├── user_security.go               # Password hashing and signed-token validation
+│   │   ├── user_security.go               # Password hashing and golang-jwt token handling
 │   │   └── user_security_test.go          # Password and token tests
 │   ├── router/
 │   │   └── router.go                      # Route registration

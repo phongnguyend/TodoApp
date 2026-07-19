@@ -16,6 +16,7 @@ use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Contracts\UserServiceInterface;
+use Firebase\JWT\JWT;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -211,29 +212,17 @@ class UserService implements UserServiceInterface
 
         $issuedAt = time();
         $expiresIn = max(1, (int) config('users.jwt_token_lifetime_minutes', 60)) * 60;
-        $header = $this->base64UrlEncode(json_encode(['alg' => 'HS256', 'typ' => 'JWT'], JSON_THROW_ON_ERROR));
-        $payload = $this->base64UrlEncode(json_encode([
+        $token = JWT::encode([
             'sub' => (string) $user->getKey(),
             'iat' => $issuedAt,
             'exp' => $issuedAt + $expiresIn,
-        ], JSON_THROW_ON_ERROR));
-        $signature = $this->base64UrlEncode(hash_hmac(
-            'sha256',
-            "{$header}.{$payload}",
-            (string) config('users.jwt_secret'),
-            true,
-        ));
+        ], (string) config('users.jwt_secret'), 'HS256');
 
         return [
-            'access_token' => "{$header}.{$payload}.{$signature}",
+            'access_token' => $token,
             'token_type' => 'Bearer',
             'expires_in' => $expiresIn,
         ];
-    }
-
-    private function base64UrlEncode(string $value): string
-    {
-        return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
     }
 
     private function ensureUnique(string $username, string $email, ?int $excludingId = null): void
