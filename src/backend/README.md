@@ -179,9 +179,9 @@ These endpoints manage attachment references for a specific todo item. They do n
 
 ### Tokens Endpoint
 
-| Method | Path          | Description                                             |
-| ------ | ------------- | ------------------------------------------------------- |
-| `POST` | `/api/tokens` | Authenticate an active user and generate a JWT token    |
+| Method | Path          | Description                                          |
+| ------ | ------------- | ---------------------------------------------------- |
+| `POST` | `/api/tokens` | Authenticate an active user and generate a JWT token |
 
 #### Generate Token
 
@@ -209,11 +209,11 @@ returns `200 OK` with a short-lived bearer token:
 The response must include `Cache-Control: no-store` and `Pragma: no-cache`.
 The JWT uses the `HS256` algorithm and contains the following claims:
 
-| Claim | Description                                      |
-| ----- | ------------------------------------------------ |
-| `sub` | User id encoded as a string                      |
-| `iat` | Token issue time as a Unix timestamp             |
-| `exp` | Token expiration time as a Unix timestamp        |
+| Claim | Description                               |
+| ----- | ----------------------------------------- |
+| `sub` | User id encoded as a string               |
+| `iat` | Token issue time as a Unix timestamp      |
+| `exp` | Token expiration time as a Unix timestamp |
 
 The token is signed with `JWT_SECRET_KEY` and its lifetime is configured by
 `JWT_TOKEN_LIFETIME_MINUTES`, which defaults to `60` minutes. Tokens are only
@@ -235,16 +235,8 @@ not persisted in the database. Refresh tokens, revocation, logout, MFA,
 scopes, and roles are outside this endpoint's initial scope.
 
 JWT signing and bearer-token validation must use the standard maintained
-library for each stack rather than application-owned JWT parsing or HMAC code:
-
-| Implementation | JWT/authentication library                                      |
-| -------------- | --------------------------------------------------------------- |
-| Python         | PyJWT                                                           |
-| .NET           | ASP.NET Core JwtBearer + Microsoft IdentityModel                |
-| Go             | `github.com/golang-jwt/jwt/v5`                                  |
-| Java           | Spring Security OAuth2 Resource Server + Nimbus JOSE JWT         |
-| Node.js        | `@nestjs/jwt` + Passport JWT                                    |
-| PHP            | `firebase/php-jwt`                                              |
+library for each stack, as listed in the Implementations section, rather than
+application-owned JWT parsing or HMAC code.
 
 ### Pagination Query Parameters
 
@@ -259,11 +251,11 @@ All paginated endpoints (`GET /api/todo-items`, `GET /api/todo-items/incomplete`
 
 ## Implementations
 
-| Language / Framework                                  | Path      |
-| ----------------------------------------------------- | --------- |
-| Python (FastAPI + SQLAlchemy + JWT/Auth)              | `python/` |
-| .NET (ASP.NET Core + EF Core + ASP.NET Core Identity) | `dotnet/` |
-| Go (net/http + GORM + JWT/Auth)                       | `go/`     |
-| Java (Spring Boot + JPA + Spring Security)            | `java/`   |
-| Node.js (NestJS + Prisma + Passport/JWT)              | `nodejs/` |
-| PHP (Laravel + Eloquent + Firebase PHP-JWT)           | `php/`    |
+| Language / Framework                                  | Path      | JWT/authentication library                               |
+| ----------------------------------------------------- | --------- | -------------------------------------------------------- |
+| Python (FastAPI + SQLAlchemy + JWT/Auth)              | `python/` | PyJWT                                                    |
+| .NET (ASP.NET Core + EF Core + ASP.NET Core Identity) | `dotnet/` | ASP.NET Core JwtBearer + Microsoft IdentityModel         |
+| Go (net/http + GORM + JWT/Auth)                       | `go/`     | `github.com/golang-jwt/jwt/v5`                           |
+| Java (Spring Boot + JPA + Spring Security)            | `java/`   | Spring Security OAuth2 Resource Server + Nimbus JOSE JWT |
+| Node.js (NestJS + Prisma + Passport/JWT)              | `nodejs/` | `@nestjs/jwt` + Passport JWT                             |
+| PHP (Laravel + Eloquent + Firebase PHP-JWT)           | `php/`    | `firebase/php-jwt`                                       |
