@@ -1,6 +1,10 @@
 package com.example.todo.api.exception;
 
 import com.example.todo.exception.PayloadTooLargeException;
+import com.example.todo.exception.InvalidPasswordException;
+import com.example.todo.exception.InvalidPasswordResetTokenException;
+import com.example.todo.exception.UnauthorizedException;
+import com.example.todo.exception.UserConflictException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -21,6 +25,27 @@ import java.util.stream.Collectors;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(UserConflictException.class)
+    public ProblemDetail handleConflict(UserConflictException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setTitle("Conflict");
+        return problem;
+    }
+
+    @ExceptionHandler({InvalidPasswordException.class, InvalidPasswordResetTokenException.class})
+    public ProblemDetail handleBadRequest(RuntimeException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setTitle("Bad Request");
+        return problem;
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ProblemDetail handleUnauthorized(UnauthorizedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        problem.setTitle("Unauthorized");
+        return problem;
+    }
 
     /** Maps EntityNotFoundException → 404 Not Found */
     @ExceptionHandler(EntityNotFoundException.class)

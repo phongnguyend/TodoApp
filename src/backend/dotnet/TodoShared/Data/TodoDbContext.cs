@@ -9,6 +9,7 @@ public abstract class TodoDbContext(DbContextOptions options) : DbContext(option
     public DbSet<TodoItemAttachment> TodoItemAttachments => Set<TodoItemAttachment>();
     public DbSet<EmailLog> EmailLogs => Set<EmailLog>();
     public DbSet<FileEntity> Files => Set<FileEntity>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -55,6 +56,18 @@ public abstract class TodoDbContext(DbContextOptions options) : DbContext(option
                 .WithMany()
                 .HasForeignKey(e => e.FileId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Username).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.PasswordHash).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.HasIndex(e => e.Username).IsUnique();
+            entity.HasIndex(e => e.Email).IsUnique();
         });
     }
 }

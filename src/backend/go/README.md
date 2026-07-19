@@ -39,31 +39,42 @@ src/backend/go/
 │   │   ├── todo_item.go                   # GORM entity - TodoItem
 │   │   ├── todo_item_attachment.go        # GORM entity - todo-to-file attachment
 │   │   ├── email_log.go                   # GORM entity - EmailLog
-│   │   └── file.go                        # GORM entity - File (uploaded-file metadata)
+│   │   ├── file.go                        # GORM entity - File (uploaded-file metadata)
+│   │   └── user.go                        # GORM entity - User account
 │   ├── dto/
 │   │   ├── todo_item.go                   # Request/response DTOs
 │   │   ├── todo_item_attachment.go        # Attachment request/response DTOs
-│   │   └── file.go                        # File metadata response DTO
+│   │   ├── file.go                        # File metadata response DTO
+│   │   └── user.go                        # User and password request/response DTOs
 │   ├── repository/
 │   │   ├── repository.go                  # Repository interfaces
 │   │   ├── todo_item_repository.go        # GORM implementation - TodoItem
 │   │   ├── todo_item_attachment_repository.go # GORM implementation - attachments
 │   │   ├── email_log_repository.go        # GORM implementation - EmailLog
-│   │   └── file_repository.go             # GORM implementation - File
+│   │   ├── file_repository.go             # GORM implementation - File
+│   │   ├── user_repository.go             # GORM implementation - User
+│   │   └── user_repository_test.go        # User persistence tests
 │   ├── service/
 │   │   ├── todo_item_service.go           # Business logic
 │   │   ├── todo_item_service_test.go      # Service unit tests
 │   │   ├── file_service.go                # Business logic (upload/download/delete on disk)
 │   │   ├── file_service_test.go           # Service unit tests
 │   │   ├── todo_item_attachment_service.go # Attachment business logic
-│   │   └── todo_item_attachment_service_test.go # Attachment service tests
+│   │   ├── todo_item_attachment_service_test.go # Attachment service tests
+│   │   ├── user_service.go                # User, profile, and password business logic
+│   │   └── user_service_test.go           # User service tests
 │   ├── handler/
 │   │   ├── todo_item_handler.go           # HTTP handlers (Controller)
 │   │   ├── todo_item_handler_test.go      # Handler unit tests
 │   │   ├── file_handler.go                # HTTP handlers - /api/files (Controller)
 │   │   ├── file_handler_test.go           # Handler unit tests
 │   │   ├── todo_item_attachment_handler.go # Nested attachment HTTP handlers
-│   │   └── todo_item_attachment_handler_test.go # Attachment handler tests
+│   │   ├── todo_item_attachment_handler_test.go # Attachment handler tests
+│   │   ├── user_handler.go                # HTTP handlers - /api/users
+│   │   └── user_handler_test.go           # User endpoint handler tests
+│   ├── security/
+│   │   ├── user_security.go               # Password hashing and signed-token validation
+│   │   └── user_security_test.go          # Password and token tests
 │   ├── router/
 │   │   └── router.go                      # Route registration
 │   └── worker/

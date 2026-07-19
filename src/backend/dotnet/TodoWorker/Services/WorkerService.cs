@@ -42,6 +42,8 @@ public class WorkerService(
         var db = scope.ServiceProvider.GetRequiredService<WorkerDbContext>();
         var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
 
+        await SendPendingEmailsAsync(db, emailService, ct);
+
         List<TodoItem> incompleteTodos;
         try
         {
@@ -94,6 +96,34 @@ public class WorkerService(
         }
 
         await db.SaveChangesAsync(ct);
+    }
+
+    private async Task SendPendingEmailsAsync(WorkerDbContext db, IEmailService emailService, CancellationToken ct)
+    {
+        var pendingEmails = await db.EmailLogs
+            .Where(email => email.Status == "pending")
+            .OrderBy(email => email.CreatedAt)
+            .ToListAsync(ct);
+
+        foreach (var email in pendingEmails)
+        {
+            try
+            {
+                await emailService.SendAsync(email.Recipient, email.Subject, email.Body, ct);
+                email.Status = "sent";
+                email.SentAt = DateTime.UtcNow;
+                email.ErrorMessage = null;
+            }
+            catch (Exception ex)
+            {
+                email.Status = "failed";
+                email.ErrorMessage = ex.Message;
+                logger.LogError(ex, "Failed to send queued email {EmailLogId} to {Recipient}", email.Id, email.Recipient);
+            }
+        }
+
+        if (pendingEmails.Count > 0)
+            await db.SaveChangesAsync(ct);
     }
 
     private static string BuildEmailBody(IEnumerable<TodoItem> items)

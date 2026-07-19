@@ -2,23 +2,27 @@
 
 namespace App\Providers;
 
+use App\Exceptions\Handler;
 use App\Repositories\Contracts\FileRepositoryInterface;
-use App\Repositories\Contracts\TodoItemRepositoryInterface;
 use App\Repositories\Contracts\TodoItemAttachmentRepositoryInterface;
+use App\Repositories\Contracts\TodoItemRepositoryInterface;
+use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\FileRepository;
-use App\Repositories\TodoItemRepository;
 use App\Repositories\TodoItemAttachmentRepository;
+use App\Repositories\TodoItemRepository;
+use App\Repositories\UserRepository;
 use App\Services\Contracts\FileServiceInterface;
-use App\Services\Contracts\TodoItemServiceInterface;
 use App\Services\Contracts\TodoItemAttachmentServiceInterface;
+use App\Services\Contracts\TodoItemServiceInterface;
+use App\Services\Contracts\UserServiceInterface;
 use App\Services\FileService;
-use App\Services\TodoItemService;
 use App\Services\TodoItemAttachmentService;
+use App\Services\TodoItemService;
+use App\Services\UserService;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Response;
 use Illuminate\Support\ServiceProvider;
-use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,11 +36,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(TodoItemRepositoryInterface::class, TodoItemRepository::class);
         $this->app->bind(FileRepositoryInterface::class, FileRepository::class);
         $this->app->bind(TodoItemAttachmentRepositoryInterface::class, TodoItemAttachmentRepository::class);
+        $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
 
         // Bind service interface → concrete implementation
         $this->app->bind(TodoItemServiceInterface::class, TodoItemService::class);
         $this->app->bind(FileServiceInterface::class, FileService::class);
         $this->app->bind(TodoItemAttachmentServiceInterface::class, TodoItemAttachmentService::class);
+        $this->app->bind(UserServiceInterface::class, UserService::class);
     }
 
     /**
@@ -49,8 +55,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app['router']->bind('id', fn ($value) => $value);
 
         $this->app->singleton(
-            \Illuminate\Contracts\Debug\ExceptionHandler::class,
-            \App\Exceptions\Handler::class
+            ExceptionHandler::class,
+            Handler::class
         );
     }
 }

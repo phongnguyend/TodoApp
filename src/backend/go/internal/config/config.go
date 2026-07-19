@@ -10,12 +10,17 @@ import (
 
 // Config holds all application settings - analogous to appsettings.json bound via IConfiguration.
 type Config struct {
-	AppName         string
-	AppVersion      string
-	Port            string
-	DatabaseDSN     string
-	DefaultPageSize int
-	MaxPageSize     int
+	AppName                           string
+	AppVersion                        string
+	Port                              string
+	DatabaseDSN                       string
+	DefaultPageSize                   int
+	MaxPageSize                       int
+	JWTSecretKey                      string
+	PasswordHashIterations            int
+	PasswordResetSecretKey            string
+	PasswordResetTokenLifetimeMinutes int
+	PasswordResetConfirmationURL      string
 
 	// File upload settings
 	FileStoragePath    string
@@ -41,13 +46,19 @@ func Load() *Config {
 		log.Println("No .env file found, reading from environment")
 	}
 
+	jwtSecret := getEnv("JWT_SECRET_KEY", "change-me")
 	return &Config{
-		AppName:         getEnv("APP_NAME", "Todo API"),
-		AppVersion:      getEnv("APP_VERSION", "1.0.0"),
-		Port:            getEnv("PORT", "8080"),
-		DatabaseDSN:     getEnv("DATABASE_DSN", "todo.db"),
-		DefaultPageSize: getEnvInt("DEFAULT_PAGE_SIZE", 20),
-		MaxPageSize:     getEnvInt("MAX_PAGE_SIZE", 100),
+		AppName:                           getEnv("APP_NAME", "Todo API"),
+		AppVersion:                        getEnv("APP_VERSION", "1.0.0"),
+		Port:                              getEnv("PORT", "8080"),
+		DatabaseDSN:                       getEnv("DATABASE_DSN", "todo.db"),
+		DefaultPageSize:                   getEnvInt("DEFAULT_PAGE_SIZE", 20),
+		MaxPageSize:                       getEnvInt("MAX_PAGE_SIZE", 100),
+		JWTSecretKey:                      jwtSecret,
+		PasswordHashIterations:            getEnvInt("PASSWORD_HASH_ITERATIONS", 120000),
+		PasswordResetSecretKey:            getEnv("PASSWORD_RESET_SECRET_KEY", jwtSecret),
+		PasswordResetTokenLifetimeMinutes: getEnvInt("PASSWORD_RESET_TOKEN_LIFETIME_MINUTES", 60),
+		PasswordResetConfirmationURL:      getEnv("PASSWORD_RESET_CONFIRMATION_URL", "/reset-password"),
 
 		FileStoragePath:    getEnv("FILE_STORAGE_PATH", "./uploads"),
 		MaxUploadSizeBytes: getEnvInt64("MAX_UPLOAD_SIZE_BYTES", 10485760),

@@ -50,3 +50,19 @@ type TodoItemAttachmentRepository interface {
 	Update(attachment *models.TodoItemAttachment) (*models.TodoItemAttachment, error)
 	Delete(attachment *models.TodoItemAttachment) error
 }
+
+type UserPaginatedResult struct {
+	Items []models.User
+	Total int64
+}
+
+type UserRepository interface {
+	FindAll(skip, limit int) (UserPaginatedResult, error)
+	FindByID(id uint) (*models.User, error)
+	FindByEmail(email string) (*models.User, error)
+	UsernameExists(username string, excludingID *uint) (bool, error)
+	EmailExists(email string, excludingID *uint) (bool, error)
+	Create(user *models.User) (*models.User, error)
+	Update(user *models.User) (*models.User, error)
+	AddEmailLog(log *models.EmailLog) (*models.EmailLog, error)
+}

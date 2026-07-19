@@ -25,7 +25,7 @@ func unsetEnv(t *testing.T, keys ...string) {
 }
 
 func TestLoad_DefaultValues(t *testing.T) {
-	unsetEnv(t, "APP_NAME", "APP_VERSION", "PORT", "DATABASE_DSN", "DEFAULT_PAGE_SIZE", "MAX_PAGE_SIZE", "FILE_STORAGE_PATH", "MAX_UPLOAD_SIZE_BYTES")
+	unsetEnv(t, "APP_NAME", "APP_VERSION", "PORT", "DATABASE_DSN", "DEFAULT_PAGE_SIZE", "MAX_PAGE_SIZE", "FILE_STORAGE_PATH", "MAX_UPLOAD_SIZE_BYTES", "JWT_SECRET_KEY", "PASSWORD_HASH_ITERATIONS", "PASSWORD_RESET_SECRET_KEY", "PASSWORD_RESET_TOKEN_LIFETIME_MINUTES", "PASSWORD_RESET_CONFIRMATION_URL")
 
 	cfg := config.Load()
 
@@ -37,6 +37,11 @@ func TestLoad_DefaultValues(t *testing.T) {
 	assert.Equal(t, 100, cfg.MaxPageSize)
 	assert.Equal(t, "./uploads", cfg.FileStoragePath)
 	assert.Equal(t, int64(10485760), cfg.MaxUploadSizeBytes)
+	assert.Equal(t, "change-me", cfg.JWTSecretKey)
+	assert.Equal(t, 120000, cfg.PasswordHashIterations)
+	assert.Equal(t, "change-me", cfg.PasswordResetSecretKey)
+	assert.Equal(t, 60, cfg.PasswordResetTokenLifetimeMinutes)
+	assert.Equal(t, "/reset-password", cfg.PasswordResetConfirmationURL)
 }
 
 func TestLoad_EnvVarsOverrideDefaults(t *testing.T) {
@@ -48,6 +53,11 @@ func TestLoad_EnvVarsOverrideDefaults(t *testing.T) {
 	t.Setenv("MAX_PAGE_SIZE", "200")
 	t.Setenv("FILE_STORAGE_PATH", "/data/uploads")
 	t.Setenv("MAX_UPLOAD_SIZE_BYTES", "2048")
+	t.Setenv("JWT_SECRET_KEY", "jwt-test")
+	t.Setenv("PASSWORD_HASH_ITERATIONS", "1000")
+	t.Setenv("PASSWORD_RESET_SECRET_KEY", "reset-test")
+	t.Setenv("PASSWORD_RESET_TOKEN_LIFETIME_MINUTES", "30")
+	t.Setenv("PASSWORD_RESET_CONFIRMATION_URL", "https://example.com/reset")
 
 	cfg := config.Load()
 
@@ -59,6 +69,11 @@ func TestLoad_EnvVarsOverrideDefaults(t *testing.T) {
 	assert.Equal(t, 200, cfg.MaxPageSize)
 	assert.Equal(t, "/data/uploads", cfg.FileStoragePath)
 	assert.Equal(t, int64(2048), cfg.MaxUploadSizeBytes)
+	assert.Equal(t, "jwt-test", cfg.JWTSecretKey)
+	assert.Equal(t, 1000, cfg.PasswordHashIterations)
+	assert.Equal(t, "reset-test", cfg.PasswordResetSecretKey)
+	assert.Equal(t, 30, cfg.PasswordResetTokenLifetimeMinutes)
+	assert.Equal(t, "https://example.com/reset", cfg.PasswordResetConfirmationURL)
 }
 
 func TestLoad_InvalidPageSizeEnvVar_UsesDefault(t *testing.T) {

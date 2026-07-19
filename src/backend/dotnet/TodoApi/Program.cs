@@ -18,6 +18,11 @@ builder.Services.AddScoped<ITodoItemAttachmentRepository, TodoItemAttachmentRepo
 builder.Services.AddScoped<ITodoItemAttachmentService, TodoItemAttachmentService>();
 builder.Services.AddScoped<IFileRepository, FileRepository>();
 builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Identity.IPasswordHasher<TodoShared.Models.User>,
+    Microsoft.AspNetCore.Identity.PasswordHasher<TodoShared.Models.User>>();
+builder.Services.AddDataProtection();
 
 // ── Controllers & OpenAPI / Swagger ────────────────────────────────────────────
 builder.Services.AddControllers();

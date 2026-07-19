@@ -30,26 +30,43 @@ src/backend/php/
 │   │   └── Commands/
 │   │       └── ProcessIncompleteRemindersCommand.php  # Background job (Artisan command)
 │   ├── Exceptions/
-│   │   └── Handler.php                        # Global error handler (ProblemDetails equivalent)
+│   │   ├── Handler.php                        # Global error handler (ProblemDetails equivalent)
+│   │   ├── InvalidPasswordException.php       # Invalid password/domain error
+│   │   ├── InvalidPasswordResetTokenException.php # Invalid or expired reset-token error
+│   │   └── UserConflictException.php          # Duplicate username/email error
 │   ├── Http/
 │   │   ├── Controllers/Api/
 │   │   │   ├── TodoItemController.php          # REST controller (ControllerBase)
 │   │   │   ├── TodoItemAttachmentController.php # REST controller for attachment references
-│   │   │   └── FileController.php               # REST controller for uploaded files
+│   │   │   ├── FileController.php               # REST controller for uploaded files
+│   │   │   └── UserController.php               # User management and self-service endpoints
+│   │   ├── Middleware/
+│   │   │   └── AuthenticateUser.php             # HS256 bearer-token authentication
 │   │   ├── Requests/
-│   │   │   ├── CreateTodoItemRequest.php        # Validated create DTO
-│   │   │   ├── UpdateTodoItemRequest.php        # Validated update DTO
+│   │   │   ├── CreateTodoItemRequest.php         # Validated todo create DTO
+│   │   │   ├── UpdateTodoItemRequest.php         # Validated todo update DTO
 │   │   │   ├── SaveTodoItemAttachmentRequest.php # Validated attachment-reference DTO
-│   │   │   └── UploadFileRequest.php            # Validated file-upload DTO (required/size rules)
+│   │   │   ├── ImportTodoItemsCsvRequest.php     # CSV import validation
+│   │   │   ├── ImportTodoItemsExcelRequest.php   # Excel import validation
+│   │   │   ├── UploadFileRequest.php             # Validated file-upload DTO
+│   │   │   ├── CreateUserRequest.php             # Administrative user creation DTO
+│   │   │   ├── UpdateUserRequest.php             # Administrative user update DTO
+│   │   │   ├── SignUpRequest.php                 # Account registration DTO
+│   │   │   ├── UpdateProfileRequest.php          # Authenticated profile update DTO
+│   │   │   ├── ChangePasswordRequest.php         # Authenticated password-change DTO
+│   │   │   ├── ResetPasswordRequest.php          # Password-reset request DTO
+│   │   │   └── ConfirmPasswordResetRequest.php   # Password-reset confirmation DTO
 │   │   └── Resources/
 │   │       ├── TodoItemResource.php             # Response DTO (AutoMapper profile)
 │   │       ├── TodoItemAttachmentResource.php   # Response DTO for attachment references
-│   │       └── FileResource.php                 # Response DTO for file metadata
+│   │       ├── FileResource.php                 # Response DTO for file metadata
+│   │       └── UserResource.php                 # Safe user response without password hash
 │   ├── Models/
 │   │   ├── TodoItem.php                         # Eloquent entity
 │   │   ├── TodoItemAttachment.php               # Eloquent attachment-reference entity
 │   │   ├── EmailLog.php                         # Eloquent entity for email audit trail
-│   │   └── File.php                             # Eloquent entity for uploaded-file metadata
+│   │   ├── File.php                             # Eloquent entity for uploaded-file metadata
+│   │   └── User.php                             # Authenticatable user entity
 │   ├── Providers/
 │   │   └── AppServiceProvider.php               # IoC bindings (Program.cs AddScoped)
 │   ├── Repositories/
@@ -57,28 +74,36 @@ src/backend/php/
 │   │   │   ├── RepositoryInterface.php          # IRepository<T>
 │   │   │   ├── TodoItemRepositoryInterface.php  # ITodoItemRepository
 │   │   │   ├── TodoItemAttachmentRepositoryInterface.php # Attachment repository contract
-│   │   │   └── FileRepositoryInterface.php      # IFileRepository
+│   │   │   ├── FileRepositoryInterface.php      # IFileRepository
+│   │   │   └── UserRepositoryInterface.php      # User persistence contract
 │   │   ├── BaseRepository.php                   # GenericRepository<T>
 │   │   ├── TodoItemRepository.php               # Concrete implementation
 │   │   ├── TodoItemAttachmentRepository.php     # Attachment repository implementation
-│   │   └── FileRepository.php                   # Concrete implementation
+│   │   ├── FileRepository.php                   # Concrete implementation
+│   │   └── UserRepository.php                   # User persistence and uniqueness queries
 │   └── Services/
 │       ├── Contracts/
 │       │   ├── TodoItemServiceInterface.php     # ITodoItemService
 │       │   ├── TodoItemAttachmentServiceInterface.php # Attachment service contract
-│       │   └── FileServiceInterface.php         # IFileService
+│       │   ├── FileServiceInterface.php         # IFileService
+│       │   └── UserServiceInterface.php         # User business-logic contract
 │       ├── TodoItemService.php                  # Business logic
 │       ├── TodoItemAttachmentService.php        # Attachment-reference business logic
-│       └── FileService.php                      # Business logic - upload/download/delete on disk
+│       ├── FileService.php                      # Business logic - upload/download/delete on disk
+│       └── UserService.php                      # User, profile, and password business logic
+├── config/
+│   └── users.php                                # JWT and password-reset configuration
 ├── database/
 │   ├── factories/
 │   │   ├── TodoItemFactory.php                  # Model factory for tests
-│   │   └── FileFactory.php                      # Model factory for tests
+│   │   ├── FileFactory.php                      # Model factory for tests
+│   │   └── UserFactory.php                      # User model factory for tests
 │   └── migrations/
 │       ├── 2024_01_01_000000_create_todo_items_table.php
 │       ├── 2024_01_02_000000_create_email_logs_table.php
 │       ├── 2024_01_03_000000_create_files_table.php
-│       └── 2026_07_18_000000_create_todo_item_attachments_table.php
+│       ├── 2026_07_18_000000_create_todo_item_attachments_table.php
+│       └── 2026_07_19_000000_create_users_table.php
 ├── routes/
 │   └── api.php                                  # Route definitions
 ├── tests/
@@ -91,11 +116,13 @@ src/backend/php/
 │   │   └── Services/
 │   │       ├── TodoItemServiceTest.php          # Service unit tests (Mockery)
 │   │       ├── TodoItemAttachmentServiceTest.php # Attachment service unit tests
-│   │       └── FileServiceTest.php              # Service unit tests (Mockery + real temp files)
+│   │       ├── FileServiceTest.php              # Service unit tests (Mockery + real temp files)
+│   │       └── UserServiceTest.php              # User service unit tests (Mockery)
 │   └── Feature/
 │       ├── TodoItemApiTest.php                  # HTTP integration tests
 │       ├── TodoItemAttachmentApiTest.php        # Attachment endpoint integration tests
-│       └── FileApiTest.php                      # HTTP integration tests (upload/download/delete)
+│       ├── FileApiTest.php                      # HTTP integration tests (upload/download/delete)
+│       └── UserApiTest.php                      # User endpoint integration tests
 ├── phpunit.xml
 ├── composer.json
 ├── build/
@@ -215,6 +242,12 @@ Swagger UI → <http://localhost:8000/api/documentation>
 ## API endpoints
 
 See the [shared API contract](../README.md#api-endpoints) in the backend README.
+
+The user profile and password-change routes require an HS256 bearer token whose
+`sub` claim is the user id. Configure its verification secret with
+`JWT_SECRET_KEY`. Password-reset requests write a pending message to
+`email_logs`; configure the link and lifetime with
+`PASSWORD_RESET_CONFIRMATION_URL` and `PASSWORD_RESET_TOKEN_LIFETIME_MINUTES`.
 
 ## File uploads
 

@@ -4,9 +4,7 @@ namespace App\Exceptions;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
 /**
  * Global exception handler - analogous to ASP.NET Core's UseExceptionHandler /
@@ -22,6 +20,14 @@ class Handler extends ExceptionHandler
 
     public function register(): void
     {
+        $this->renderable(function (UserConflictException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        });
+
+        $this->renderable(function (InvalidPasswordException|InvalidPasswordResetTokenException $e) {
+            return response()->json(['message' => $e->getMessage()], 400);
+        });
+
         $this->renderable(function (ModelNotFoundException $e) {
             return response()->json([
                 'message' => $e->getMessage() ?: 'Resource not found.',
@@ -31,7 +37,7 @@ class Handler extends ExceptionHandler
         $this->renderable(function (ValidationException $e) {
             return response()->json([
                 'message' => 'Validation failed.',
-                'errors'  => $e->errors(),
+                'errors' => $e->errors(),
             ], 422);
         });
     }
