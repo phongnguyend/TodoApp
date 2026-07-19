@@ -4,6 +4,7 @@ import { PrismaModule } from '../shared/prisma/prisma.module';
 import { FilesModule } from './files/files.module';
 import { TodoItemsModule } from './todo-items/todo-items.module';
 import { TodoItemAttachmentsModule } from './todo-item-attachments/todo-item-attachments.module';
+import { UsersModule } from './users/users.module';
 
 /**
  * AppModule is the root module - analogous to Startup.cs / Program.cs in ASP.NET Core.
@@ -16,6 +17,7 @@ import { TodoItemAttachmentsModule } from './todo-item-attachments/todo-item-att
     TodoItemsModule,
     TodoItemAttachmentsModule,
     FilesModule,
+    UsersModule,
   ],
 })
 export class AppModule {}

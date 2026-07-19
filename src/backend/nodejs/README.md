@@ -26,8 +26,10 @@ A RESTful API for managing todo items built with **NestJS**, **Prisma**, and **T
 src/backend/nodejs/
 ├── prisma/
 │   ├── migrations/
-│   │   └── 20260718130000_add_todo_item_attachments/
-│   │       └── migration.sql          # Attachment table migration
+│   │   ├── 20260718130000_add_todo_item_attachments/
+│   │   │   └── migration.sql          # Attachment table migration
+│   │   └── 20260719000000_add_users/
+│   │       └── migration.sql          # Users table migration
 │   └── schema.prisma                  # Prisma schema (EF model + DbContext)
 ├── src/
 │   ├── api/
@@ -56,16 +58,26 @@ src/backend/nodejs/
 │   │   │   └── dto/
 │   │   │       ├── save-todo-item-attachment.dto.ts
 │   │   │       └── todo-item-attachment-response.dto.ts
-│   │   └── files/
-│   │       ├── files.module.ts            # Feature module
-│   │       ├── files.controller.ts        # Controller (list/get/download/upload/delete)
-│   │       ├── files.controller.spec.ts   # Controller unit tests
-│   │       ├── files.service.ts           # Business logic (storage on disk + metadata)
-│   │       ├── files.service.spec.ts      # Service unit tests
-│   │       ├── files.repository.ts        # Data access (Prisma queries)
-│   │       ├── files.repository.spec.ts   # Repository unit tests
-│   │       └── dto/
-│   │           └── file-response.dto.ts
+│   │   ├── files/
+│   │   │   ├── files.module.ts            # Feature module
+│   │   │   ├── files.controller.ts        # Controller (list/get/download/upload/delete)
+│   │   │   ├── files.controller.spec.ts   # Controller unit tests
+│   │   │   ├── files.service.ts           # Business logic (storage on disk + metadata)
+│   │   │   ├── files.service.spec.ts      # Service unit tests
+│   │   │   ├── files.repository.ts        # Data access (Prisma queries)
+│   │   │   ├── files.repository.spec.ts   # Repository unit tests
+│   │   │   └── dto/
+│   │   │       └── file-response.dto.ts
+│   │   └── users/
+│   │       ├── users.module.ts             # Users feature module
+│   │       ├── users.controller.ts         # Management and self-service endpoints
+│   │       ├── users.controller.spec.ts    # Controller unit tests
+│   │       ├── users.service.ts            # Profiles, passwords, and reset workflow
+│   │       ├── users.service.spec.ts       # Service unit tests
+│   │       ├── users.repository.ts         # Prisma user and reset-email access
+│   │       ├── users.repository.spec.ts    # Repository unit tests
+│   │       ├── users.security.ts           # HS256 bearer-token guard
+│   │       └── dto/                        # User request/response DTOs
 │   ├── shared/
 │   │   ├── prisma/
 │   │   │   ├── prisma.service.ts          # PrismaClient wrapper (DbContext)
