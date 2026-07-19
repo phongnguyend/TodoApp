@@ -12,11 +12,13 @@ import (
 	"github.com/todo/backend/go/internal/dto"
 	"github.com/todo/backend/go/internal/handler"
 	"github.com/todo/backend/go/internal/router"
+	"github.com/todo/backend/go/internal/service"
 )
 
 type userServiceStub struct {
 	signUp func(dto.SignUpRequest) (dto.UserResponse, error)
 	reset  func(dto.ResetPasswordRequest) error
+	token  func(dto.TokenRequest) (dto.TokenResponse, error)
 }
 
 func (s *userServiceStub) GetAll(int, int) (dto.PaginatedResponse[dto.UserResponse], error) {
@@ -40,6 +42,12 @@ func (s *userServiceStub) UpdateProfile(uint, dto.UpdateProfileRequest) (dto.Use
 func (s *userServiceStub) ChangePassword(uint, dto.ChangePasswordRequest) error       { return nil }
 func (s *userServiceStub) RequestPasswordReset(q dto.ResetPasswordRequest) error      { return s.reset(q) }
 func (s *userServiceStub) ConfirmPasswordReset(dto.ConfirmPasswordResetRequest) error { return nil }
+func (s *userServiceStub) CreateToken(q dto.TokenRequest) (dto.TokenResponse, error) {
+	if s.token == nil {
+		return dto.TokenResponse{}, nil
+	}
+	return s.token(q)
+}
 
 func userRouter(s *userServiceStub) *gin.Engine {
 	gin.SetMode(gin.TestMode)
@@ -84,4 +92,33 @@ func TestUserHandlerPasswordResetAlwaysReturnsAccepted(t *testing.T) {
 	w := userRequest(userRouter(s), http.MethodPost, "/api/users/password/reset", `{"email":"missing@example.com"}`)
 	assert.Equal(t, http.StatusAccepted, w.Code)
 	assert.Contains(t, w.Body.String(), "account exists")
+}
+
+func TestUserHandlerCreatesTokenWithSecurityHeaders(t *testing.T) {
+	s := &userServiceStub{
+		signUp: func(dto.SignUpRequest) (dto.UserResponse, error) { return dto.UserResponse{}, nil },
+		reset:  func(dto.ResetPasswordRequest) error { return nil },
+		token: func(q dto.TokenRequest) (dto.TokenResponse, error) {
+			assert.Equal(t, "alice@example.com", q.Email)
+			return dto.TokenResponse{AccessToken: "header.payload.signature", TokenType: "Bearer", ExpiresIn: 3600}, nil
+		},
+	}
+	w := userRequest(userRouter(s), http.MethodPost, "/api/tokens", `{"email":"alice@example.com","password":"password123"}`)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "no-store", w.Header().Get("Cache-Control"))
+	assert.Contains(t, w.Body.String(), `"access_token":"header.payload.signature"`)
+}
+
+func TestUserHandlerReturnsNonDisclosingInvalidCredentials(t *testing.T) {
+	s := &userServiceStub{
+		signUp: func(dto.SignUpRequest) (dto.UserResponse, error) { return dto.UserResponse{}, nil },
+		reset:  func(dto.ResetPasswordRequest) error { return nil },
+		token: func(dto.TokenRequest) (dto.TokenResponse, error) {
+			return dto.TokenResponse{}, service.ErrInvalidCredentials
+		},
+	}
+	w := userRequest(userRouter(s), http.MethodPost, "/api/tokens", `{"email":"missing@example.com","password":"wrong"}`)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, "Bearer", w.Header().Get("WWW-Authenticate"))
+	assert.JSONEq(t, `{"error":"Invalid email or password."}`, w.Body.String())
 }

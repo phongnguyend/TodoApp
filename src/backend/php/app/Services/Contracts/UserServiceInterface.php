@@ -4,6 +4,7 @@ namespace App\Services\Contracts;
 
 use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\ConfirmPasswordResetRequest;
+use App\Http\Requests\CreateTokenRequest;
 use App\Http\Requests\CreateUserRequest;
 use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Requests\SignUpRequest;
@@ -35,4 +36,6 @@ interface UserServiceInterface
     public function requestPasswordReset(ResetPasswordRequest $request): void;
 
     public function confirmPasswordReset(ConfirmPasswordResetRequest $request): void;
+
+    public function createToken(CreateTokenRequest $request): ?array;
 }

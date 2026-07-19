@@ -15,8 +15,10 @@ public interface IUserService
     Task ChangePasswordAsync(int userId, ChangePasswordRequest request, CancellationToken ct = default);
     Task RequestPasswordResetAsync(ResetPasswordRequest request, CancellationToken ct = default);
     Task ConfirmPasswordResetAsync(ConfirmPasswordResetRequest request, CancellationToken ct = default);
+    Task<TokenResponse> CreateTokenAsync(TokenRequest request, CancellationToken ct = default);
 }
 
 public sealed class UserConflictException(string message) : Exception(message);
 public sealed class InvalidPasswordException(string message) : Exception(message);
 public sealed class InvalidPasswordResetTokenException(string message) : Exception(message);
+public sealed class InvalidCredentialsException(string message) : Exception(message);

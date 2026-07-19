@@ -14,9 +14,12 @@ from api.repositories.user_repository import IUserRepository, UserRepository
 from api.schemas.todo_item import PaginatedResponse
 from api.schemas.user import (
     ChangePasswordRequest, ConfirmPasswordResetRequest, CreateUserRequest, ResetPasswordRequest,
-    SignUpRequest, UpdateProfileRequest, UpdateUserRequest, UserResponse,
+    SignUpRequest, TokenRequest, TokenResponse, UpdateProfileRequest, UpdateUserRequest, UserResponse,
 )
-from api.security import create_signed_token, decode_signed_token, hash_password, verify_password
+from api.security import create_jwt, create_signed_token, decode_signed_token, hash_password, verify_password
+
+
+_DUMMY_PASSWORD_HASH = hash_password("not-a-real-password")
 
 
 class IUserService(ABC):
@@ -42,6 +45,8 @@ class IUserService(ABC):
     def request_password_reset(self, request: ResetPasswordRequest) -> None: ...
     @abstractmethod
     def confirm_password_reset(self, request: ConfirmPasswordResetRequest) -> None: ...
+    @abstractmethod
+    def create_token(self, request: TokenRequest) -> TokenResponse: ...
 
 
 class UserService(IUserService):
@@ -144,6 +149,24 @@ class UserService(IUserService):
         user.password_hash = hash_password(request.new_password)
         user.updated_at = datetime.now(timezone.utc)
         self._repo.update(user)
+
+    def create_token(self, request: TokenRequest) -> TokenResponse:
+        user = self._repo.get_by_email(request.email.strip().lower())
+        password_hash = user.password_hash if user is not None else _DUMMY_PASSWORD_HASH
+        password_valid = verify_password(request.password, password_hash)
+        if user is None or not password_valid or not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        issued_at = int(time.time())
+        expires_in = max(1, settings.JWT_TOKEN_LIFETIME_MINUTES) * 60
+        token = create_jwt(
+            {"sub": str(user.id), "iat": issued_at, "exp": issued_at + expires_in},
+            settings.JWT_SECRET_KEY,
+        )
+        return TokenResponse(access_token=token, expires_in=expires_in)
 
 
 def get_user_service(db: Session) -> IUserService:

@@ -36,7 +36,7 @@ describe('UsersController', () => {
   });
 
   it('uses the authenticated request user for self-management', async () => {
-    const request = { userId: 7 } as never;
+    const request = { user: { userId: 7 } } as never;
     await controller.getProfile(request);
     await controller.updateProfile(request, { username: 'new-name' });
     await controller.changePassword(request, { currentPassword: 'old', newPassword: 'new-password' });

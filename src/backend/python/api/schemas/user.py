@@ -39,6 +39,19 @@ class SignUpRequest(BaseModel):
     _email = field_validator("email")(_validate_email)
 
 
+class TokenRequest(BaseModel):
+    email: str
+    password: str = Field(min_length=1, max_length=128)
+
+    _email = field_validator("email")(_validate_email)
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "Bearer"
+    expires_in: int
+
+
 class ChangePasswordRequest(BaseModel):
     current_password: str = Field(min_length=1)
     new_password: str = Field(min_length=8, max_length=128)

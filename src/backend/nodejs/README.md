@@ -76,7 +76,7 @@ src/backend/nodejs/
 │   │       ├── users.service.spec.ts       # Service unit tests
 │   │       ├── users.repository.ts         # Prisma user and reset-email access
 │   │       ├── users.repository.spec.ts    # Repository unit tests
-│   │       ├── users.security.ts           # HS256 bearer-token guard
+│   │       ├── users.security.ts           # Passport JWT bearer-token guard
 │   │       └── dto/                        # User request/response DTOs
 │   ├── shared/
 │   │   ├── prisma/

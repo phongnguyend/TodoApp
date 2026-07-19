@@ -189,3 +189,23 @@ func (h *UserHandler) ConfirmPasswordReset(c *gin.Context) {
 	}
 	c.Status(http.StatusNoContent)
 }
+
+func (h *UserHandler) CreateToken(c *gin.Context) {
+	var q dto.TokenRequest
+	if !bind(c, &q) {
+		return
+	}
+	r, err := h.svc.CreateToken(q)
+	if errors.Is(err, service.ErrInvalidCredentials) {
+		c.Header("WWW-Authenticate", "Bearer")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password."})
+		return
+	}
+	if err != nil {
+		userServiceError(c, err)
+		return
+	}
+	c.Header("Cache-Control", "no-store")
+	c.Header("Pragma", "no-cache")
+	c.JSON(http.StatusOK, r)
+}

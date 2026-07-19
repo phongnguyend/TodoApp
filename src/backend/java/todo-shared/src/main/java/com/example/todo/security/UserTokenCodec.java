@@ -1,14 +1,21 @@
 package com.example.todo.security;
 
 import com.example.todo.exception.InvalidPasswordResetTokenException;
-import com.example.todo.exception.UnauthorizedException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
@@ -20,31 +27,15 @@ public class UserTokenCodec {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
     private static final Base64.Decoder DECODER = Base64.getUrlDecoder();
-    private final String jwtSecret;
+    private final JwtEncoder jwtEncoder;
     private final String resetSecret;
 
     public UserTokenCodec(
-            @Value("${app.user.jwt-secret:change-me}") String jwtSecret,
-            @Value("${app.user.password-reset.secret:${app.user.jwt-secret:change-me}}") String resetSecret) {
-        this.jwtSecret = jwtSecret;
+            @Value("${app.user.jwt-secret:change-me-use-at-least-32-bytes-long}") String jwtSecret,
+            @Value("${app.user.password-reset.secret:${app.user.jwt-secret:change-me-use-at-least-32-bytes-long}}") String resetSecret) {
+        SecretKey accessTokenKey = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        this.jwtEncoder = new NimbusJwtEncoder(new ImmutableSecret<>(accessTokenKey));
         this.resetSecret = resetSecret;
-    }
-
-    public long authenticatedUserId(String authorizationHeader) {
-        try {
-            if (authorizationHeader == null || !authorizationHeader.regionMatches(true, 0, "Bearer ", 0, 7))
-                throw new IllegalArgumentException();
-            String[] parts = authorizationHeader.substring(7).trim().split("\\.", -1);
-            if (parts.length != 3 || !validSignature(parts[0] + "." + parts[1], parts[2], jwtSecret))
-                throw new IllegalArgumentException();
-            JsonNode payload = JSON.readTree(DECODER.decode(parts[1]));
-            long id = Long.parseLong(payload.path("sub").asText());
-            if (id <= 0 || (payload.has("exp") && payload.path("exp").asLong() < Instant.now().getEpochSecond()))
-                throw new IllegalArgumentException();
-            return id;
-        } catch (Exception ex) {
-            throw new UnauthorizedException("A valid bearer token is required.");
-        }
     }
 
     public String createPasswordResetToken(long userId, Instant expiresAt, String passwordHash) {
@@ -57,6 +48,16 @@ public class UserTokenCodec {
         } catch (Exception ex) {
             throw new IllegalStateException("Could not create a password reset token.", ex);
         }
+    }
+
+    public String createAccessToken(long userId, Instant issuedAt, Instant expiresAt) {
+        JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).type("JWT").build();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .subject(Long.toString(userId))
+                .issuedAt(issuedAt)
+                .expiresAt(expiresAt)
+                .build();
+        return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
     }
 
     public ResetTokenPayload decodePasswordResetToken(String token) {

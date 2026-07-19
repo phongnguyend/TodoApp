@@ -41,7 +41,7 @@ export class UsersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
   changePassword(@Req() request: AuthenticatedRequest, @Body() dto: ChangePasswordDto): Promise<void> {
-    return this.service.changePassword(request.userId, dto);
+    return this.service.changePassword(request.user.userId, dto);
   }
 
   @Get('profile')
@@ -49,7 +49,7 @@ export class UsersController {
   @ApiBearerAuth()
   @ApiOkResponse({ type: UserResponseDto })
   getProfile(@Req() request: AuthenticatedRequest): Promise<UserResponseDto> {
-    return this.service.getProfile(request.userId);
+    return this.service.getProfile(request.user.userId);
   }
 
   @Put('profile')
@@ -57,7 +57,7 @@ export class UsersController {
   @ApiBearerAuth()
   @ApiOkResponse({ type: UserResponseDto })
   updateProfile(@Req() request: AuthenticatedRequest, @Body() dto: UpdateProfileDto): Promise<UserResponseDto> {
-    return this.service.updateProfile(request.userId, dto);
+    return this.service.updateProfile(request.user.userId, dto);
   }
 
   @Get()

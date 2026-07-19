@@ -85,7 +85,7 @@ class UserApiTest extends TestCase
 
     public function test_authenticated_user_can_read_update_profile_and_change_password(): void
     {
-        config(['users.jwt_secret' => 'test-secret']);
+        config(['users.jwt_secret' => 'test-secret-at-least-32-bytes-long']);
         $user = User::factory()->create(['password_hash' => Hash::make('old-password')]);
         $headers = ['Authorization' => 'Bearer '.$this->jwtFor($user->id)];
 
@@ -103,7 +103,7 @@ class UserApiTest extends TestCase
 
     public function test_password_change_rejects_incorrect_current_password(): void
     {
-        config(['users.jwt_secret' => 'test-secret']);
+        config(['users.jwt_secret' => 'test-secret-at-least-32-bytes-long']);
         $user = User::factory()->create();
 
         $this->withHeader('Authorization', 'Bearer '.$this->jwtFor($user->id))
@@ -136,12 +136,51 @@ class UserApiTest extends TestCase
         $this->postJson('/api/users/password/confirm', $payload)->assertBadRequest();
     }
 
+    public function test_token_endpoint_issues_a_signed_jwt_for_active_user(): void
+    {
+        config(['users.jwt_secret' => 'test-secret-at-least-32-bytes-long', 'users.jwt_token_lifetime_minutes' => 60]);
+        $user = User::factory()->create([
+            'email' => 'alice@example.com',
+            'password_hash' => Hash::make('password123'),
+            'is_active' => true,
+        ]);
+
+        $response = $this->postJson('/api/tokens', [
+            'email' => ' Alice@Example.com ',
+            'password' => 'password123',
+        ])->assertOk()
+            ->assertHeader('Cache-Control')
+            ->assertHeader('Pragma', 'no-cache')
+            ->assertJsonPath('token_type', 'Bearer')
+            ->assertJsonPath('expires_in', 3600);
+
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+
+        [$header, $payload, $signature] = explode('.', $response->json('access_token'));
+        $this->assertSame('HS256', json_decode($this->decodeBase64Url($header), true)['alg']);
+        $this->assertSame((string) $user->id, json_decode($this->decodeBase64Url($payload), true)['sub']);
+        $this->assertNotEmpty($signature);
+    }
+
+    public function test_token_endpoint_does_not_disclose_authentication_failure(): void
+    {
+        $this->postJson('/api/tokens', ['email' => 'missing@example.com', 'password' => 'wrong'])
+            ->assertUnauthorized()
+            ->assertHeader('WWW-Authenticate', 'Bearer')
+            ->assertExactJson(['error' => 'Invalid email or password.']);
+    }
+
+    private function decodeBase64Url(string $value): string
+    {
+        return base64_decode(strtr($value, '-_', '+/').str_repeat('=', (4 - strlen($value) % 4) % 4), true);
+    }
+
     private function jwtFor(int $userId): string
     {
         $encode = static fn (string $value): string => rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
         $header = $encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT'], JSON_THROW_ON_ERROR));
         $payload = $encode(json_encode(['sub' => (string) $userId, 'exp' => time() + 300], JSON_THROW_ON_ERROR));
-        $signature = $encode(hash_hmac('sha256', "{$header}.{$payload}", 'test-secret', true));
+        $signature = $encode(hash_hmac('sha256', "{$header}.{$payload}", 'test-secret-at-least-32-bytes-long', true));
 
         return "{$header}.{$payload}.{$signature}";
     }

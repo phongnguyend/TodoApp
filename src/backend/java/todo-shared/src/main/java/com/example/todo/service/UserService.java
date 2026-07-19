@@ -14,4 +14,5 @@ public interface UserService {
     void changePassword(Long userId, ChangePasswordRequest request);
     void requestPasswordReset(ResetPasswordRequest request);
     void confirmPasswordReset(ConfirmPasswordResetRequest request);
+    TokenResponse createToken(TokenRequest request);
 }

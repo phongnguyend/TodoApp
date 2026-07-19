@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using TodoApi.Data;
 using TodoApi.DTOs;
 using TodoApi.Repositories;
@@ -25,7 +28,9 @@ public class UserServiceTests
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["PasswordReset:TokenLifetimeMinutes"] = "60",
-            ["PasswordReset:ConfirmationUrl"] = "https://example.test/reset"
+            ["PasswordReset:ConfirmationUrl"] = "https://example.test/reset",
+            ["Authentication:Secret"] = "test-secret-at-least-32-bytes-long",
+            ["Authentication:TokenLifetimeMinutes"] = "60"
         }).Build();
         return (new UserService(repository, db, hasher, protectionProvider, configuration), db, hasher);
     }
@@ -81,5 +86,42 @@ public class UserServiceTests
         await service.RequestPasswordResetAsync(new ResetPasswordRequest("missing@example.com"));
 
         Assert.Empty(db.EmailLogs);
+    }
+
+    [Fact]
+    public async Task CreateTokenAsync_IssuesJwtValidatedByIdentityModel()
+    {
+        var (service, _, _) = CreateSut();
+        await service.CreateAsync(new CreateUserRequest("alice", "alice@example.com", "password123"));
+
+        var response = await service.CreateTokenAsync(new TokenRequest("Alice@Example.com", "password123"));
+
+        var handler = new JwtSecurityTokenHandler { MapInboundClaims = false };
+        var principal = handler.ValidateToken(response.AccessToken, new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes("test-secret-at-least-32-bytes-long")),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        }, out _);
+        Assert.Equal("1", principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
+        Assert.Equal("Bearer", response.TokenType);
+        Assert.Equal(3600, response.ExpiresIn);
+    }
+
+    [Fact]
+    public async Task CreateTokenAsync_RejectsInvalidCredentialsAndInactiveUsersIdentically()
+    {
+        var (service, _, _) = CreateSut();
+        var user = await service.CreateAsync(new CreateUserRequest("alice", "alice@example.com", "password123"));
+
+        await Assert.ThrowsAsync<InvalidCredentialsException>(() =>
+            service.CreateTokenAsync(new TokenRequest("alice@example.com", "wrong")));
+        await service.SetActiveAsync(user.Id, false);
+        await Assert.ThrowsAsync<InvalidCredentialsException>(() =>
+            service.CreateTokenAsync(new TokenRequest("alice@example.com", "password123")));
     }
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace TodoApi.DTOs;
 
@@ -39,3 +40,12 @@ public record UserResponse(
     bool IsActive,
     DateTime CreatedAt,
     DateTime? UpdatedAt);
+
+public record TokenRequest(
+    [Required, EmailAddress, StringLength(255)] string Email,
+    [Required, StringLength(128, MinimumLength = 1)] string Password);
+
+public record TokenResponse(
+    [property: JsonPropertyName("access_token")] string AccessToken,
+    [property: JsonPropertyName("token_type")] string TokenType,
+    [property: JsonPropertyName("expires_in")] int ExpiresIn);

@@ -16,7 +16,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,7 +41,7 @@ class UserServiceImplTest {
     @BeforeEach
     void setUp() {
         passwordHasher = new PasswordHasher(1);
-        tokenCodec = new UserTokenCodec("jwt-secret", "reset-secret");
+        tokenCodec = new UserTokenCodec("test-jwt-secret-at-least-32-bytes-long", "reset-secret");
         service = new UserServiceImpl(repository, emailLogRepository, passwordHasher, tokenCodec,
                 60, "https://example.test/reset");
         user = new User("alice", "alice@example.com", passwordHasher.hash("password123"), true);
@@ -132,6 +136,20 @@ class UserServiceImplTest {
         assertThatThrownBy(() -> service.confirmPasswordReset(
                 new ConfirmPasswordResetRequest(token, "another-password")))
                 .hasMessageContaining("invalid or expired");
+    }
+
+    @Test
+    void createToken_issuesJwtValidatedByNimbus() {
+        when(repository.findByEmailIgnoreCase("alice@example.com")).thenReturn(Optional.of(user));
+
+        TokenResponse response = service.createToken(new TokenRequest("Alice@Example.com", "password123"));
+
+        var key = new SecretKeySpec("test-jwt-secret-at-least-32-bytes-long"
+                .getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        var decoder = NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build();
+        assertThat(decoder.decode(response.accessToken()).getSubject()).isEqualTo("1");
+        assertThat(response.tokenType()).isEqualTo("Bearer");
+        assertThat(response.expiresIn()).isEqualTo(3600);
     }
 
     private String userPasswordFromSave() {

@@ -7,6 +7,7 @@ use App\Exceptions\InvalidPasswordResetTokenException;
 use App\Exceptions\UserConflictException;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\ConfirmPasswordResetRequest;
+use App\Http\Requests\CreateTokenRequest;
 use App\Http\Requests\CreateUserRequest;
 use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Requests\SignUpRequest;
@@ -15,6 +16,7 @@ use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Contracts\UserServiceInterface;
+use Firebase\JWT\JWT;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -24,6 +26,8 @@ use JsonException;
 
 class UserService implements UserServiceInterface
 {
+    private ?string $dummyPasswordHash = null;
+
     public function __construct(
         private readonly UserRepositoryInterface $repository
     ) {}
@@ -192,6 +196,33 @@ class UserService implements UserServiceInterface
             'password_hash' => Hash::make($request->validated('new_password')),
             'updated_at' => now(),
         ]);
+    }
+
+    public function createToken(CreateTokenRequest $request): ?array
+    {
+        $email = strtolower(trim((string) $request->validated('email')));
+        $password = (string) $request->validated('password');
+        $user = $this->repository->findByEmail($email);
+        $this->dummyPasswordHash ??= Hash::make('not-a-real-password');
+        $passwordValid = Hash::check($password, $user?->password_hash ?? $this->dummyPasswordHash);
+
+        if ($user === null || ! $passwordValid || ! $user->is_active) {
+            return null;
+        }
+
+        $issuedAt = time();
+        $expiresIn = max(1, (int) config('users.jwt_token_lifetime_minutes', 60)) * 60;
+        $token = JWT::encode([
+            'sub' => (string) $user->getKey(),
+            'iat' => $issuedAt,
+            'exp' => $issuedAt + $expiresIn,
+        ], (string) config('users.jwt_secret'), 'HS256');
+
+        return [
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'expires_in' => $expiresIn,
+        ];
     }
 
     private function ensureUnique(string $username, string $email, ?int $excludingId = null): void

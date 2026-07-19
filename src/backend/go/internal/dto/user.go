@@ -21,6 +21,17 @@ type SignUpRequest struct {
 	Password string `json:"password" binding:"required,min=8,max=128"`
 }
 
+type TokenRequest struct {
+	Email    string `json:"email" binding:"required,email,max=255"`
+	Password string `json:"password" binding:"required,max=128"`
+}
+
+type TokenResponse struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int    `json:"expires_in"`
+}
+
 type ChangePasswordRequest struct {
 	CurrentPassword string `json:"currentPassword" binding:"required"`
 	NewPassword     string `json:"newPassword" binding:"required,min=8,max=128"`
