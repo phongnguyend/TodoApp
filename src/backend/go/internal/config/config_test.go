@@ -37,9 +37,9 @@ func TestLoad_DefaultValues(t *testing.T) {
 	assert.Equal(t, 100, cfg.MaxPageSize)
 	assert.Equal(t, "./uploads", cfg.FileStoragePath)
 	assert.Equal(t, int64(10485760), cfg.MaxUploadSizeBytes)
-	assert.Equal(t, "change-me", cfg.JWTSecretKey)
+	assert.Equal(t, "change-me-use-at-least-32-bytes-long", cfg.JWTSecretKey)
 	assert.Equal(t, 120000, cfg.PasswordHashIterations)
-	assert.Equal(t, "change-me", cfg.PasswordResetSecretKey)
+	assert.Equal(t, "change-me-use-at-least-32-bytes-long", cfg.PasswordResetSecretKey)
 	assert.Equal(t, 60, cfg.PasswordResetTokenLifetimeMinutes)
 	assert.Equal(t, "/reset-password", cfg.PasswordResetConfirmationURL)
 }
