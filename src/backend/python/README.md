@@ -83,27 +83,28 @@ src/backend/python/
 │       └── 20260719_0000_ddeeff445566_add_users_table.py # users table
 ├── alembic.ini
 ├── pytest.ini
-├── requirements.txt
+├── pyproject.toml                  # Project metadata and dependencies
+├── uv.lock                         # Reproducible dependency lockfile
 └── .env.example
 ```
 
 ## Getting started
 
-### 1. Create and activate a virtual environment
+### 1. Install uv
 
 ```bash
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# macOS / Linux
-source .venv/bin/activate
+# See https://docs.astral.sh/uv/getting-started/installation/
+uv --version
 ```
 
-### 2. Install dependencies
+### 2. Create the environment and install dependencies
 
 ```bash
-pip install -r requirements.txt
+uv sync --locked
 ```
+
+`uv` creates and manages the project-local `.venv` automatically. Run project
+commands through `uv run`; activating the environment is optional.
 
 ### 3. Configure environment
 
@@ -116,30 +117,30 @@ cp .env.example .env
 
 ```bash
 # Apply the bundled migrations (creates todo_items, email_logs, and files)
-alembic upgrade head
+uv run alembic upgrade head
 
 # To generate a new migration after model changes (like `dotnet ef migrations add`)
-alembic revision --autogenerate -m "DescribeChange"
+uv run alembic revision --autogenerate -m "DescribeChange"
 ```
 
 ### 5. Run unit tests
 
 ```bash
 # Run all unit tests
-python -m pytest tests/ -v
+uv run pytest tests/ -v
 
 # Run with summary (no verbose output)
-python -m pytest tests/
+uv run pytest tests/
 
 # Run a specific layer
-python -m pytest tests/unit/services/ -v
-python -m pytest tests/unit/routers/ -v
+uv run pytest tests/unit/services/ -v
+uv run pytest tests/unit/routers/ -v
 ```
 
 ### 6. Start the API server
 
 ```bash
-uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 The Swagger UI is available at <http://localhost:8000/swagger>.
@@ -170,9 +171,9 @@ MAX_UPLOAD_SIZE_BYTES=10485760  # Maximum accepted upload size, in bytes (defaul
 Update `DATABASE_URL` in `.env`:
 
 - **PostgreSQL**: `postgresql://user:password@localhost:5432/todo_db`  
-  Install: `pip install psycopg2-binary`
+  Add the driver: `uv add psycopg2-binary`
 - **MySQL**: `mysql+pymysql://user:password@localhost:3306/todo_db`  
-  Install: `pip install pymysql`
+  Add the driver: `uv add pymysql`
 
 ## Background worker
 
@@ -216,7 +217,7 @@ WORKER_INTERVAL_MINUTES=60 # how often the digest is sent
 
 ```bash
 # Make sure the .env file is configured and migrations are applied first
-python -m worker.main
+uv run python -m worker.main
 ```
 
 The worker runs the job immediately on startup, then repeats every `WORKER_INTERVAL_MINUTES` minutes.
