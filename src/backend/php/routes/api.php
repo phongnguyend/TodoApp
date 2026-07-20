@@ -51,9 +51,9 @@ Route::prefix('users')->group(function () {
 
 Route::middleware(AuthenticateUser::class)->prefix('users')->group(function () {
     // Static routes must precede /{id}.
-    Route::post('/password/change', [UserController::class, 'changePassword']);
-    Route::get('/profile', [UserController::class, 'profile']);
-    Route::put('/profile', [UserController::class, 'updateProfile']);
+    Route::post('/me/password', [UserController::class, 'changePassword']);
+    Route::get('/me/profile', [UserController::class, 'profile']);
+    Route::put('/me/profile', [UserController::class, 'updateProfile']);
     Route::get('/', [UserController::class, 'index']);
     Route::post('/', [UserController::class, 'store']);
     Route::get('/{id}', [UserController::class, 'show'])->whereNumber('id');

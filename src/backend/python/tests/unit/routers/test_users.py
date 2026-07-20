@@ -168,7 +168,7 @@ class TestProfile:
     def test_get_uses_authenticated_user_id(self, client, mock_service):
         mock_service.get_profile.return_value = _response(7)
 
-        response = client.get("/api/users/profile")
+        response = client.get("/api/users/me/profile")
 
         assert response.status_code == 200
         mock_service.get_profile.assert_called_once_with(7)
@@ -176,7 +176,7 @@ class TestProfile:
     def test_update_uses_authenticated_user_id_and_commits(self, client, mock_service, mock_db):
         mock_service.update_profile.return_value = _response(7, "new-name")
 
-        response = client.put("/api/users/profile", json={"username": "new-name"})
+        response = client.put("/api/users/me/profile", json={"username": "new-name"})
 
         assert response.status_code == 200
         assert mock_service.update_profile.call_args.args[0] == 7
@@ -186,7 +186,7 @@ class TestProfile:
     def test_requires_authentication(self, client):
         app.dependency_overrides.pop(get_current_user_id)
 
-        response = client.get("/api/users/profile")
+        response = client.get("/api/users/me/profile")
 
         assert response.status_code == 401
 
@@ -194,7 +194,7 @@ class TestProfile:
 class TestPasswords:
     def test_change_returns_204_and_commits(self, client, mock_service, mock_db):
         response = client.post(
-            "/api/users/password/change",
+            "/api/users/me/password",
             json={"current_password": "password123", "new_password": "new-password123"},
         )
 

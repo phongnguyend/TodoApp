@@ -83,9 +83,9 @@ class UserApiTest extends TestCase
     public function test_profile_routes_require_authentication(): void
     {
         $this->withHeader('Authorization', '');
-        $this->getJson('/api/users/profile')->assertUnauthorized();
-        $this->putJson('/api/users/profile', ['username' => 'new-name'])->assertUnauthorized();
-        $this->postJson('/api/users/password/change', [
+        $this->getJson('/api/users/me/profile')->assertUnauthorized();
+        $this->putJson('/api/users/me/profile', ['username' => 'new-name'])->assertUnauthorized();
+        $this->postJson('/api/users/me/password', [
             'current_password' => 'password123',
             'new_password' => 'new-password123',
         ])->assertUnauthorized();
@@ -97,11 +97,11 @@ class UserApiTest extends TestCase
         $user = User::factory()->create(['password_hash' => Hash::make('old-password')]);
         $headers = ['Authorization' => 'Bearer '.$this->jwtFor($user->id)];
 
-        $this->withHeaders($headers)->getJson('/api/users/profile')
+        $this->withHeaders($headers)->getJson('/api/users/me/profile')
             ->assertOk()->assertJsonPath('data.id', $user->id);
-        $this->withHeaders($headers)->putJson('/api/users/profile', ['username' => 'profile-name'])
+        $this->withHeaders($headers)->putJson('/api/users/me/profile', ['username' => 'profile-name'])
             ->assertOk()->assertJsonPath('data.username', 'profile-name');
-        $this->withHeaders($headers)->postJson('/api/users/password/change', [
+        $this->withHeaders($headers)->postJson('/api/users/me/password', [
             'current_password' => 'old-password',
             'new_password' => 'new-password123',
         ])->assertNoContent();
@@ -115,7 +115,7 @@ class UserApiTest extends TestCase
         $user = User::factory()->create();
 
         $this->withHeader('Authorization', 'Bearer '.$this->jwtFor($user->id))
-            ->postJson('/api/users/password/change', [
+            ->postJson('/api/users/me/password', [
                 'current_password' => 'wrong-password',
                 'new_password' => 'new-password123',
             ])->assertBadRequest();

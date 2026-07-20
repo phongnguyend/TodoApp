@@ -86,11 +86,11 @@ class UserControllerTest {
         when(service.getProfile(7L)).thenReturn(response());
         when(service.updateProfile(eq(7L), any())).thenReturn(response());
 
-        mockMvc.perform(get("/api/users/profile").with(jwt().jwt(token -> token.subject("7")))).andExpect(status().isOk());
-        mockMvc.perform(put("/api/users/profile").with(jwt().jwt(token -> token.subject("7")))
+        mockMvc.perform(get("/api/users/me/profile").with(jwt().jwt(token -> token.subject("7")))).andExpect(status().isOk());
+        mockMvc.perform(put("/api/users/me/profile").with(jwt().jwt(token -> token.subject("7")))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"new-name\"}"))
                 .andExpect(status().isOk());
-        mockMvc.perform(post("/api/users/password/change").with(jwt().jwt(token -> token.subject("7")))
+        mockMvc.perform(post("/api/users/me/password").with(jwt().jwt(token -> token.subject("7")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"currentPassword\":\"password123\",\"newPassword\":\"new-password123\"}"))
                 .andExpect(status().isNoContent());
@@ -100,7 +100,7 @@ class UserControllerTest {
 
     @Test
     void profileWithoutValidBearerTokenReturnsUnauthorized() throws Exception {
-        mockMvc.perform(get("/api/users/profile"))
+        mockMvc.perform(get("/api/users/me/profile"))
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/users"))
                 .andExpect(status().isUnauthorized());

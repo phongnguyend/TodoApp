@@ -83,7 +83,7 @@ func TestUserHandlerRejectsInvalidSignup(t *testing.T) {
 
 func TestUserHandlerProfileRequiresBearerToken(t *testing.T) {
 	s := &userServiceStub{signUp: func(dto.SignUpRequest) (dto.UserResponse, error) { return dto.UserResponse{}, nil }, reset: func(dto.ResetPasswordRequest) error { return nil }}
-	w := userRequest(userRouter(s), http.MethodGet, "/api/users/profile", "")
+	w := userRequest(userRouter(s), http.MethodGet, "/api/users/me/profile", "")
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 

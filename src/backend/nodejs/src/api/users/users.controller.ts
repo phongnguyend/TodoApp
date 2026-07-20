@@ -38,7 +38,7 @@ export class UsersController {
     return this.service.confirmPasswordReset(dto);
   }
 
-  @Post('password/change')
+  @Post('me/password')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
@@ -46,14 +46,14 @@ export class UsersController {
     return this.service.changePassword(request.user.userId, dto);
   }
 
-  @Get('profile')
+  @Get('me/profile')
   @ApiBearerAuth()
   @ApiOkResponse({ type: UserResponseDto })
   getProfile(@Req() request: AuthenticatedRequest): Promise<UserResponseDto> {
     return this.service.getProfile(request.user.userId);
   }
 
-  @Put('profile')
+  @Put('me/profile')
   @ApiBearerAuth()
   @ApiOkResponse({ type: UserResponseDto })
   updateProfile(@Req() request: AuthenticatedRequest, @Body() dto: UpdateProfileDto): Promise<UserResponseDto> {

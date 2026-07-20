@@ -66,14 +66,14 @@ public class UserController {
     @Operation(summary = "Register a new account")
     public UserResponse signup(@Valid @RequestBody SignUpRequest request) { return service.signup(request); }
 
-    @GetMapping("/profile")
+    @GetMapping("/me/profile")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Read the authenticated user's profile")
     public UserResponse profile(@AuthenticationPrincipal Jwt jwt) {
         return service.getProfile(Long.parseLong(jwt.getSubject()));
     }
 
-    @PutMapping("/profile")
+    @PutMapping("/me/profile")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Update the authenticated user's profile")
     public UserResponse updateProfile(
@@ -82,7 +82,7 @@ public class UserController {
         return service.updateProfile(Long.parseLong(jwt.getSubject()), request);
     }
 
-    @PostMapping("/password/change")
+    @PostMapping("/me/password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Change the authenticated user's password")

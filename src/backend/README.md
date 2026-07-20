@@ -183,11 +183,11 @@ These endpoints manage attachment references for a specific todo item. They do n
 | Method | Path                          | Description                             |
 | ------ | ----------------------------- | --------------------------------------- |
 | `POST` | `/api/users/signup`           | Register a new account                  |
-| `POST` | `/api/users/password/change`  | Change the current user's password      |
 | `POST` | `/api/users/password/reset`   | Request a password reset email          |
 | `POST` | `/api/users/password/confirm` | Confirm a password reset with a token   |
-| `GET`  | `/api/users/profile`          | Read the authenticated user's profile   |
-| `PUT`  | `/api/users/profile`          | Update the authenticated user's profile |
+| `GET`  | `/api/users/me/profile`       | Read the authenticated user's profile   |
+| `PUT`  | `/api/users/me/profile`       | Update the authenticated user's profile |
+| `POST` | `/api/users/me/password`      | Change the current user's password      |
 
 ### Tokens Endpoint
 

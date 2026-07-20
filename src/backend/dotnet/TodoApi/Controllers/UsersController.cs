@@ -66,7 +66,7 @@ public class UsersController(IUserService service) : ControllerBase
         }
     }
 
-    [HttpGet("profile")]
+    [HttpGet("me/profile")]
     [Authorize]
     public async Task<IActionResult> GetProfile(CancellationToken ct = default)
     {
@@ -74,7 +74,7 @@ public class UsersController(IUserService service) : ControllerBase
         return await HandleNotFoundAsync(() => service.GetProfileAsync(userId, ct));
     }
 
-    [HttpPut("profile")]
+    [HttpPut("me/profile")]
     [Authorize]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken ct = default)
     {
@@ -82,7 +82,7 @@ public class UsersController(IUserService service) : ControllerBase
         return await HandleUserWriteAsync(() => service.UpdateProfileAsync(userId, request, ct));
     }
 
-    [HttpPost("password/change")]
+    [HttpPost("me/password")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken ct = default)

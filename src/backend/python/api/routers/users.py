@@ -27,7 +27,7 @@ ServiceDep = Annotated[IUserService, Depends(_service)]
 
 
 # Static routes must precede /{user_id}, otherwise FastAPI treats names such as
-# "profile" and "signup" as integer path parameters.
+# "me" and "signup" as integer path parameters.
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def signup(request: SignUpRequest, service: ServiceDep, db: DbDep):
     user = service.signup(request)
@@ -35,7 +35,7 @@ def signup(request: SignUpRequest, service: ServiceDep, db: DbDep):
     return user
 
 
-@protected_router.post("/password/change", status_code=status.HTTP_204_NO_CONTENT)
+@protected_router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT)
 def change_password(request: ChangePasswordRequest, user_id: CurrentUserId, service: ServiceDep, db: DbDep):
     service.change_password(user_id, request)
     db.commit()
@@ -56,12 +56,12 @@ def confirm_password(request: ConfirmPasswordResetRequest, service: ServiceDep, 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@protected_router.get("/profile", response_model=UserResponse)
+@protected_router.get("/me/profile", response_model=UserResponse)
 def get_profile(user_id: CurrentUserId, service: ServiceDep):
     return service.get_profile(user_id)
 
 
-@protected_router.put("/profile", response_model=UserResponse)
+@protected_router.put("/me/profile", response_model=UserResponse)
 def update_profile(request: UpdateProfileRequest, user_id: CurrentUserId, service: ServiceDep, db: DbDep):
     user = service.update_profile(user_id, request)
     db.commit()
