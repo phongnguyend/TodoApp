@@ -263,11 +263,11 @@ All paginated endpoints (`GET /api/todo-items`, `GET /api/todo-items/incomplete`
 
 ## Implementations
 
-| Language / Framework                                  | Path      | JWT/authentication library                               |
-| ----------------------------------------------------- | --------- | -------------------------------------------------------- |
-| Python (FastAPI + SQLAlchemy + JWT/Auth)              | `python/` | PyJWT                                                    |
-| .NET (ASP.NET Core + EF Core + ASP.NET Core Identity) | `dotnet/` | ASP.NET Core JwtBearer + Microsoft IdentityModel         |
-| Go (net/http + GORM + JWT/Auth)                       | `go/`     | `github.com/golang-jwt/jwt/v5`                           |
-| Java (Spring Boot + JPA + Spring Security)            | `java/`   | Spring Security OAuth2 Resource Server + Nimbus JOSE JWT |
-| Node.js (NestJS + Prisma + Passport/JWT)              | `nodejs/` | `@nestjs/jwt` + Passport JWT                             |
-| PHP (Laravel + Eloquent + Firebase PHP-JWT)           | `php/`    | `firebase/php-jwt`                                       |
+| Language / Framework                                  | Path                  | JWT/authentication library                               |
+| ----------------------------------------------------- | --------------------- | -------------------------------------------------------- |
+| Python (FastAPI + SQLAlchemy + JWT/Auth)              | `src/backend/python/` | PyJWT                                                    |
+| .NET (ASP.NET Core + EF Core + ASP.NET Core Identity) | `src/backend/dotnet/` | ASP.NET Core JwtBearer + Microsoft IdentityModel         |
+| Go (net/http + GORM + JWT/Auth)                       | `src/backend/go/`     | `github.com/golang-jwt/jwt/v5`                           |
+| Java (Spring Boot + JPA + Spring Security)            | `src/backend/java/`   | Spring Security OAuth2 Resource Server + Nimbus JOSE JWT |
+| Node.js (NestJS + Prisma + Passport/JWT)              | `src/backend/nodejs/` | `@nestjs/jwt` + Passport JWT                             |
+| PHP (Laravel + Eloquent + Firebase PHP-JWT)           | `src/backend/php/`    | `firebase/php-jwt`                                       |
