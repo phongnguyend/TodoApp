@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from shared.config import settings
 from api.routers import files, todo_items, tokens, users
+from api.security import get_current_user_id
 
 # ── Application bootstrap (analogous to Program.cs / Startup.cs) ──────────────
 
@@ -30,9 +31,11 @@ app.add_middleware(
 
 # ── Routers (analogous to MapControllers / minimal-API route groups) ──────────
 
-app.include_router(todo_items.router)
-app.include_router(files.router)
+authenticated = [Depends(get_current_user_id)]
+app.include_router(todo_items.router, dependencies=authenticated)
+app.include_router(files.router, dependencies=authenticated)
 app.include_router(users.router)
+app.include_router(users.protected_router)
 app.include_router(tokens.router)
 
 

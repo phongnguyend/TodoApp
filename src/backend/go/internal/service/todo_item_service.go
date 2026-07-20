@@ -30,13 +30,13 @@ type TodoItemService interface {
 	GetAll(page, pageSize int) (dto.PaginatedResponse[dto.TodoItemResponse], error)
 	GetIncomplete(page, pageSize int) (dto.PaginatedResponse[dto.TodoItemResponse], error)
 	GetByID(id uint) (dto.TodoItemResponse, error)
-	Create(req dto.CreateTodoItemRequest) (dto.TodoItemResponse, error)
-	Update(id uint, req dto.UpdateTodoItemRequest) (dto.TodoItemResponse, error)
-	MarkComplete(id uint) (dto.TodoItemResponse, error)
+	Create(req dto.CreateTodoItemRequest, actorUserID ...*uint) (dto.TodoItemResponse, error)
+	Update(id uint, req dto.UpdateTodoItemRequest, actorUserID ...*uint) (dto.TodoItemResponse, error)
+	MarkComplete(id uint, actorUserID ...*uint) (dto.TodoItemResponse, error)
 	Delete(id uint) error
-	ImportCSV(r io.Reader) (dto.ImportResult, error)
+	ImportCSV(r io.Reader, actorUserID ...*uint) (dto.ImportResult, error)
 	ExportCSV() (string, error)
-	ImportExcel(r io.Reader) (dto.ImportResult, error)
+	ImportExcel(r io.Reader, actorUserID ...*uint) (dto.ImportResult, error)
 	ExportExcel() ([]byte, error)
 }
 
@@ -53,12 +53,14 @@ func NewTodoItemService(repo repository.TodoItemRepository) TodoItemService {
 
 func toResponse(m *models.TodoItem) dto.TodoItemResponse {
 	return dto.TodoItemResponse{
-		ID:          m.ID,
-		Title:       m.Title,
-		Description: m.Description,
-		IsCompleted: m.IsCompleted,
-		CreatedAt:   m.CreatedAt,
-		UpdatedAt:   m.UpdatedAt,
+		ID:              m.ID,
+		Title:           m.Title,
+		Description:     m.Description,
+		IsCompleted:     m.IsCompleted,
+		CreatedAt:       m.CreatedAt,
+		CreatedByUserID: m.CreatedByUserID,
+		UpdatedAt:       m.UpdatedAt,
+		UpdatedByUserID: m.UpdatedByUserID,
 	}
 }
 
@@ -112,8 +114,8 @@ func (s *todoItemService) GetByID(id uint) (dto.TodoItemResponse, error) {
 
 // ── Commands ──────────────────────────────────────────────────────────────────
 
-func (s *todoItemService) Create(req dto.CreateTodoItemRequest) (dto.TodoItemResponse, error) {
-	item := &models.TodoItem{Title: req.Title, Description: req.Description}
+func (s *todoItemService) Create(req dto.CreateTodoItemRequest, actorUserID ...*uint) (dto.TodoItemResponse, error) {
+	item := &models.TodoItem{Title: req.Title, Description: req.Description, CreatedByUserID: firstActor(actorUserID)}
 	created, err := s.repo.Create(item)
 	if err != nil {
 		return dto.TodoItemResponse{}, err
@@ -121,7 +123,7 @@ func (s *todoItemService) Create(req dto.CreateTodoItemRequest) (dto.TodoItemRes
 	return toResponse(created), nil
 }
 
-func (s *todoItemService) Update(id uint, req dto.UpdateTodoItemRequest) (dto.TodoItemResponse, error) {
+func (s *todoItemService) Update(id uint, req dto.UpdateTodoItemRequest, actorUserID ...*uint) (dto.TodoItemResponse, error) {
 	item, err := s.getOrNotFound(id)
 	if err != nil {
 		return dto.TodoItemResponse{}, err
@@ -135,6 +137,7 @@ func (s *todoItemService) Update(id uint, req dto.UpdateTodoItemRequest) (dto.To
 	if req.IsCompleted != nil {
 		item.IsCompleted = *req.IsCompleted
 	}
+	item.UpdatedByUserID = firstActor(actorUserID)
 	updated, err := s.repo.Update(item)
 	if err != nil {
 		return dto.TodoItemResponse{}, err
@@ -142,12 +145,13 @@ func (s *todoItemService) Update(id uint, req dto.UpdateTodoItemRequest) (dto.To
 	return toResponse(updated), nil
 }
 
-func (s *todoItemService) MarkComplete(id uint) (dto.TodoItemResponse, error) {
+func (s *todoItemService) MarkComplete(id uint, actorUserID ...*uint) (dto.TodoItemResponse, error) {
 	item, err := s.getOrNotFound(id)
 	if err != nil {
 		return dto.TodoItemResponse{}, err
 	}
 	item.IsCompleted = true
+	item.UpdatedByUserID = firstActor(actorUserID)
 	updated, err := s.repo.Update(item)
 	if err != nil {
 		return dto.TodoItemResponse{}, err
@@ -176,7 +180,7 @@ func parseBool(value string) bool {
 
 // ImportCSV reads a CSV file (header: title, description, is_completed) and creates a todo
 // item for every valid row. Mirrors import_csv in the Python/PHP/Java implementations.
-func (s *todoItemService) ImportCSV(r io.Reader) (dto.ImportResult, error) {
+func (s *todoItemService) ImportCSV(r io.Reader, actorUserID ...*uint) (dto.ImportResult, error) {
 	reader := csv.NewReader(r)
 	reader.FieldsPerRecord = -1
 
@@ -219,8 +223,9 @@ func (s *todoItemService) ImportCSV(r io.Reader) (dto.ImportResult, error) {
 		}
 
 		item := &models.TodoItem{
-			Title:       title,
-			IsCompleted: parseBool(cell(row, "is_completed")),
+			Title:           title,
+			IsCompleted:     parseBool(cell(row, "is_completed")),
+			CreatedByUserID: firstActor(actorUserID),
 		}
 		if description := strings.TrimSpace(cell(row, "description")); description != "" {
 			item.Description = &description
@@ -293,7 +298,7 @@ func isBlankRow(row []string) bool {
 
 // ImportExcel reads an .xlsx file (header: title, description, is_completed) and creates a
 // todo item for every valid row. Mirrors import_excel in the Python/PHP/Java implementations.
-func (s *todoItemService) ImportExcel(r io.Reader) (dto.ImportResult, error) {
+func (s *todoItemService) ImportExcel(r io.Reader, actorUserID ...*uint) (dto.ImportResult, error) {
 	f, err := excelize.OpenReader(r)
 	if err != nil {
 		return dto.ImportResult{}, err
@@ -335,8 +340,9 @@ func (s *todoItemService) ImportExcel(r io.Reader) (dto.ImportResult, error) {
 		}
 
 		item := &models.TodoItem{
-			Title:       title,
-			IsCompleted: parseBool(cell(row, "is_completed")),
+			Title:           title,
+			IsCompleted:     parseBool(cell(row, "is_completed")),
+			CreatedByUserID: firstActor(actorUserID),
 		}
 		if description := strings.TrimSpace(cell(row, "description")); description != "" {
 			item.Description = &description

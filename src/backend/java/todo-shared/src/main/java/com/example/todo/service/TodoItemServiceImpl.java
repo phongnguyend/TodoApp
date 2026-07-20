@@ -91,13 +91,26 @@ public class TodoItemServiceImpl implements TodoItemService {
     @Override
     @Transactional
     public TodoItemResponse create(CreateTodoItemRequest request) {
+        return create(request, null);
+    }
+
+    @Override
+    @Transactional
+    public TodoItemResponse create(CreateTodoItemRequest request, Long actorUserId) {
         TodoItem item = new TodoItem(request.title(), request.description());
+        item.setCreatedByUserId(actorUserId);
         return TodoItemResponse.from(repository.save(item));
     }
 
     @Override
     @Transactional
     public TodoItemResponse update(Long id, UpdateTodoItemRequest request) {
+        return update(id, request, null);
+    }
+
+    @Override
+    @Transactional
+    public TodoItemResponse update(Long id, UpdateTodoItemRequest request, Long actorUserId) {
         TodoItem item = getOrThrow(id);
         if (request.title() != null)
             item.setTitle(request.title());
@@ -105,14 +118,22 @@ public class TodoItemServiceImpl implements TodoItemService {
             item.setDescription(request.description());
         if (request.isCompleted() != null)
             item.setCompleted(request.isCompleted());
+        item.setUpdatedByUserId(actorUserId);
         return TodoItemResponse.from(repository.save(item));
     }
 
     @Override
     @Transactional
     public TodoItemResponse markComplete(Long id) {
+        return markComplete(id, null);
+    }
+
+    @Override
+    @Transactional
+    public TodoItemResponse markComplete(Long id, Long actorUserId) {
         TodoItem item = getOrThrow(id);
         item.setCompleted(true);
+        item.setUpdatedByUserId(actorUserId);
         return TodoItemResponse.from(repository.save(item));
     }
 
@@ -128,8 +149,14 @@ public class TodoItemServiceImpl implements TodoItemService {
     @Override
     @Transactional
     public ImportResult importCsv(MultipartFile file) {
+        return importCsv(file, null);
+    }
+
+    @Override
+    @Transactional
+    public ImportResult importCsv(MultipartFile file, Long actorUserId) {
         List<List<String>> rows = CsvUtil.parse(readAsUtf8(file));
-        return importRows(rows);
+        return importRows(rows, actorUserId);
     }
 
     @Override
@@ -155,13 +182,19 @@ public class TodoItemServiceImpl implements TodoItemService {
     @Override
     @Transactional
     public ImportResult importExcel(MultipartFile file) {
+        return importExcel(file, null);
+    }
+
+    @Override
+    @Transactional
+    public ImportResult importExcel(MultipartFile file, Long actorUserId) {
         List<List<String>> rows;
         try {
             rows = ExcelUtil.parse(file.getInputStream());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        return importRows(rows);
+        return importRows(rows, actorUserId);
     }
 
     @Override
@@ -183,7 +216,7 @@ public class TodoItemServiceImpl implements TodoItemService {
 
     // ── Shared import row processing (CSV & Excel) ────────────────────────────
 
-    private ImportResult importRows(List<List<String>> rows) {
+    private ImportResult importRows(List<List<String>> rows, Long actorUserId) {
         if (rows.isEmpty()) {
             return new ImportResult(0, 0, List.of());
         }
@@ -211,6 +244,7 @@ public class TodoItemServiceImpl implements TodoItemService {
 
             TodoItem item = new TodoItem(title, description.isEmpty() ? null : description);
             item.setCompleted(isCompleted);
+            item.setCreatedByUserId(actorUserId);
             repository.save(item);
             imported++;
         }

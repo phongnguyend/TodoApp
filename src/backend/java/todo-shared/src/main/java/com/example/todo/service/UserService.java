@@ -6,8 +6,11 @@ public interface UserService {
     PaginatedResponse<UserResponse> getAll(int page, int pageSize);
     UserResponse getById(Long id);
     UserResponse create(CreateUserRequest request);
+    default UserResponse create(CreateUserRequest request, Long actorUserId) { return create(request); }
     UserResponse update(Long id, UpdateUserRequest request);
+    default UserResponse update(Long id, UpdateUserRequest request, Long actorUserId) { return update(id, request); }
     UserResponse setActive(Long id, boolean active);
+    default UserResponse setActive(Long id, boolean active, Long actorUserId) { return setActive(id, active); }
     UserResponse signup(SignUpRequest request);
     UserResponse getProfile(Long userId);
     UserResponse updateProfile(Long userId, UpdateProfileRequest request);

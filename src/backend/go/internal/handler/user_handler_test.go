@@ -25,13 +25,13 @@ func (s *userServiceStub) GetAll(int, int) (dto.PaginatedResponse[dto.UserRespon
 	return dto.PaginatedResponse[dto.UserResponse]{}, nil
 }
 func (s *userServiceStub) GetByID(uint) (dto.UserResponse, error) { return dto.UserResponse{}, nil }
-func (s *userServiceStub) Create(dto.CreateUserRequest) (dto.UserResponse, error) {
+func (s *userServiceStub) Create(_ dto.CreateUserRequest, _ ...*uint) (dto.UserResponse, error) {
 	return dto.UserResponse{}, nil
 }
-func (s *userServiceStub) Update(uint, dto.UpdateUserRequest) (dto.UserResponse, error) {
+func (s *userServiceStub) Update(_ uint, _ dto.UpdateUserRequest, _ ...*uint) (dto.UserResponse, error) {
 	return dto.UserResponse{}, nil
 }
-func (s *userServiceStub) SetActive(uint, bool) (dto.UserResponse, error) {
+func (s *userServiceStub) SetActive(_ uint, _ bool, _ ...*uint) (dto.UserResponse, error) {
 	return dto.UserResponse{}, nil
 }
 func (s *userServiceStub) SignUp(q dto.SignUpRequest) (dto.UserResponse, error) { return s.signUp(q) }

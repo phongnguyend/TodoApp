@@ -23,7 +23,7 @@ func New(dsn string) (*gorm.DB, error) {
 	// AutoMigrate creates/updates tables to match the model structs.
 	// For production, use a dedicated migration tool (golang-migrate, goose, etc.)
 	// instead of AutoMigrate - similar to running `dotnet ef database update`.
-	if err := db.AutoMigrate(&models.TodoItem{}, &models.EmailLog{}, &models.File{}, &models.TodoItemAttachment{}, &models.User{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.TodoItem{}, &models.EmailLog{}, &models.File{}, &models.TodoItemAttachment{}); err != nil {
 		return nil, err
 	}
 

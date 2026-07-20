@@ -14,6 +14,12 @@ class TodoItemApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->authenticateRequests();
+    }
+
     // ── GET /api/todo-items ───────────────────────────────────────────────────
 
     public function test_index_returns_paginated_list(): void

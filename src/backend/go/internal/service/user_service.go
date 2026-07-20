@@ -29,9 +29,9 @@ var (
 type UserService interface {
 	GetAll(page, pageSize int) (dto.PaginatedResponse[dto.UserResponse], error)
 	GetByID(id uint) (dto.UserResponse, error)
-	Create(req dto.CreateUserRequest) (dto.UserResponse, error)
-	Update(id uint, req dto.UpdateUserRequest) (dto.UserResponse, error)
-	SetActive(id uint, active bool) (dto.UserResponse, error)
+	Create(req dto.CreateUserRequest, actorUserID ...*uint) (dto.UserResponse, error)
+	Update(id uint, req dto.UpdateUserRequest, actorUserID ...*uint) (dto.UserResponse, error)
+	SetActive(id uint, active bool, actorUserID ...*uint) (dto.UserResponse, error)
 	SignUp(req dto.SignUpRequest) (dto.UserResponse, error)
 	GetProfile(id uint) (dto.UserResponse, error)
 	UpdateProfile(id uint, req dto.UpdateProfileRequest) (dto.UserResponse, error)
@@ -53,7 +53,9 @@ func NewUserService(repo repository.UserRepository, cfg *config.Config) UserServ
 }
 
 func userResponse(u *models.User) dto.UserResponse {
-	return dto.UserResponse{ID: u.ID, Username: u.Username, Email: u.Email, IsActive: u.IsActive, CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt}
+	return dto.UserResponse{ID: u.ID, Username: u.Username, Email: u.Email, IsActive: u.IsActive,
+		CreatedAt: u.CreatedAt, CreatedByUserID: u.CreatedByUserID,
+		UpdatedAt: u.UpdatedAt, UpdatedByUserID: u.UpdatedByUserID}
 }
 func (s *userService) get(id uint) (*models.User, error) {
 	u, err := s.repo.FindByID(id)
@@ -109,7 +111,7 @@ func (s *userService) GetByID(id uint) (dto.UserResponse, error) {
 	}
 	return userResponse(u), nil
 }
-func (s *userService) Create(req dto.CreateUserRequest) (dto.UserResponse, error) {
+func (s *userService) Create(req dto.CreateUserRequest, actorUserID ...*uint) (dto.UserResponse, error) {
 	username, email := strings.TrimSpace(req.Username), strings.ToLower(strings.TrimSpace(req.Email))
 	if err := s.unique(username, email, nil); err != nil {
 		return dto.UserResponse{}, err
@@ -122,13 +124,14 @@ func (s *userService) Create(req dto.CreateUserRequest) (dto.UserResponse, error
 	if req.IsActive != nil {
 		active = *req.IsActive
 	}
-	u, err := s.repo.Create(&models.User{Username: username, Email: email, PasswordHash: hash, IsActive: active})
+	u, err := s.repo.Create(&models.User{Username: username, Email: email, PasswordHash: hash,
+		IsActive: active, CreatedByUserID: firstActor(actorUserID)})
 	if err != nil {
 		return dto.UserResponse{}, err
 	}
 	return userResponse(u), nil
 }
-func (s *userService) Update(id uint, req dto.UpdateUserRequest) (dto.UserResponse, error) {
+func (s *userService) Update(id uint, req dto.UpdateUserRequest, actorUserID ...*uint) (dto.UserResponse, error) {
 	u, err := s.get(id)
 	if err != nil {
 		return dto.UserResponse{}, err
@@ -152,13 +155,14 @@ func (s *userService) Update(id uint, req dto.UpdateUserRequest) (dto.UserRespon
 	}
 	now := time.Now().UTC()
 	u.UpdatedAt = &now
+	u.UpdatedByUserID = firstActor(actorUserID)
 	u, err = s.repo.Update(u)
 	if err != nil {
 		return dto.UserResponse{}, err
 	}
 	return userResponse(u), nil
 }
-func (s *userService) SetActive(id uint, active bool) (dto.UserResponse, error) {
+func (s *userService) SetActive(id uint, active bool, actorUserID ...*uint) (dto.UserResponse, error) {
 	u, e := s.get(id)
 	if e != nil {
 		return dto.UserResponse{}, e
@@ -166,6 +170,7 @@ func (s *userService) SetActive(id uint, active bool) (dto.UserResponse, error) 
 	u.IsActive = active
 	now := time.Now().UTC()
 	u.UpdatedAt = &now
+	u.UpdatedByUserID = firstActor(actorUserID)
 	u, e = s.repo.Update(u)
 	if e != nil {
 		return dto.UserResponse{}, e
@@ -178,7 +183,7 @@ func (s *userService) SignUp(req dto.SignUpRequest) (dto.UserResponse, error) {
 }
 func (s *userService) GetProfile(id uint) (dto.UserResponse, error) { return s.GetByID(id) }
 func (s *userService) UpdateProfile(id uint, req dto.UpdateProfileRequest) (dto.UserResponse, error) {
-	return s.Update(id, dto.UpdateUserRequest{Username: req.Username, Email: req.Email})
+	return s.Update(id, dto.UpdateUserRequest{Username: req.Username, Email: req.Email}, &id)
 }
 func (s *userService) ChangePassword(id uint, req dto.ChangePasswordRequest) error {
 	u, e := s.get(id)
@@ -197,6 +202,7 @@ func (s *userService) ChangePassword(id uint, req dto.ChangePasswordRequest) err
 	}
 	now := time.Now().UTC()
 	u.UpdatedAt = &now
+	u.UpdatedByUserID = &id
 	_, e = s.repo.Update(u)
 	return e
 }
@@ -235,6 +241,7 @@ func (s *userService) ConfirmPasswordReset(req dto.ConfirmPasswordResetRequest) 
 	}
 	now := time.Now().UTC()
 	u.UpdatedAt = &now
+	u.UpdatedByUserID = nil
 	_, e = s.repo.Update(u)
 	return e
 }

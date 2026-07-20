@@ -9,10 +9,14 @@ public class TodoItemAttachmentService(
     ITodoItemAttachmentRepository attachmentRepository,
     ITodoItemRepository todoItemRepository,
     IFileRepository fileRepository,
-    AppDbContext db) : ITodoItemAttachmentService
+    AppDbContext db,
+    IHttpContextAccessor? httpContextAccessor = null) : ITodoItemAttachmentService
 {
+    private int? ActorUserId => AuditActor.GetUserId(httpContextAccessor);
+
     private static TodoItemAttachmentResponse ToResponse(TodoItemAttachment attachment) =>
-        new(attachment.Id, attachment.TodoItemId, attachment.FileId, attachment.CreatedAt, attachment.UpdatedAt);
+        new(attachment.Id, attachment.TodoItemId, attachment.FileId, attachment.CreatedAt,
+            attachment.CreatedByUserId, attachment.UpdatedAt, attachment.UpdatedByUserId);
 
     private async Task<TodoItem> GetTodoItemOrThrowAsync(int todoItemId, CancellationToken ct)
     {
@@ -65,6 +69,7 @@ public class TodoItemAttachmentService(
             TodoItemId = todoItemId,
             FileId = request.FileId,
             CreatedAt = DateTime.UtcNow,
+            CreatedByUserId = ActorUserId,
         };
 
         await attachmentRepository.AddAsync(attachment, ct);
@@ -86,6 +91,7 @@ public class TodoItemAttachmentService(
 
         attachment.FileId = request.FileId;
         attachment.UpdatedAt = DateTime.UtcNow;
+        attachment.UpdatedByUserId = ActorUserId;
         attachmentRepository.Update(attachment);
         await db.SaveChangesAsync(ct);
         return ToResponse(attachment);

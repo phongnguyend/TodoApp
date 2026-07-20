@@ -18,12 +18,14 @@ type UpdateTodoItemRequest struct {
 
 // TodoItemResponse mirrors a TodoItemDto / view model returned from controllers.
 type TodoItemResponse struct {
-	ID          uint       `json:"id"`
-	Title       string     `json:"title"`
-	Description *string    `json:"description"`
-	IsCompleted bool       `json:"isCompleted"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	UpdatedAt   *time.Time `json:"updatedAt"`
+	ID              uint       `json:"id"`
+	Title           string     `json:"title"`
+	Description     *string    `json:"description"`
+	IsCompleted     bool       `json:"isCompleted"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	CreatedByUserID *uint      `json:"createdByUserId"`
+	UpdatedAt       *time.Time `json:"updatedAt"`
+	UpdatedByUserID *uint      `json:"updatedByUserId"`
 }
 
 // PaginatedResponse is a generic paginated list wrapper - mirrors PagedResult<T> in C#.

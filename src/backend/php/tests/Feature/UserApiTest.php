@@ -12,6 +12,12 @@ class UserApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->authenticateRequests();
+    }
+
     public function test_index_returns_paginated_users_without_password_hashes(): void
     {
         User::factory()->count(3)->create();
@@ -35,7 +41,7 @@ class UserApiTest extends TestCase
             ->assertJsonPath('data.username', 'alice')
             ->assertJsonPath('data.email', 'alice@example.com')
             ->assertJsonMissingPath('data.password_hash');
-        $user = User::firstOrFail();
+        $user = User::where('email', 'alice@example.com')->firstOrFail();
         $this->assertTrue(Hash::check('correct-horse', $user->password_hash));
     }
 
@@ -66,6 +72,7 @@ class UserApiTest extends TestCase
 
     public function test_signup_always_creates_an_active_user(): void
     {
+        $this->withHeader('Authorization', '');
         $this->postJson('/api/users/signup', [
             'username' => 'new-user',
             'email' => 'new@example.com',
@@ -75,6 +82,7 @@ class UserApiTest extends TestCase
 
     public function test_profile_routes_require_authentication(): void
     {
+        $this->withHeader('Authorization', '');
         $this->getJson('/api/users/profile')->assertUnauthorized();
         $this->putJson('/api/users/profile', ['username' => 'new-name'])->assertUnauthorized();
         $this->postJson('/api/users/password/change', [
@@ -115,6 +123,7 @@ class UserApiTest extends TestCase
 
     public function test_password_reset_does_not_reveal_missing_accounts(): void
     {
+        $this->withHeader('Authorization', '');
         $this->postJson('/api/users/password/reset', ['email' => 'missing@example.com'])
             ->assertAccepted();
         $this->assertDatabaseCount('email_logs', 0);
@@ -122,6 +131,7 @@ class UserApiTest extends TestCase
 
     public function test_password_reset_token_can_be_confirmed_only_once(): void
     {
+        $this->withHeader('Authorization', '');
         $user = User::factory()->create(['email' => 'alice@example.com']);
         $this->postJson('/api/users/password/reset', ['email' => 'Alice@Example.com'])
             ->assertAccepted();
@@ -138,6 +148,7 @@ class UserApiTest extends TestCase
 
     public function test_token_endpoint_issues_a_signed_jwt_for_active_user(): void
     {
+        $this->withHeader('Authorization', '');
         config(['users.jwt_secret' => 'test-secret-at-least-32-bytes-long', 'users.jwt_token_lifetime_minutes' => 60]);
         $user = User::factory()->create([
             'email' => 'alice@example.com',
@@ -164,6 +175,7 @@ class UserApiTest extends TestCase
 
     public function test_token_endpoint_does_not_disclose_authentication_failure(): void
     {
+        $this->withHeader('Authorization', '');
         $this->postJson('/api/tokens', ['email' => 'missing@example.com', 'password' => 'wrong'])
             ->assertUnauthorized()
             ->assertHeader('WWW-Authenticate', 'Bearer')

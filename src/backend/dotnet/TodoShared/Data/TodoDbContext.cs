@@ -69,5 +69,22 @@ public abstract class TodoDbContext(DbContextOptions options) : DbContext(option
             entity.HasIndex(e => e.Username).IsUnique();
             entity.HasIndex(e => e.Email).IsUnique();
         });
+
+        foreach (var entityType in new[]
+        {
+            typeof(TodoItem), typeof(TodoItemAttachment), typeof(EmailLog), typeof(FileEntity), typeof(User)
+        })
+        {
+            modelBuilder.Entity(entityType)
+                .HasOne(typeof(User), null)
+                .WithMany()
+                .HasForeignKey(nameof(TodoItem.CreatedByUserId))
+                .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity(entityType)
+                .HasOne(typeof(User), null)
+                .WithMany()
+                .HasForeignKey(nameof(TodoItem.UpdatedByUserId))
+                .OnDelete(DeleteBehavior.SetNull);
+        }
     }
 }

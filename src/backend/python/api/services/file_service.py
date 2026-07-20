@@ -23,7 +23,7 @@ class IFileService(ABC):
     def get_by_id(self, file_id: int) -> FileResponse: ...
 
     @abstractmethod
-    def upload(self, upload_file: UploadFile) -> FileResponse: ...
+    def upload(self, upload_file: UploadFile, actor_user_id: int | None = None) -> FileResponse: ...
 
     @abstractmethod
     def get_download_target(self, file_id: int) -> tuple[str, str, str]: ...
@@ -69,7 +69,7 @@ class FileService(IFileService):
 
     # ── Commands ──────────────────────────────────────────────────────────────
 
-    def upload(self, upload_file: UploadFile) -> FileResponse:
+    def upload(self, upload_file: UploadFile, actor_user_id: int | None = None) -> FileResponse:
         # Strip any directory components from the client-supplied name to prevent path traversal.
         original_name = Path(upload_file.filename or "unnamed").name
         extension = Path(original_name).suffix.lstrip(".")
@@ -96,6 +96,7 @@ class FileService(IFileService):
             size=len(content),
             content_type=upload_file.content_type,
             location=str(location),
+            created_by_user_id=actor_user_id,
         )
         created = self._repo.add(file)
         return FileResponse.model_validate(created)

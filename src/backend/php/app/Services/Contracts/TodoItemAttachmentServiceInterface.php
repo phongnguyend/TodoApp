@@ -9,7 +9,7 @@ interface TodoItemAttachmentServiceInterface
 {
     public function getAll(int $todoItemId): Collection;
     public function getById(int $todoItemId, int $attachmentId): TodoItemAttachment;
-    public function create(int $todoItemId, int $fileId): TodoItemAttachment;
-    public function update(int $todoItemId, int $attachmentId, int $fileId): TodoItemAttachment;
+    public function create(int $todoItemId, int $fileId, ?int $actorUserId = null): TodoItemAttachment;
+    public function update(int $todoItemId, int $attachmentId, int $fileId, ?int $actorUserId = null): TodoItemAttachment;
     public function delete(int $todoItemId, int $attachmentId): void;
 }

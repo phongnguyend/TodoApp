@@ -45,9 +45,15 @@ public class FileEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "created_by_user_id")
+    private Long createdByUserId;
+
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @Column(name = "updated_by_user_id")
+    private Long updatedByUserId;
 
     public FileEntity(String name, String extension, long size, String contentType, String location) {
         this.name = name;

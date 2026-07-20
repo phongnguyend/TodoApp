@@ -46,25 +46,25 @@ class ITodoItemService(ABC):
     def get_by_id(self, todo_id: int) -> TodoItemResponse: ...
 
     @abstractmethod
-    def create(self, request: CreateTodoItemRequest) -> TodoItemResponse: ...
+    def create(self, request: CreateTodoItemRequest, actor_user_id: int | None = None) -> TodoItemResponse: ...
 
     @abstractmethod
-    def update(self, todo_id: int, request: UpdateTodoItemRequest) -> TodoItemResponse: ...
+    def update(self, todo_id: int, request: UpdateTodoItemRequest, actor_user_id: int | None = None) -> TodoItemResponse: ...
 
     @abstractmethod
     def delete(self, todo_id: int) -> None: ...
 
     @abstractmethod
-    def mark_complete(self, todo_id: int) -> TodoItemResponse: ...
+    def mark_complete(self, todo_id: int, actor_user_id: int | None = None) -> TodoItemResponse: ...
 
     @abstractmethod
-    def import_csv(self, file: UploadFile) -> ImportResult: ...
+    def import_csv(self, file: UploadFile, actor_user_id: int | None = None) -> ImportResult: ...
 
     @abstractmethod
     def export_csv(self) -> str: ...
 
     @abstractmethod
-    def import_excel(self, file: UploadFile) -> ImportResult: ...
+    def import_excel(self, file: UploadFile, actor_user_id: int | None = None) -> ImportResult: ...
 
     @abstractmethod
     def export_excel(self) -> bytes: ...
@@ -112,12 +112,12 @@ class TodoItemService(ITodoItemService):
 
     # ── Commands ──────────────────────────────────────────────────────────────
 
-    def create(self, request: CreateTodoItemRequest) -> TodoItemResponse:
-        todo = TodoItem(title=request.title, description=request.description)
+    def create(self, request: CreateTodoItemRequest, actor_user_id: int | None = None) -> TodoItemResponse:
+        todo = TodoItem(title=request.title, description=request.description, created_by_user_id=actor_user_id)
         created = self._repo.add(todo)
         return TodoItemResponse.model_validate(created)
 
-    def update(self, todo_id: int, request: UpdateTodoItemRequest) -> TodoItemResponse:
+    def update(self, todo_id: int, request: UpdateTodoItemRequest, actor_user_id: int | None = None) -> TodoItemResponse:
         todo = self._get_or_404(todo_id)
         if request.title is not None:
             todo.title = request.title
@@ -125,6 +125,7 @@ class TodoItemService(ITodoItemService):
             todo.description = request.description
         if request.is_completed is not None:
             todo.is_completed = request.is_completed
+        todo.updated_by_user_id = actor_user_id
         updated = self._repo.update(todo)
         return TodoItemResponse.model_validate(updated)
 
@@ -132,15 +133,16 @@ class TodoItemService(ITodoItemService):
         todo = self._get_or_404(todo_id)
         self._repo.delete(todo)
 
-    def mark_complete(self, todo_id: int) -> TodoItemResponse:
+    def mark_complete(self, todo_id: int, actor_user_id: int | None = None) -> TodoItemResponse:
         todo = self._get_or_404(todo_id)
         todo.is_completed = True
+        todo.updated_by_user_id = actor_user_id
         updated = self._repo.update(todo)
         return TodoItemResponse.model_validate(updated)
 
     # ── CSV import/export ─────────────────────────────────────────────────────
 
-    def import_csv(self, file: UploadFile) -> ImportResult:
+    def import_csv(self, file: UploadFile, actor_user_id: int | None = None) -> ImportResult:
         raw = file.file.read()
         text = raw.decode("utf-8-sig")
         reader = csv.DictReader(io.StringIO(text))
@@ -156,7 +158,8 @@ class TodoItemService(ITodoItemService):
             description = (row.get("description") or "").strip() or None
             is_completed = _parse_bool(row.get("is_completed"))
 
-            todo = TodoItem(title=title, description=description, is_completed=is_completed)
+            todo = TodoItem(title=title, description=description, is_completed=is_completed,
+                            created_by_user_id=actor_user_id)
             self._repo.add(todo)
             imported += 1
 
@@ -181,7 +184,7 @@ class TodoItemService(ITodoItemService):
 
     # ── Excel import/export ────────────────────────────────────────────────────
 
-    def import_excel(self, file: UploadFile) -> ImportResult:
+    def import_excel(self, file: UploadFile, actor_user_id: int | None = None) -> ImportResult:
         raw = file.file.read()
         workbook = load_workbook(io.BytesIO(raw), read_only=True, data_only=True)
         sheet = workbook.active
@@ -208,7 +211,8 @@ class TodoItemService(ITodoItemService):
             description = str(_cell(row, "description") or "").strip() or None
             is_completed = _parse_bool_cell(_cell(row, "is_completed"))
 
-            todo = TodoItem(title=title, description=description, is_completed=is_completed)
+            todo = TodoItem(title=title, description=description, is_completed=is_completed,
+                            created_by_user_id=actor_user_id)
             self._repo.add(todo)
             imported += 1
 

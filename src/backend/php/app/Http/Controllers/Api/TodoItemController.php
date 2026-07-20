@@ -64,7 +64,7 @@ class TodoItemController extends Controller
      */
     public function store(CreateTodoItemRequest $request): JsonResponse
     {
-        $todo = $this->service->create($request);
+        $todo = $this->service->create($request, $this->actorUserId());
 
         return (new TodoItemResource($todo))
             ->response()
@@ -76,7 +76,7 @@ class TodoItemController extends Controller
      */
     public function update(UpdateTodoItemRequest $request, int $id): TodoItemResource
     {
-        return new TodoItemResource($this->service->update($id, $request));
+        return new TodoItemResource($this->service->update($id, $request, $this->actorUserId()));
     }
 
     /**
@@ -84,7 +84,7 @@ class TodoItemController extends Controller
      */
     public function complete(int $id): TodoItemResource
     {
-        return new TodoItemResource($this->service->markComplete($id));
+        return new TodoItemResource($this->service->markComplete($id, $this->actorUserId()));
     }
 
     /**
@@ -102,7 +102,7 @@ class TodoItemController extends Controller
      */
     public function importCsv(ImportTodoItemsCsvRequest $request): JsonResponse
     {
-        $result = $this->service->importCsv($request->file('file'));
+        $result = $this->service->importCsv($request->file('file'), $this->actorUserId());
 
         return response()->json($result);
     }
@@ -125,7 +125,7 @@ class TodoItemController extends Controller
      */
     public function importExcel(ImportTodoItemsExcelRequest $request): JsonResponse
     {
-        $result = $this->service->importExcel($request->file('file'));
+        $result = $this->service->importExcel($request->file('file'), $this->actorUserId());
 
         return response()->json($result);
     }
@@ -141,5 +141,11 @@ class TodoItemController extends Controller
             'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => 'attachment; filename="todo_items.xlsx"',
         ]);
+    }
+
+    private function actorUserId(): ?int
+    {
+        $value = request()->attributes->get('authenticated_user_id');
+        return is_int($value) && $value > 0 ? $value : null;
     }
 }

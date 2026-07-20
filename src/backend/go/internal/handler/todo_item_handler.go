@@ -118,7 +118,7 @@ func (h *TodoItemHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := h.svc.Create(req)
+	result, err := h.svc.Create(req, auditUserID(c))
 	if err != nil {
 		handleServiceError(c, err)
 		return
@@ -147,7 +147,7 @@ func (h *TodoItemHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := h.svc.Update(id, req)
+	result, err := h.svc.Update(id, req, auditUserID(c))
 	if err != nil {
 		handleServiceError(c, err)
 		return
@@ -168,7 +168,7 @@ func (h *TodoItemHandler) MarkComplete(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	result, err := h.svc.MarkComplete(id)
+	result, err := h.svc.MarkComplete(id, auditUserID(c))
 	if err != nil {
 		handleServiceError(c, err)
 		return
@@ -218,7 +218,7 @@ func (h *TodoItemHandler) ImportCSV(c *gin.Context) {
 	}
 	defer src.Close()
 
-	result, err := h.svc.ImportCSV(src)
+	result, err := h.svc.ImportCSV(src, auditUserID(c))
 	if err != nil {
 		handleServiceError(c, err)
 		return
@@ -265,7 +265,7 @@ func (h *TodoItemHandler) ImportExcel(c *gin.Context) {
 	}
 	defer src.Close()
 
-	result, err := h.svc.ImportExcel(src)
+	result, err := h.svc.ImportExcel(src, auditUserID(c))
 	if err != nil {
 		handleServiceError(c, err)
 		return

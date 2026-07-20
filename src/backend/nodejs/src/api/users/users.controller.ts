@@ -1,11 +1,11 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Put, Query, Req } from '@nestjs/common';
 import { ApiAcceptedResponse, ApiBearerAuth, ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { PaginatedResponseDto } from '../../shared/common/dto/paginated-response.dto';
 import { CreateUserDto, SignUpDto } from './dto/create-user.dto';
 import { ChangePasswordDto, ConfirmPasswordResetDto, ResetPasswordDto } from './dto/password.dto';
 import { UpdateProfileDto, UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
-import { AuthenticatedRequest, UserAuthGuard } from './users.security';
+import { AuditRequest, AuthenticatedRequest, PublicEndpoint } from './users.security';
 import { UsersService } from './users.service';
 
 @ApiTags('Users')
@@ -14,6 +14,7 @@ export class UsersController {
   constructor(private readonly service: UsersService) {}
 
   @Post('signup')
+  @PublicEndpoint()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({ type: UserResponseDto })
   signup(@Body() dto: SignUpDto): Promise<UserResponseDto> {
@@ -21,6 +22,7 @@ export class UsersController {
   }
 
   @Post('password/reset')
+  @PublicEndpoint()
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiAcceptedResponse({ description: 'Password reset request accepted' })
   async requestPasswordReset(@Body() dto: ResetPasswordDto): Promise<{ message: string }> {
@@ -29,6 +31,7 @@ export class UsersController {
   }
 
   @Post('password/confirm')
+  @PublicEndpoint()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
   confirmPasswordReset(@Body() dto: ConfirmPasswordResetDto): Promise<void> {
@@ -36,7 +39,6 @@ export class UsersController {
   }
 
   @Post('password/change')
-  @UseGuards(UserAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
@@ -45,7 +47,6 @@ export class UsersController {
   }
 
   @Get('profile')
-  @UseGuards(UserAuthGuard)
   @ApiBearerAuth()
   @ApiOkResponse({ type: UserResponseDto })
   getProfile(@Req() request: AuthenticatedRequest): Promise<UserResponseDto> {
@@ -53,7 +54,6 @@ export class UsersController {
   }
 
   @Put('profile')
-  @UseGuards(UserAuthGuard)
   @ApiBearerAuth()
   @ApiOkResponse({ type: UserResponseDto })
   updateProfile(@Req() request: AuthenticatedRequest, @Body() dto: UpdateProfileDto): Promise<UserResponseDto> {
@@ -74,8 +74,9 @@ export class UsersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({ type: UserResponseDto })
-  create(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
-    return this.service.create(dto);
+  create(@Body() dto: CreateUserDto, @Req() request?: AuditRequest): Promise<UserResponseDto> {
+    const actor = request?.user?.userId;
+    return actor === undefined ? this.service.create(dto) : this.service.create(dto, actor);
   }
 
   @Get(':id')
@@ -86,19 +87,23 @@ export class UsersController {
 
   @Put(':id')
   @ApiOkResponse({ type: UserResponseDto })
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserDto): Promise<UserResponseDto> {
-    return this.service.update(id, dto);
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserDto,
+    @Req() request?: AuditRequest): Promise<UserResponseDto> {
+    const actor = request?.user?.userId;
+    return actor === undefined ? this.service.update(id, dto) : this.service.update(id, dto, actor);
   }
 
   @Patch(':id/activate')
   @ApiOkResponse({ type: UserResponseDto })
-  activate(@Param('id', ParseIntPipe) id: number): Promise<UserResponseDto> {
-    return this.service.setActive(id, true);
+  activate(@Param('id', ParseIntPipe) id: number, @Req() request?: AuditRequest): Promise<UserResponseDto> {
+    const actor = request?.user?.userId;
+    return actor === undefined ? this.service.setActive(id, true) : this.service.setActive(id, true, actor);
   }
 
   @Patch(':id/deactivate')
   @ApiOkResponse({ type: UserResponseDto })
-  deactivate(@Param('id', ParseIntPipe) id: number): Promise<UserResponseDto> {
-    return this.service.setActive(id, false);
+  deactivate(@Param('id', ParseIntPipe) id: number, @Req() request?: AuditRequest): Promise<UserResponseDto> {
+    const actor = request?.user?.userId;
+    return actor === undefined ? this.service.setActive(id, false) : this.service.setActive(id, false, actor);
   }
 }

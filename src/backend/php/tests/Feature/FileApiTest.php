@@ -16,6 +16,7 @@ class FileApiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->authenticateRequests();
 
         $this->tempDir = sys_get_temp_dir() . '/todo-php-file-api-test-' . uniqid('', true);
         mkdir($this->tempDir, 0755, true);

@@ -51,7 +51,8 @@ class TokenControllerTest {
     @Test
     void invalidRequestReturnsBadRequest() throws Exception {
         mockMvc.perform(post("/api/tokens").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"invalid\"}"))
+                .content("{\"email\":\"invalid\"}"))
                 .andExpect(status().isBadRequest());
     }
+
 }

@@ -28,11 +28,11 @@ class IUserService(ABC):
     @abstractmethod
     def get_by_id(self, user_id: int) -> UserResponse: ...
     @abstractmethod
-    def create(self, request: CreateUserRequest) -> UserResponse: ...
+    def create(self, request: CreateUserRequest, actor_user_id: int | None = None) -> UserResponse: ...
     @abstractmethod
-    def update(self, user_id: int, request: UpdateUserRequest) -> UserResponse: ...
+    def update(self, user_id: int, request: UpdateUserRequest, actor_user_id: int | None = None) -> UserResponse: ...
     @abstractmethod
-    def set_active(self, user_id: int, is_active: bool) -> UserResponse: ...
+    def set_active(self, user_id: int, is_active: bool, actor_user_id: int | None = None) -> UserResponse: ...
     @abstractmethod
     def signup(self, request: SignUpRequest) -> UserResponse: ...
     @abstractmethod
@@ -79,14 +79,15 @@ class UserService(IUserService):
     def get_by_id(self, user_id: int) -> UserResponse:
         return self._response(self._get_or_404(user_id))
 
-    def create(self, request: CreateUserRequest) -> UserResponse:
+    def create(self, request: CreateUserRequest, actor_user_id: int | None = None) -> UserResponse:
         username, email = request.username.strip(), request.email.strip().lower()
         self._ensure_unique(username, email)
         user = User(username=username, email=email, password_hash=hash_password(request.password),
-                    is_active=request.is_active, created_at=datetime.now(timezone.utc))
+                    is_active=request.is_active, created_at=datetime.now(timezone.utc),
+                    created_by_user_id=actor_user_id)
         return self._response(self._repo.add(user))
 
-    def update(self, user_id: int, request: UpdateUserRequest) -> UserResponse:
+    def update(self, user_id: int, request: UpdateUserRequest, actor_user_id: int | None = None) -> UserResponse:
         user = self._get_or_404(user_id)
         username = request.username.strip() if request.username is not None else user.username
         email = request.email.strip().lower() if request.email is not None else user.email
@@ -95,12 +96,14 @@ class UserService(IUserService):
         if request.password is not None:
             user.password_hash = hash_password(request.password)
         user.updated_at = datetime.now(timezone.utc)
+        user.updated_by_user_id = actor_user_id
         return self._response(self._repo.update(user))
 
-    def set_active(self, user_id: int, is_active: bool) -> UserResponse:
+    def set_active(self, user_id: int, is_active: bool, actor_user_id: int | None = None) -> UserResponse:
         user = self._get_or_404(user_id)
         user.is_active = is_active
         user.updated_at = datetime.now(timezone.utc)
+        user.updated_by_user_id = actor_user_id
         return self._response(self._repo.update(user))
 
     def signup(self, request: SignUpRequest) -> UserResponse:
@@ -111,7 +114,7 @@ class UserService(IUserService):
         return self.get_by_id(user_id)
 
     def update_profile(self, user_id: int, request: UpdateProfileRequest) -> UserResponse:
-        return self.update(user_id, UpdateUserRequest(username=request.username, email=request.email))
+        return self.update(user_id, UpdateUserRequest(username=request.username, email=request.email), user_id)
 
     def change_password(self, user_id: int, request: ChangePasswordRequest) -> None:
         user = self._get_or_404(user_id)
@@ -121,6 +124,7 @@ class UserService(IUserService):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The current password is incorrect.")
         user.password_hash = hash_password(request.new_password)
         user.updated_at = datetime.now(timezone.utc)
+        user.updated_by_user_id = user_id
         self._repo.update(user)
 
     def request_password_reset(self, request: ResetPasswordRequest) -> None:
@@ -148,6 +152,7 @@ class UserService(IUserService):
                                 detail="The password reset token is invalid or expired.")
         user.password_hash = hash_password(request.new_password)
         user.updated_at = datetime.now(timezone.utc)
+        user.updated_by_user_id = None
         self._repo.update(user)
 
     def create_token(self, request: TokenRequest) -> TokenResponse:

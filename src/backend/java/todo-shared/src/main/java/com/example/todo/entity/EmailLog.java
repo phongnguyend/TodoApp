@@ -39,11 +39,17 @@ public class EmailLog {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "created_by_user_id")
+    private Long createdByUserId;
+
     @Column(name = "sent_at")
     private Instant sentAt;
 
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
+
+    @Column(name = "updated_by_user_id")
+    private Long updatedByUserId;
 
     public EmailLog(String recipient, String subject, String body) {
         this.recipient = recipient;

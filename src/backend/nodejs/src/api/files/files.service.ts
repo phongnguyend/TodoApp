@@ -41,7 +41,9 @@ export class FilesService {
       size: file.size,
       contentType: file.contentType,
       createdAt: file.createdAt,
+      createdByUserId: file.createdByUserId,
       updatedAt: file.updatedAt,
+      updatedByUserId: file.updatedByUserId,
     };
   }
 
@@ -97,7 +99,7 @@ export class FilesService {
 
   // ── Commands ──────────────────────────────────────────────────────────────────
 
-  async upload(uploadedFile: Express.Multer.File): Promise<FileResponseDto> {
+  async upload(uploadedFile: Express.Multer.File, actorUserId?: number): Promise<FileResponseDto> {
     if (uploadedFile.size > this.maxUploadSizeBytes) {
       throw new PayloadTooLargeException(
         `File exceeds the maximum allowed size of ${this.maxUploadSizeBytes} bytes.`,
@@ -121,6 +123,7 @@ export class FilesService {
       size: uploadedFile.size,
       contentType: uploadedFile.mimetype,
       location,
+      ...(actorUserId !== undefined ? { createdByUserId: actorUserId } : {}),
     });
     return FilesService.toDto(file);
   }

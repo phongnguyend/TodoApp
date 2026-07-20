@@ -18,6 +18,7 @@ from api.services.todo_item_attachment_service import (
     ITodoItemAttachmentService,
     get_todo_item_attachment_service,
 )
+from api.security import get_optional_current_user_id
 
 router = APIRouter(prefix="/api/todo-items", tags=["Todo Items"])
 
@@ -53,8 +54,9 @@ def get_incomplete(service: ServiceDep, page: int = 1, page_size: int = 20):
 
 
 @router.post("/import/csv", response_model=ImportResult, summary="Import todo items from a CSV file")
-def import_csv(service: ServiceDep, db: DbDep, file: Annotated[UploadFile, UploadFileParam(...)]):
-    result = service.import_csv(file)
+def import_csv(service: ServiceDep, db: DbDep, file: Annotated[UploadFile, UploadFileParam(...)],
+               actor_user_id: int | None = Depends(get_optional_current_user_id)):
+    result = service.import_csv(file) if actor_user_id is None else service.import_csv(file, actor_user_id)
     db.commit()
     return result
 
@@ -70,8 +72,9 @@ def export_csv(service: ServiceDep):
 
 
 @router.post("/import/excel", response_model=ImportResult, summary="Import todo items from an Excel file")
-def import_excel(service: ServiceDep, db: DbDep, file: Annotated[UploadFile, UploadFileParam(...)]):
-    result = service.import_excel(file)
+def import_excel(service: ServiceDep, db: DbDep, file: Annotated[UploadFile, UploadFileParam(...)],
+                 actor_user_id: int | None = Depends(get_optional_current_user_id)):
+    result = service.import_excel(file) if actor_user_id is None else service.import_excel(file, actor_user_id)
     db.commit()
     return result
 
@@ -92,22 +95,25 @@ def get_by_id(todo_id: int, service: ServiceDep):
 
 
 @router.post("/", response_model=TodoItemResponse, status_code=status.HTTP_201_CREATED, summary="Create a todo item")
-def create(request: CreateTodoItemRequest, service: ServiceDep, db: DbDep):
-    todo = service.create(request)
+def create(request: CreateTodoItemRequest, service: ServiceDep, db: DbDep,
+           actor_user_id: int | None = Depends(get_optional_current_user_id)):
+    todo = service.create(request) if actor_user_id is None else service.create(request, actor_user_id)
     db.commit()
     return todo
 
 
 @router.put("/{todo_id}", response_model=TodoItemResponse, summary="Update a todo item")
-def update(todo_id: int, request: UpdateTodoItemRequest, service: ServiceDep, db: DbDep):
-    todo = service.update(todo_id, request)
+def update(todo_id: int, request: UpdateTodoItemRequest, service: ServiceDep, db: DbDep,
+           actor_user_id: int | None = Depends(get_optional_current_user_id)):
+    todo = service.update(todo_id, request) if actor_user_id is None else service.update(todo_id, request, actor_user_id)
     db.commit()
     return todo
 
 
 @router.patch("/{todo_id}/complete", response_model=TodoItemResponse, summary="Mark a todo item as complete")
-def mark_complete(todo_id: int, service: ServiceDep, db: DbDep):
-    todo = service.mark_complete(todo_id)
+def mark_complete(todo_id: int, service: ServiceDep, db: DbDep,
+                  actor_user_id: int | None = Depends(get_optional_current_user_id)):
+    todo = service.mark_complete(todo_id) if actor_user_id is None else service.mark_complete(todo_id, actor_user_id)
     db.commit()
     return todo
 
@@ -128,9 +134,11 @@ def get_attachments(todo_id: int, service: AttachmentServiceDep):
     summary="Attach a file to a todo item",
 )
 def create_attachment(
-    todo_id: int, request: CreateTodoItemAttachmentRequest, service: AttachmentServiceDep, db: DbDep
+    todo_id: int, request: CreateTodoItemAttachmentRequest, service: AttachmentServiceDep, db: DbDep,
+    actor_user_id: int | None = Depends(get_optional_current_user_id),
 ):
-    attachment = service.create(todo_id, request)
+    attachment = (service.create(todo_id, request) if actor_user_id is None
+                  else service.create(todo_id, request, actor_user_id))
     db.commit()
     return attachment
 
@@ -155,8 +163,10 @@ def update_attachment(
     request: CreateTodoItemAttachmentRequest,
     service: AttachmentServiceDep,
     db: DbDep,
+    actor_user_id: int | None = Depends(get_optional_current_user_id),
 ):
-    attachment = service.update(todo_id, attachment_id, request)
+    attachment = (service.update(todo_id, attachment_id, request) if actor_user_id is None
+                  else service.update(todo_id, attachment_id, request, actor_user_id))
     db.commit()
     return attachment
 

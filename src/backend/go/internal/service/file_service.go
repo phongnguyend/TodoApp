@@ -47,7 +47,7 @@ type DownloadTarget struct {
 type FileService interface {
 	GetAll(page, pageSize int) (dto.PaginatedResponse[dto.FileResponse], error)
 	GetByID(id uint) (dto.FileResponse, error)
-	Upload(input UploadInput) (dto.FileResponse, error)
+	Upload(input UploadInput, actorUserID ...*uint) (dto.FileResponse, error)
 	GetDownloadTarget(id uint) (DownloadTarget, error)
 	Delete(id uint) error
 }
@@ -71,13 +71,15 @@ func NewFileService(repo repository.FileRepository, cfg *config.Config) FileServ
 
 func fileToResponse(m *models.File) dto.FileResponse {
 	return dto.FileResponse{
-		ID:          m.ID,
-		Name:        m.Name,
-		Extension:   m.Extension,
-		Size:        m.Size,
-		ContentType: m.ContentType,
-		CreatedAt:   m.CreatedAt,
-		UpdatedAt:   m.UpdatedAt,
+		ID:              m.ID,
+		Name:            m.Name,
+		Extension:       m.Extension,
+		Size:            m.Size,
+		ContentType:     m.ContentType,
+		CreatedAt:       m.CreatedAt,
+		CreatedByUserID: m.CreatedByUserID,
+		UpdatedAt:       m.UpdatedAt,
+		UpdatedByUserID: m.UpdatedByUserID,
 	}
 }
 
@@ -123,7 +125,7 @@ func (s *fileService) GetByID(id uint) (dto.FileResponse, error) {
 
 // ── Commands ──────────────────────────────────────────────────────────────────
 
-func (s *fileService) Upload(input UploadInput) (dto.FileResponse, error) {
+func (s *fileService) Upload(input UploadInput, actorUserID ...*uint) (dto.FileResponse, error) {
 	if input.Size > s.maxUploadSize {
 		return dto.FileResponse{}, ErrFileTooLarge
 	}
@@ -163,11 +165,12 @@ func (s *fileService) Upload(input UploadInput) (dto.FileResponse, error) {
 	}
 
 	file := &models.File{
-		Name:        originalName,
-		Extension:   extension,
-		Size:        written,
-		ContentType: contentType,
-		Location:    location,
+		Name:            originalName,
+		Extension:       extension,
+		Size:            written,
+		ContentType:     contentType,
+		Location:        location,
+		CreatedByUserID: firstActor(actorUserID),
 	}
 	created, err := s.repo.Create(file)
 	if err != nil {

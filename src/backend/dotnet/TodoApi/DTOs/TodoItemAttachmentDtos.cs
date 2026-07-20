@@ -7,5 +7,12 @@ public record TodoItemAttachmentResponse(
     int TodoItemId,
     int FileId,
     DateTime CreatedAt,
-    DateTime? UpdatedAt
-);
+    int? CreatedByUserId,
+    DateTime? UpdatedAt,
+    int? UpdatedByUserId
+)
+{
+    public TodoItemAttachmentResponse(int id, int todoItemId, int fileId,
+        DateTime createdAt, DateTime? updatedAt)
+        : this(id, todoItemId, fileId, createdAt, null, updatedAt, null) { }
+}

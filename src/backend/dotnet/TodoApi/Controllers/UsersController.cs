@@ -51,6 +51,7 @@ public class UsersController(IUserService service) : ControllerBase
         HandleUserWriteAsync(() => service.SetActiveAsync(id, false, ct));
 
     [HttpPost("signup")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status201Created)]
     public async Task<IActionResult> SignUp([FromBody] SignUpRequest request, CancellationToken ct = default)
     {
@@ -103,6 +104,7 @@ public class UsersController(IUserService service) : ControllerBase
     }
 
     [HttpPost("password/reset")]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     public async Task<IActionResult> RequestPasswordReset([FromBody] ResetPasswordRequest request, CancellationToken ct = default)
     {
@@ -111,6 +113,7 @@ public class UsersController(IUserService service) : ControllerBase
     }
 
     [HttpPost("password/confirm")]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> ConfirmPasswordReset([FromBody] ConfirmPasswordResetRequest request, CancellationToken ct = default)
     {

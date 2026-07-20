@@ -12,6 +12,12 @@ class TodoItemAttachmentApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->authenticateRequests();
+    }
+
     public function test_attachment_crud_is_scoped_to_todo_item(): void
     {
         $todo = TodoItem::factory()->create();

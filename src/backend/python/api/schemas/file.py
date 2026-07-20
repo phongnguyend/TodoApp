@@ -16,4 +16,6 @@ class FileResponse(BaseModel):
     size: int
     content_type: str | None
     created_at: datetime
+    created_by_user_id: int | None = None
     updated_at: datetime | None
+    updated_by_user_id: int | None = None

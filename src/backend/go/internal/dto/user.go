@@ -52,10 +52,12 @@ type UpdateProfileRequest struct {
 }
 
 type UserResponse struct {
-	ID        uint       `json:"id"`
-	Username  string     `json:"username"`
-	Email     string     `json:"email"`
-	IsActive  bool       `json:"isActive"`
-	CreatedAt time.Time  `json:"createdAt"`
-	UpdatedAt *time.Time `json:"updatedAt"`
+	ID              uint       `json:"id"`
+	Username        string     `json:"username"`
+	Email           string     `json:"email"`
+	IsActive        bool       `json:"isActive"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	CreatedByUserID *uint      `json:"createdByUserId"`
+	UpdatedAt       *time.Time `json:"updatedAt"`
+	UpdatedByUserID *uint      `json:"updatedByUserId"`
 }

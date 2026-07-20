@@ -11,6 +11,7 @@ from api.main import app
 from api.routers import files
 from api.schemas.file import FileResponse
 from api.schemas.todo_item import PaginatedResponse
+from api.security import get_current_user_id
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -69,6 +70,7 @@ def client(mock_service):
 
     app.dependency_overrides[files._service] = override_service
     app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_current_user_id] = lambda: 7
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

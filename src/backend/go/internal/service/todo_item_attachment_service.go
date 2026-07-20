@@ -14,8 +14,8 @@ var ErrAttachmentNotFound = errors.New("attachment not found")
 type TodoItemAttachmentService interface {
 	GetAll(todoItemID uint) ([]dto.TodoItemAttachmentResponse, error)
 	GetByID(todoItemID, attachmentID uint) (dto.TodoItemAttachmentResponse, error)
-	Create(todoItemID, fileID uint) (dto.TodoItemAttachmentResponse, error)
-	Update(todoItemID, attachmentID, fileID uint) (dto.TodoItemAttachmentResponse, error)
+	Create(todoItemID, fileID uint, actorUserID ...*uint) (dto.TodoItemAttachmentResponse, error)
+	Update(todoItemID, attachmentID, fileID uint, actorUserID ...*uint) (dto.TodoItemAttachmentResponse, error)
 	Delete(todoItemID, attachmentID uint) error
 }
 
@@ -30,7 +30,9 @@ func NewTodoItemAttachmentService(repo repository.TodoItemAttachmentRepository, 
 }
 
 func attachmentResponse(a *models.TodoItemAttachment) dto.TodoItemAttachmentResponse {
-	return dto.TodoItemAttachmentResponse{ID: a.ID, TodoItemID: a.TodoItemID, FileID: a.FileID, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt}
+	return dto.TodoItemAttachmentResponse{ID: a.ID, TodoItemID: a.TodoItemID, FileID: a.FileID,
+		CreatedAt: a.CreatedAt, CreatedByUserID: a.CreatedByUserID,
+		UpdatedAt: a.UpdatedAt, UpdatedByUserID: a.UpdatedByUserID}
 }
 func (s *todoItemAttachmentService) requireTodo(id uint) error {
 	_, err := s.todos.FindByID(id)
@@ -77,7 +79,7 @@ func (s *todoItemAttachmentService) GetByID(todoID, id uint) (dto.TodoItemAttach
 	}
 	return attachmentResponse(a), nil
 }
-func (s *todoItemAttachmentService) Create(todoID, fileID uint) (dto.TodoItemAttachmentResponse, error) {
+func (s *todoItemAttachmentService) Create(todoID, fileID uint, actorUserID ...*uint) (dto.TodoItemAttachmentResponse, error) {
 	if err := s.requireTodo(todoID); err != nil {
 		return dto.TodoItemAttachmentResponse{}, err
 	}
@@ -91,13 +93,14 @@ func (s *todoItemAttachmentService) Create(todoID, fileID uint) (dto.TodoItemAtt
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return dto.TodoItemAttachmentResponse{}, err
 	}
-	a, err = s.repo.Create(&models.TodoItemAttachment{TodoItemID: todoID, FileID: fileID})
+	a, err = s.repo.Create(&models.TodoItemAttachment{TodoItemID: todoID, FileID: fileID,
+		CreatedByUserID: firstActor(actorUserID)})
 	if err != nil {
 		return dto.TodoItemAttachmentResponse{}, err
 	}
 	return attachmentResponse(a), nil
 }
-func (s *todoItemAttachmentService) Update(todoID, id, fileID uint) (dto.TodoItemAttachmentResponse, error) {
+func (s *todoItemAttachmentService) Update(todoID, id, fileID uint, actorUserID ...*uint) (dto.TodoItemAttachmentResponse, error) {
 	if err := s.requireTodo(todoID); err != nil {
 		return dto.TodoItemAttachmentResponse{}, err
 	}
@@ -116,6 +119,7 @@ func (s *todoItemAttachmentService) Update(todoID, id, fileID uint) (dto.TodoIte
 		return dto.TodoItemAttachmentResponse{}, findErr
 	}
 	a.FileID = fileID
+	a.UpdatedByUserID = firstActor(actorUserID)
 	a, err = s.repo.Update(a)
 	if err != nil {
 		return dto.TodoItemAttachmentResponse{}, err

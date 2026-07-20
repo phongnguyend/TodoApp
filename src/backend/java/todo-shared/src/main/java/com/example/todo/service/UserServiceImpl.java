@@ -76,17 +76,30 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse create(CreateUserRequest request) {
+        return create(request, null);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse create(CreateUserRequest request, Long actorUserId) {
         String username = request.username().trim();
         String email = normalizeEmail(request.email());
         ensureUnique(username, email, null);
         User user = new User(username, email, passwordHasher.hash(request.password()),
                 request.isActive() == null || request.isActive());
+        user.setCreatedByUserId(actorUserId);
         return UserResponse.from(repository.save(user));
     }
 
     @Override
     @Transactional
     public UserResponse update(Long id, UpdateUserRequest request) {
+        return update(id, request, null);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse update(Long id, UpdateUserRequest request, Long actorUserId) {
         User user = getOrThrow(id);
         String username = request.username() == null ? user.getUsername() : request.username().trim();
         String email = request.email() == null ? user.getEmail() : normalizeEmail(request.email());
@@ -94,14 +107,22 @@ public class UserServiceImpl implements UserService {
         user.setUsername(username);
         user.setEmail(email);
         if (request.password() != null) user.setPasswordHash(passwordHasher.hash(request.password()));
+        user.setUpdatedByUserId(actorUserId);
         return UserResponse.from(repository.save(user));
     }
 
     @Override
     @Transactional
     public UserResponse setActive(Long id, boolean active) {
+        return setActive(id, active, null);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse setActive(Long id, boolean active, Long actorUserId) {
         User user = getOrThrow(id);
         user.setActive(active);
+        user.setUpdatedByUserId(actorUserId);
         return UserResponse.from(repository.save(user));
     }
 
@@ -117,7 +138,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse updateProfile(Long userId, UpdateProfileRequest request) {
-        return update(userId, new UpdateUserRequest(request.username(), request.email(), null));
+        return update(userId, new UpdateUserRequest(request.username(), request.email(), null), userId);
     }
 
     @Override
@@ -128,6 +149,7 @@ public class UserServiceImpl implements UserService {
         if (!passwordHasher.matches(request.currentPassword(), user.getPasswordHash()))
             throw new InvalidPasswordException("The current password is incorrect.");
         user.setPasswordHash(passwordHasher.hash(request.newPassword()));
+        user.setUpdatedByUserId(userId);
         repository.save(user);
     }
 
@@ -157,6 +179,7 @@ public class UserServiceImpl implements UserService {
         if (!user.isActive() || !tokenCodec.passwordMatchesToken(user.getPasswordHash(), payload))
             throw invalidResetToken();
         user.setPasswordHash(passwordHasher.hash(request.newPassword()));
+        user.setUpdatedByUserId(null);
         repository.save(user);
     }
 

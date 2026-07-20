@@ -6,15 +6,21 @@ using TodoShared.Models;
 
 namespace TodoApi.Services;
 
-public class FileService(IFileRepository repository, AppDbContext db, IConfiguration configuration) : IFileService
+public class FileService(
+    IFileRepository repository,
+    AppDbContext db,
+    IConfiguration configuration,
+    IHttpContextAccessor? httpContextAccessor = null) : IFileService
 {
+    private int? ActorUserId => AuditActor.GetUserId(httpContextAccessor);
     private readonly string _storageDir = configuration["FileStorage:Path"] ?? "uploads";
     private readonly long _maxUploadSizeBytes = configuration.GetValue<long?>("FileStorage:MaxUploadSizeBytes") ?? 10 * 1024 * 1024;
 
     // ── Mapping ───────────────────────────────────────────────────────────────
 
     private static FileResponse ToResponse(FileEntity file) =>
-        new(file.Id, file.Name, file.Extension, file.Size, file.ContentType, file.CreatedAt, file.UpdatedAt);
+        new(file.Id, file.Name, file.Extension, file.Size, file.ContentType, file.CreatedAt,
+            file.CreatedByUserId, file.UpdatedAt, file.UpdatedByUserId);
 
     private static PaginatedResponse<FileResponse> ToPaginated(
         IEnumerable<FileEntity> items, int total, int page, int pageSize) =>
@@ -93,6 +99,7 @@ public class FileService(IFileRepository repository, AppDbContext db, IConfigura
             ContentType = file.ContentType,
             Location = location,
             CreatedAt = DateTime.UtcNow,
+            CreatedByUserId = ActorUserId,
         };
         var created = await repository.AddAsync(entity, ct);
         await db.SaveChangesAsync(ct);

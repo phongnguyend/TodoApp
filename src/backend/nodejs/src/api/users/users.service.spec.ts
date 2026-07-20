@@ -9,7 +9,8 @@ import { pbkdf2Sync } from 'crypto';
 
 const user = (overrides: Partial<User> = {}): User => ({
   id: 1, username: 'alice', email: 'alice@example.com', passwordHash: 'hash', isActive: true,
-  createdAt: new Date('2026-01-01T00:00:00Z'), updatedAt: null, ...overrides,
+  createdAt: new Date('2026-01-01T00:00:00Z'), createdByUserId: null,
+  updatedAt: null, updatedByUserId: null, ...overrides,
 });
 
 describe('UsersService', () => {
@@ -98,7 +99,9 @@ describe('UsersService', () => {
     repository.findById.mockResolvedValue(await stored);
     repository.update.mockResolvedValue(user());
     await service.changePassword(1, { currentPassword: 'old-password', newPassword: 'new-password' });
-    expect(repository.update).toHaveBeenCalledWith(1, { passwordHash: expect.stringMatching(/^pbkdf2_sha256\$/) });
+    expect(repository.update).toHaveBeenCalledWith(1, {
+      passwordHash: expect.stringMatching(/^pbkdf2_sha256\$/), updatedByUserId: 1,
+    });
     await expect(service.changePassword(1, { currentPassword: 'wrong', newPassword: 'new-password' }))
       .rejects.toThrow(BadRequestException);
   });
@@ -124,6 +127,7 @@ describe('UsersService', () => {
     await service.confirmPasswordReset({ token, newPassword: 'new-password' });
     expect(repository.update).toHaveBeenCalledWith(1, {
       passwordHash: expect.stringMatching(/^pbkdf2_sha256\$/),
+      updatedByUserId: null,
     });
     await expect(service.confirmPasswordReset({ token: 'invalid', newPassword: 'new-password' }))
       .rejects.toThrow(BadRequestException);

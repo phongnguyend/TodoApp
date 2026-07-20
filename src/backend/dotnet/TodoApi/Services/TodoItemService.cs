@@ -9,8 +9,12 @@ using TodoShared.Models;
 
 namespace TodoApi.Services;
 
-public class TodoItemService(ITodoItemRepository repository, AppDbContext db) : ITodoItemService
+public class TodoItemService(
+    ITodoItemRepository repository,
+    AppDbContext db,
+    IHttpContextAccessor? httpContextAccessor = null) : ITodoItemService
 {
+    private int? ActorUserId => AuditActor.GetUserId(httpContextAccessor);
     private static readonly string[] CsvFieldNames = ["id", "title", "description", "is_completed", "created_at", "updated_at"];
     private static readonly string[] ExcelFieldNames = ["id", "title", "description", "is_completed", "created_at", "updated_at"];
     private static readonly HashSet<string> TrueValues = new(StringComparer.OrdinalIgnoreCase) { "1", "true", "yes", "y" };
@@ -18,7 +22,8 @@ public class TodoItemService(ITodoItemRepository repository, AppDbContext db) : 
     // ── Mapping ───────────────────────────────────────────────────────────────
 
     private static TodoItemResponse ToResponse(TodoItem item) =>
-        new(item.Id, item.Title, item.Description, item.IsCompleted, item.CreatedAt, item.UpdatedAt);
+        new(item.Id, item.Title, item.Description, item.IsCompleted, item.CreatedAt,
+            item.CreatedByUserId, item.UpdatedAt, item.UpdatedByUserId);
 
     private static PaginatedResponse<TodoItemResponse> ToPaginated(
         IEnumerable<TodoItem> items, int total, int page, int pageSize) =>
@@ -66,6 +71,7 @@ public class TodoItemService(ITodoItemRepository repository, AppDbContext db) : 
             Title = request.Title,
             Description = request.Description,
             CreatedAt = DateTime.UtcNow,
+            CreatedByUserId = ActorUserId,
         };
         var created = await repository.AddAsync(item, ct);
         await db.SaveChangesAsync(ct);
@@ -79,6 +85,7 @@ public class TodoItemService(ITodoItemRepository repository, AppDbContext db) : 
         if (request.Description is not null) item.Description = request.Description;
         if (request.IsCompleted is not null) item.IsCompleted = request.IsCompleted.Value;
         item.UpdatedAt = DateTime.UtcNow;
+        item.UpdatedByUserId = ActorUserId;
         repository.Update(item);
         await db.SaveChangesAsync(ct);
         return ToResponse(item);
@@ -96,6 +103,7 @@ public class TodoItemService(ITodoItemRepository repository, AppDbContext db) : 
         var item = await GetOrThrowAsync(id, ct);
         item.IsCompleted = true;
         item.UpdatedAt = DateTime.UtcNow;
+        item.UpdatedByUserId = ActorUserId;
         repository.Update(item);
         await db.SaveChangesAsync(ct);
         return ToResponse(item);
@@ -154,6 +162,7 @@ public class TodoItemService(ITodoItemRepository repository, AppDbContext db) : 
                 Description = string.IsNullOrWhiteSpace(description) ? null : description,
                 IsCompleted = isCompleted,
                 CreatedAt = DateTime.UtcNow,
+                CreatedByUserId = ActorUserId,
             };
 
             await repository.AddAsync(item, ct);
@@ -310,6 +319,7 @@ public class TodoItemService(ITodoItemRepository repository, AppDbContext db) : 
                 Description = string.IsNullOrWhiteSpace(description) ? null : description,
                 IsCompleted = isCompleted,
                 CreatedAt = DateTime.UtcNow,
+                CreatedByUserId = ActorUserId,
             };
 
             await repository.AddAsync(item, ct);

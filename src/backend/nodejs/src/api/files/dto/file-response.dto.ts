@@ -12,5 +12,7 @@ export class FileResponseDto {
   @ApiProperty() size!: number;
   @ApiProperty({ nullable: true }) contentType!: string | null;
   @ApiProperty() createdAt!: Date;
+  @ApiProperty({ nullable: true }) createdByUserId!: number | null;
   @ApiProperty({ nullable: true }) updatedAt!: Date | null;
+  @ApiProperty({ nullable: true }) updatedByUserId!: number | null;
 }

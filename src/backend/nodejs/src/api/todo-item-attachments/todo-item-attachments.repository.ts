@@ -27,8 +27,11 @@ export class TodoItemAttachmentRepository {
     return this.prisma.todoItemAttachment.create({ data });
   }
 
-  update(id: number, fileId: number): Promise<TodoItemAttachment> {
-    return this.prisma.todoItemAttachment.update({ where: { id }, data: { fileId } });
+  update(id: number, fileId: number, updatedByUserId?: number): Promise<TodoItemAttachment> {
+    return this.prisma.todoItemAttachment.update({
+      where: { id },
+      data: { fileId, ...(updatedByUserId !== undefined ? { updatedByUserId } : {}) },
+    });
   }
 
   async delete(id: number): Promise<void> {

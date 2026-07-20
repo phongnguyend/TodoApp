@@ -27,7 +27,7 @@ export class FileRepository {
     return this.prisma.file.findUnique({ where: { id } });
   }
 
-  async create(data: Prisma.FileCreateInput): Promise<File> {
+  async create(data: Prisma.FileUncheckedCreateInput): Promise<File> {
     return this.prisma.file.create({ data });
   }
 

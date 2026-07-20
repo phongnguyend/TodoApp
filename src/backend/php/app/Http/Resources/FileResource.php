@@ -23,7 +23,9 @@ class FileResource extends JsonResource
             'size'         => $this->size,
             'content_type' => $this->content_type,
             'created_at'   => $this->created_at?->toIso8601String(),
+            'created_by_user_id' => $this->created_by_user_id,
             'updated_at'   => $this->updated_at?->toIso8601String(),
+            'updated_by_user_id' => $this->updated_by_user_id,
         ];
     }
 }

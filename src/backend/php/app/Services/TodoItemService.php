@@ -49,15 +49,19 @@ class TodoItemService implements TodoItemServiceInterface
 
     // ── Commands ──────────────────────────────────────────────────────────────
 
-    public function create(CreateTodoItemRequest $request): TodoItem
+    public function create(CreateTodoItemRequest $request, ?int $actorUserId = null): TodoItem
     {
-        return $this->repository->create($request->validated());
+        $data = $request->validated();
+        if ($actorUserId !== null) $data['created_by_user_id'] = $actorUserId;
+        return $this->repository->create($data);
     }
 
-    public function update(int $id, UpdateTodoItemRequest $request): TodoItem
+    public function update(int $id, UpdateTodoItemRequest $request, ?int $actorUserId = null): TodoItem
     {
         $todo = $this->getById($id);
-        return $this->repository->update($todo, $request->validated());
+        $data = $request->validated();
+        if ($actorUserId !== null) $data['updated_by_user_id'] = $actorUserId;
+        return $this->repository->update($todo, $data);
     }
 
     public function delete(int $id): void
@@ -66,15 +70,17 @@ class TodoItemService implements TodoItemServiceInterface
         $this->repository->delete($todo);
     }
 
-    public function markComplete(int $id): TodoItem
+    public function markComplete(int $id, ?int $actorUserId = null): TodoItem
     {
         $todo = $this->getById($id);
-        return $this->repository->update($todo, ['is_completed' => true]);
+        $data = ['is_completed' => true];
+        if ($actorUserId !== null) $data['updated_by_user_id'] = $actorUserId;
+        return $this->repository->update($todo, $data);
     }
 
     // ── CSV import/export ─────────────────────────────────────────────────────
 
-    public function importCsv(UploadedFile $file): array
+    public function importCsv(UploadedFile $file, ?int $actorUserId = null): array
     {
         // Strip a UTF-8 BOM (common in Excel-exported CSV files) before parsing.
         $contents = (string) preg_replace('/^\xEF\xBB\xBF/', '', (string) file_get_contents($file->getRealPath()));
@@ -113,11 +119,13 @@ class TodoItemService implements TodoItemServiceInterface
 
             $description = trim((string) ($data['description'] ?? ''));
 
-            $this->repository->create([
+            $itemData = [
                 'title'        => $title,
                 'description'  => $description !== '' ? $description : null,
                 'is_completed' => $this->parseBool($data['is_completed'] ?? null),
-            ]);
+            ];
+            if ($actorUserId !== null) $itemData['created_by_user_id'] = $actorUserId;
+            $this->repository->create($itemData);
 
             $imported++;
         }
@@ -158,7 +166,7 @@ class TodoItemService implements TodoItemServiceInterface
 
     // ── Excel import/export ───────────────────────────────────────────────────
 
-    public function importExcel(UploadedFile $file): array
+    public function importExcel(UploadedFile $file, ?int $actorUserId = null): array
     {
         $rows = IOFactory::load($file->getRealPath())->getActiveSheet()->toArray(null, true, true, false);
 
@@ -191,11 +199,13 @@ class TodoItemService implements TodoItemServiceInterface
 
             $description = trim((string) ($data['description'] ?? ''));
 
-            $this->repository->create([
+            $itemData = [
                 'title'        => $title,
                 'description'  => $description !== '' ? $description : null,
                 'is_completed' => $this->parseBool($data['is_completed'] ?? null),
-            ]);
+            ];
+            if ($actorUserId !== null) $itemData['created_by_user_id'] = $actorUserId;
+            $this->repository->create($itemData);
 
             $imported++;
         }

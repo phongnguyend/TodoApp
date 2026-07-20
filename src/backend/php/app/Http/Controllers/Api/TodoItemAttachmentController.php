@@ -20,7 +20,9 @@ class TodoItemAttachmentController extends Controller
 
     public function store(SaveTodoItemAttachmentRequest $request, int $id): JsonResponse
     {
-        return (new TodoItemAttachmentResource($this->service->create($id, (int) $request->validated('file_id'))))
+        return (new TodoItemAttachmentResource($this->service->create(
+            $id, (int) $request->validated('file_id'), $this->actorUserId()
+        )))
             ->response()->setStatusCode(201);
     }
 
@@ -32,7 +34,7 @@ class TodoItemAttachmentController extends Controller
     public function update(SaveTodoItemAttachmentRequest $request, int $id, int $attachmentId): TodoItemAttachmentResource
     {
         return new TodoItemAttachmentResource(
-            $this->service->update($id, $attachmentId, (int) $request->validated('file_id'))
+            $this->service->update($id, $attachmentId, (int) $request->validated('file_id'), $this->actorUserId())
         );
     }
 
@@ -40,5 +42,11 @@ class TodoItemAttachmentController extends Controller
     {
         $this->service->delete($id, $attachmentId);
         return response()->json(null, 204);
+    }
+
+    private function actorUserId(): ?int
+    {
+        $value = request()->attributes->get('authenticated_user_id');
+        return is_int($value) && $value > 0 ? $value : null;
     }
 }

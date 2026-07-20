@@ -16,6 +16,7 @@ public interface FileService {
     FileResponse getById(Long id);
 
     FileResponse upload(MultipartFile file);
+    default FileResponse upload(MultipartFile file, Long actorUserId) { return upload(file); }
 
     FileDownloadTarget getDownloadTarget(Long id);
 

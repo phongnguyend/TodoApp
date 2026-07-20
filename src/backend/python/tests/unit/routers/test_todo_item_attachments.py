@@ -9,6 +9,7 @@ from shared.database import get_db
 from api.main import app
 from api.routers import todo_items
 from api.schemas.todo_item_attachment import TodoItemAttachmentResponse
+from api.security import get_current_user_id
 
 
 def _response(attachment_id: int = 1, todo_id: int = 10, file_id: int = 5) -> TodoItemAttachmentResponse:
@@ -34,6 +35,7 @@ def mock_db():
 @pytest.fixture
 def client(mock_service, mock_db):
     app.dependency_overrides[todo_items._attachment_service] = lambda: mock_service
+    app.dependency_overrides[get_current_user_id] = lambda: 7
 
     def override_db():
         yield mock_db

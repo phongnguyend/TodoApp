@@ -34,7 +34,7 @@ func (m *mockFileSvc) GetAll(page, pageSize int) (dto.PaginatedResponse[dto.File
 func (m *mockFileSvc) GetByID(id uint) (dto.FileResponse, error) {
 	return m.getByIDFn(id)
 }
-func (m *mockFileSvc) Upload(input service.UploadInput) (dto.FileResponse, error) {
+func (m *mockFileSvc) Upload(input service.UploadInput, _ ...*uint) (dto.FileResponse, error) {
 	return m.uploadFn(input)
 }
 func (m *mockFileSvc) GetDownloadTarget(id uint) (service.DownloadTarget, error) {

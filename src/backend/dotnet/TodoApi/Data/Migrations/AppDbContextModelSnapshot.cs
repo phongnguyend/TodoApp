@@ -30,6 +30,9 @@ namespace TodoApi.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("CreatedByUserId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("TEXT");
 
@@ -53,7 +56,14 @@ namespace TodoApi.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("UpdatedByUserId");
 
                     b.ToTable("EmailLogs");
                 });
@@ -70,6 +80,9 @@ namespace TodoApi.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("CreatedByUserId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Extension")
                         .IsRequired()
@@ -92,7 +105,14 @@ namespace TodoApi.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("UpdatedByUserId");
 
                     b.ToTable("Files");
                 });
@@ -105,6 +125,9 @@ namespace TodoApi.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("CreatedByUserId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Description")
                         .HasMaxLength(2000)
@@ -123,7 +146,14 @@ namespace TodoApi.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("UpdatedByUserId");
 
                     b.ToTable("TodoItems");
                 });
@@ -137,6 +167,9 @@ namespace TodoApi.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("CreatedByUserId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("FileId")
                         .HasColumnType("INTEGER");
 
@@ -146,9 +179,16 @@ namespace TodoApi.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedByUserId");
+
                     b.HasIndex("FileId");
+
+                    b.HasIndex("UpdatedByUserId");
 
                     b.HasIndex("TodoItemId", "FileId")
                         .IsUnique();
@@ -164,6 +204,9 @@ namespace TodoApi.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("CreatedByUserId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -183,6 +226,9 @@ namespace TodoApi.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -190,8 +236,12 @@ namespace TodoApi.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedByUserId");
+
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("UpdatedByUserId");
 
                     b.HasIndex("Username")
                         .IsUnique();
@@ -199,8 +249,52 @@ namespace TodoApi.Data.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("TodoShared.Models.EmailLog", b =>
+                {
+                    b.HasOne("TodoShared.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("TodoShared.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("TodoShared.Models.FileEntity", b =>
+                {
+                    b.HasOne("TodoShared.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("TodoShared.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("TodoShared.Models.TodoItem", b =>
+                {
+                    b.HasOne("TodoShared.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("TodoShared.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
             modelBuilder.Entity("TodoShared.Models.TodoItemAttachment", b =>
                 {
+                    b.HasOne("TodoShared.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("TodoShared.Models.FileEntity", "File")
                         .WithMany()
                         .HasForeignKey("FileId")
@@ -213,9 +307,27 @@ namespace TodoApi.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("TodoShared.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("File");
 
                     b.Navigation("TodoItem");
+                });
+
+            modelBuilder.Entity("TodoShared.Models.User", b =>
+                {
+                    b.HasOne("TodoShared.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("TodoShared.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 #pragma warning restore 612, 618
         }

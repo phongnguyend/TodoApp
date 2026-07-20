@@ -146,7 +146,7 @@ class TestActivation:
 
         assert response.status_code == 200
         assert response.json()["is_active"] is active
-        mock_service.set_active.assert_called_once_with(4, active)
+        mock_service.set_active.assert_called_once_with(4, active, 7)
         mock_db.commit.assert_called_once()
 
 

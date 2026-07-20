@@ -60,7 +60,7 @@ class FileController extends Controller
      */
     public function store(UploadFileRequest $request): JsonResponse
     {
-        $file = $this->service->upload($request->file('file'));
+        $file = $this->service->upload($request->file('file'), $this->actorUserId());
 
         return (new FileResource($file))
             ->response()
@@ -75,5 +75,11 @@ class FileController extends Controller
         $this->service->delete($id);
 
         return response()->json(null, 204);
+    }
+
+    private function actorUserId(): ?int
+    {
+        $value = request()->attributes->get('authenticated_user_id');
+        return is_int($value) && $value > 0 ? $value : null;
     }
 }

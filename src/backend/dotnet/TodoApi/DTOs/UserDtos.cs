@@ -39,7 +39,14 @@ public record UserResponse(
     string Email,
     bool IsActive,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    int? CreatedByUserId,
+    DateTime? UpdatedAt,
+    int? UpdatedByUserId)
+{
+    public UserResponse(int id, string username, string email, bool isActive,
+        DateTime createdAt, DateTime? updatedAt)
+        : this(id, username, email, isActive, createdAt, null, updatedAt, null) { }
+}
 
 public record TokenRequest(
     [Required, EmailAddress, StringLength(255)] string Email,

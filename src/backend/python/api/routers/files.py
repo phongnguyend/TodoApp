@@ -8,6 +8,7 @@ from shared.database import get_db
 from api.schemas.file import FileResponse
 from api.schemas.todo_item import PaginatedResponse
 from api.services.file_service import IFileService, get_file_service
+from api.security import get_optional_current_user_id
 
 router = APIRouter(prefix="/api/files", tags=["Files"])
 
@@ -42,8 +43,9 @@ def download(file_id: int, service: ServiceDep):
 
 
 @router.post("/", response_model=FileResponse, status_code=status.HTTP_201_CREATED, summary="Upload a file")
-def upload(service: ServiceDep, db: DbDep, upload_file: Annotated[UploadFile, UploadFileParam(...)]):
-    file = service.upload(upload_file)
+def upload(service: ServiceDep, db: DbDep, upload_file: Annotated[UploadFile, UploadFileParam(...)],
+           actor_user_id: int | None = Depends(get_optional_current_user_id)):
+    file = service.upload(upload_file) if actor_user_id is None else service.upload(upload_file, actor_user_id)
     db.commit()
     return file
 

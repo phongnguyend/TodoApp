@@ -1,5 +1,6 @@
 package com.example.todo.api.controller;
 
+import com.example.todo.api.config.AuditActor;
 import com.example.todo.dto.SaveTodoItemAttachmentRequest;
 import com.example.todo.dto.TodoItemAttachmentResponse;
 import com.example.todo.service.TodoItemAttachmentService;
@@ -35,7 +36,8 @@ public class TodoItemAttachmentController {
     public TodoItemAttachmentResponse create(
             @PathVariable Long todoItemId,
             @Valid @RequestBody SaveTodoItemAttachmentRequest request) {
-        return service.create(todoItemId, request);
+        Long actor = AuditActor.currentUserId();
+        return actor == null ? service.create(todoItemId, request) : service.create(todoItemId, request, actor);
     }
 
     @GetMapping("/{attachmentId}")
@@ -53,7 +55,9 @@ public class TodoItemAttachmentController {
             @PathVariable Long todoItemId,
             @PathVariable Long attachmentId,
             @Valid @RequestBody SaveTodoItemAttachmentRequest request) {
-        return service.update(todoItemId, attachmentId, request);
+        Long actor = AuditActor.currentUserId();
+        return actor == null ? service.update(todoItemId, attachmentId, request)
+                : service.update(todoItemId, attachmentId, request, actor);
     }
 
     @DeleteMapping("/{attachmentId}")

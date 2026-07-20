@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using TodoApi.DTOs;
 using TodoApi.Services;
 
@@ -7,6 +8,7 @@ namespace TodoApi.Controllers;
 [ApiController]
 [Route("api/tokens")]
 [Produces("application/json")]
+[AllowAnonymous]
 public class TokensController(IUserService service) : ControllerBase
 {
     [HttpPost]

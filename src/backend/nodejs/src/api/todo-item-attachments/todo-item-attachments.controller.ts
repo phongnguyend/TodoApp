@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post, Put, Req } from '@nestjs/common';
 import { ApiCreatedResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { SaveTodoItemAttachmentDto } from './dto/save-todo-item-attachment.dto';
 import { TodoItemAttachmentResponseDto } from './dto/todo-item-attachment-response.dto';
 import { TodoItemAttachmentsService } from './todo-item-attachments.service';
+import { AuditRequest } from '../users/users.security';
 
 @ApiTags('Todo Item Attachments')
 @Controller('api/todo-items/:id/attachments')
@@ -23,8 +24,10 @@ export class TodoItemAttachmentsController {
   create(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: SaveTodoItemAttachmentDto,
+    @Req() request?: AuditRequest,
   ): Promise<TodoItemAttachmentResponseDto> {
-    return this.service.create(id, dto);
+    const actor = request?.user?.userId;
+    return actor === undefined ? this.service.create(id, dto) : this.service.create(id, dto, actor);
   }
 
   @Get(':attachmentId')
@@ -44,8 +47,12 @@ export class TodoItemAttachmentsController {
     @Param('id', ParseIntPipe) id: number,
     @Param('attachmentId', ParseIntPipe) attachmentId: number,
     @Body() dto: SaveTodoItemAttachmentDto,
+    @Req() request?: AuditRequest,
   ): Promise<TodoItemAttachmentResponseDto> {
-    return this.service.update(id, attachmentId, dto);
+    const actor = request?.user?.userId;
+    return actor === undefined
+      ? this.service.update(id, attachmentId, dto)
+      : this.service.update(id, attachmentId, dto, actor);
   }
 
   @Delete(':attachmentId')

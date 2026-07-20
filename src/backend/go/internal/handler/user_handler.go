@@ -75,7 +75,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 	if !bind(c, &q) {
 		return
 	}
-	r, e := h.svc.Create(q)
+	r, e := h.svc.Create(q, auditUserID(c))
 	if e != nil {
 		userServiceError(c, e)
 		return
@@ -91,7 +91,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 	if !bind(c, &q) {
 		return
 	}
-	r, e := h.svc.Update(id, q)
+	r, e := h.svc.Update(id, q, auditUserID(c))
 	if e != nil {
 		userServiceError(c, e)
 		return
@@ -105,7 +105,7 @@ func (h *UserHandler) setActive(c *gin.Context, a bool) {
 	if e != nil {
 		return
 	}
-	r, e := h.svc.SetActive(id, a)
+	r, e := h.svc.SetActive(id, a, auditUserID(c))
 	if e != nil {
 		userServiceError(c, e)
 		return

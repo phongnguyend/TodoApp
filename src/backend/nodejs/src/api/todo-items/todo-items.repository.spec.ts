@@ -10,7 +10,9 @@ const makeTodoItem = (overrides: Partial<TodoItem> = {}): TodoItem => ({
   description: null,
   isCompleted: false,
   createdAt: new Date('2024-01-01T00:00:00Z'),
+  createdByUserId: null,
   updatedAt: null,
+  updatedByUserId: null,
   ...overrides,
 });
 

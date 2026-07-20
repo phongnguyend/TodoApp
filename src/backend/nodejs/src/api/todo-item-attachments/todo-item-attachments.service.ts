@@ -50,15 +50,17 @@ export class TodoItemAttachmentsService {
     return TodoItemAttachmentsService.toDto(await this.requireAttachment(todoItemId, attachmentId));
   }
 
-  async create(todoItemId: number, dto: SaveTodoItemAttachmentDto): Promise<TodoItemAttachmentResponseDto> {
+  async create(todoItemId: number, dto: SaveTodoItemAttachmentDto, actorUserId?: number): Promise<TodoItemAttachmentResponseDto> {
     await this.requireTodo(todoItemId);
     await this.requireFile(dto.fileId);
     const existing = await this.repository.findByTodoItemAndFile(todoItemId, dto.fileId);
-    const attachment = existing ?? await this.repository.create({ todoItemId, fileId: dto.fileId });
+    const attachment = existing ?? await this.repository.create({ todoItemId, fileId: dto.fileId,
+      ...(actorUserId !== undefined ? { createdByUserId: actorUserId } : {}) });
     return TodoItemAttachmentsService.toDto(attachment);
   }
 
-  async update(todoItemId: number, attachmentId: number, dto: SaveTodoItemAttachmentDto): Promise<TodoItemAttachmentResponseDto> {
+  async update(todoItemId: number, attachmentId: number, dto: SaveTodoItemAttachmentDto,
+    actorUserId?: number): Promise<TodoItemAttachmentResponseDto> {
     await this.requireTodo(todoItemId);
     await this.requireFile(dto.fileId);
     const current = await this.requireAttachment(todoItemId, attachmentId);
@@ -66,7 +68,10 @@ export class TodoItemAttachmentsService {
     if (existing && existing.id !== current.id) {
       return TodoItemAttachmentsService.toDto(existing);
     }
-    return TodoItemAttachmentsService.toDto(await this.repository.update(current.id, dto.fileId));
+    const updated = actorUserId === undefined
+      ? await this.repository.update(current.id, dto.fileId)
+      : await this.repository.update(current.id, dto.fileId, actorUserId);
+    return TodoItemAttachmentsService.toDto(updated);
   }
 
   async delete(todoItemId: number, attachmentId: number): Promise<void> {

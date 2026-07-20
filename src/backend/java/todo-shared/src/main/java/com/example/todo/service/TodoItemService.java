@@ -20,18 +20,23 @@ public interface TodoItemService {
     TodoItemResponse getById(Long id);
 
     TodoItemResponse create(CreateTodoItemRequest request);
+    default TodoItemResponse create(CreateTodoItemRequest request, Long actorUserId) { return create(request); }
 
     TodoItemResponse update(Long id, UpdateTodoItemRequest request);
+    default TodoItemResponse update(Long id, UpdateTodoItemRequest request, Long actorUserId) { return update(id, request); }
 
     TodoItemResponse markComplete(Long id);
+    default TodoItemResponse markComplete(Long id, Long actorUserId) { return markComplete(id); }
 
     void delete(Long id);
 
     ImportResult importCsv(MultipartFile file);
+    default ImportResult importCsv(MultipartFile file, Long actorUserId) { return importCsv(file); }
 
     String exportCsv();
 
     ImportResult importExcel(MultipartFile file);
+    default ImportResult importExcel(MultipartFile file, Long actorUserId) { return importExcel(file); }
 
     byte[] exportExcel();
 }

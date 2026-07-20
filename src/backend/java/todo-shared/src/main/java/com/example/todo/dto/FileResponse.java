@@ -16,8 +16,15 @@ public record FileResponse(
         long size,
         String contentType,
         Instant createdAt,
-        Instant updatedAt
+        Long createdByUserId,
+        Instant updatedAt,
+        Long updatedByUserId
 ) {
+    public FileResponse(Long id, String name, String extension, long size, String contentType,
+            Instant createdAt, Instant updatedAt) {
+        this(id, name, extension, size, contentType, createdAt, null, updatedAt, null);
+    }
+
     public static FileResponse from(FileEntity entity) {
         return new FileResponse(
                 entity.getId(),
@@ -26,7 +33,9 @@ public record FileResponse(
                 entity.getSize(),
                 entity.getContentType(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getCreatedByUserId(),
+                entity.getUpdatedAt(),
+                entity.getUpdatedByUserId()
         );
     }
 }

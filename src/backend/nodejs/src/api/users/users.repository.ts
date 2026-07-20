@@ -34,15 +34,15 @@ export class UsersRepository {
     })) > 0;
   }
 
-  create(data: Prisma.UserCreateInput): Promise<User> {
+  create(data: Prisma.UserUncheckedCreateInput): Promise<User> {
     return this.prisma.user.create({ data });
   }
 
-  update(id: number, data: Prisma.UserUpdateInput): Promise<User> {
+  update(id: number, data: Prisma.UserUncheckedUpdateInput): Promise<User> {
     return this.prisma.user.update({ where: { id }, data });
   }
 
-  createEmailLog(data: Prisma.EmailLogCreateInput): Promise<EmailLog> {
+  createEmailLog(data: Prisma.EmailLogUncheckedCreateInput): Promise<EmailLog> {
     return this.prisma.emailLog.create({ data });
   }
 }

@@ -24,8 +24,8 @@ export class UsersService {
   }
 
   private static toDto(user: User): UserResponseDto {
-    const { id, username, email, isActive, createdAt, updatedAt } = user;
-    return { id, username, email, isActive, createdAt, updatedAt };
+    const { id, username, email, isActive, createdAt, createdByUserId, updatedAt, updatedByUserId } = user;
+    return { id, username, email, isActive, createdAt, createdByUserId, updatedAt, updatedByUserId };
   }
 
   private async getOrThrow(id: number): Promise<User> {
@@ -73,28 +73,32 @@ export class UsersService {
     return UsersService.toDto(await this.getOrThrow(id));
   }
 
-  async create(dto: CreateUserDto): Promise<UserResponseDto> {
+  async create(dto: CreateUserDto, actorUserId?: number): Promise<UserResponseDto> {
     const username = dto.username.trim();
     const email = dto.email.trim().toLowerCase();
     await this.ensureUnique(username, email);
     return UsersService.toDto(await this.repository.create({
       username, email, passwordHash: this.hashPassword(dto.password), isActive: dto.isActive ?? true,
+      ...(actorUserId !== undefined ? { createdByUserId: actorUserId } : {}),
     }));
   }
 
-  async update(id: number, dto: UpdateUserDto): Promise<UserResponseDto> {
+  async update(id: number, dto: UpdateUserDto, actorUserId?: number): Promise<UserResponseDto> {
     const existing = await this.getOrThrow(id);
     const username = dto.username?.trim() ?? existing.username;
     const email = dto.email?.trim().toLowerCase() ?? existing.email;
     await this.ensureUnique(username, email, id);
     return UsersService.toDto(await this.repository.update(id, {
       username, email, ...(dto.password ? { passwordHash: this.hashPassword(dto.password) } : {}),
+      ...(actorUserId !== undefined ? { updatedByUserId: actorUserId } : {}),
     }));
   }
 
-  async setActive(id: number, isActive: boolean): Promise<UserResponseDto> {
+  async setActive(id: number, isActive: boolean, actorUserId?: number): Promise<UserResponseDto> {
     await this.getOrThrow(id);
-    return UsersService.toDto(await this.repository.update(id, { isActive }));
+    return UsersService.toDto(await this.repository.update(id, {
+      isActive, ...(actorUserId !== undefined ? { updatedByUserId: actorUserId } : {}),
+    }));
   }
 
   signup(dto: SignUpDto): Promise<UserResponseDto> {
@@ -120,7 +124,7 @@ export class UsersService {
   }
 
   updateProfile(userId: number, dto: UpdateProfileDto): Promise<UserResponseDto> {
-    return this.update(userId, dto);
+    return this.update(userId, dto, userId);
   }
 
   async changePassword(userId: number, dto: ChangePasswordDto): Promise<void> {
@@ -129,7 +133,9 @@ export class UsersService {
     if (!this.verifyPassword(dto.currentPassword, user.passwordHash)) {
       throw new BadRequestException('The current password is incorrect.');
     }
-    await this.repository.update(userId, { passwordHash: this.hashPassword(dto.newPassword) });
+    await this.repository.update(userId, {
+      passwordHash: this.hashPassword(dto.newPassword), updatedByUserId: userId,
+    });
   }
 
   async requestPasswordReset(dto: ResetPasswordDto): Promise<void> {
@@ -166,7 +172,9 @@ export class UsersService {
       const user = payload.sub ? await this.repository.findById(payload.sub) : null;
       const fingerprint = user ? createHash('sha256').update(user.passwordHash).digest('hex') : '';
       if (!user?.isActive || !payload.exp || payload.exp < Math.floor(Date.now() / 1000) || payload.password !== fingerprint) throw new Error();
-      await this.repository.update(user.id, { passwordHash: this.hashPassword(dto.newPassword) });
+      await this.repository.update(user.id, {
+        passwordHash: this.hashPassword(dto.newPassword), updatedByUserId: null,
+      });
     } catch {
       throw new BadRequestException('The password reset token is invalid or expired.');
     }

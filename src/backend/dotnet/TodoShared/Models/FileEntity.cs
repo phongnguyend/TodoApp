@@ -9,5 +9,7 @@ public class FileEntity
     public string? ContentType { get; set; }
     public string Location { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+    public int? CreatedByUserId { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public int? UpdatedByUserId { get; set; }
 }

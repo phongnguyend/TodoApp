@@ -12,6 +12,7 @@ import {
   Post,
   Put,
   Query,
+  Req,
   Res,
   UploadedFile,
   UseInterceptors,
@@ -34,6 +35,7 @@ import { ImportResultDto } from './dto/import-result.dto';
 import { TodoItemResponseDto } from './dto/todo-item-response.dto';
 import { UpdateTodoItemDto } from './dto/update-todo-item.dto';
 import { TodoItemsService } from './todo-items.service';
+import { AuditRequest } from '../users/users.security';
 
 /**
  * TodoItemsController - mirrors a [ApiController] / [Route("api/todo-items")] controller in ASP.NET Core.
@@ -76,8 +78,9 @@ export class TodoItemsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({ type: TodoItemResponseDto })
-  create(@Body() dto: CreateTodoItemDto): Promise<TodoItemResponseDto> {
-    return this.service.create(dto);
+  create(@Body() dto: CreateTodoItemDto, @Req() request?: AuditRequest): Promise<TodoItemResponseDto> {
+    const actor = request?.user?.userId;
+    return actor === undefined ? this.service.create(dto) : this.service.create(dto, actor);
   }
 
   @Put(':id')
@@ -86,15 +89,18 @@ export class TodoItemsController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTodoItemDto,
+    @Req() request?: AuditRequest,
   ): Promise<TodoItemResponseDto> {
-    return this.service.update(id, dto);
+    const actor = request?.user?.userId;
+    return actor === undefined ? this.service.update(id, dto) : this.service.update(id, dto, actor);
   }
 
   @Patch(':id/complete')
   @ApiOkResponse({ type: TodoItemResponseDto, description: 'Mark todo item as complete' })
   @ApiNotFoundResponse({ description: 'Todo item not found' })
-  markComplete(@Param('id', ParseIntPipe) id: number): Promise<TodoItemResponseDto> {
-    return this.service.markComplete(id);
+  markComplete(@Param('id', ParseIntPipe) id: number, @Req() request?: AuditRequest): Promise<TodoItemResponseDto> {
+    const actor = request?.user?.userId;
+    return actor === undefined ? this.service.markComplete(id) : this.service.markComplete(id, actor);
   }
 
   @Delete(':id')
@@ -115,11 +121,12 @@ export class TodoItemsController {
     },
   })
   @ApiOkResponse({ type: ImportResultDto, description: 'Import result summary' })
-  importCsv(@UploadedFile() file?: Express.Multer.File): Promise<ImportResultDto> {
+  importCsv(@UploadedFile() file?: Express.Multer.File, @Req() request?: AuditRequest): Promise<ImportResultDto> {
     if (!file) {
       throw new BadRequestException('file is required.');
     }
-    return this.service.importCsv(file.buffer);
+    const actor = request?.user?.userId;
+    return actor === undefined ? this.service.importCsv(file.buffer) : this.service.importCsv(file.buffer, actor);
   }
 
   @Get('export/csv')
@@ -143,11 +150,12 @@ export class TodoItemsController {
     },
   })
   @ApiOkResponse({ type: ImportResultDto, description: 'Import result summary' })
-  importExcel(@UploadedFile() file?: Express.Multer.File): Promise<ImportResultDto> {
+  importExcel(@UploadedFile() file?: Express.Multer.File, @Req() request?: AuditRequest): Promise<ImportResultDto> {
     if (!file) {
       throw new BadRequestException('file is required.');
     }
-    return this.service.importExcel(file.buffer);
+    const actor = request?.user?.userId;
+    return actor === undefined ? this.service.importExcel(file.buffer) : this.service.importExcel(file.buffer, actor);
   }
 
   @Get('export/excel')

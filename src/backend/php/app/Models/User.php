@@ -19,6 +19,8 @@ class User extends Authenticatable
         'password_hash',
         'is_active',
         'updated_at',
+        'created_by_user_id',
+        'updated_by_user_id',
     ];
 
     protected $hidden = [

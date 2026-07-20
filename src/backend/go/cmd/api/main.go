@@ -47,6 +47,8 @@ func main() {
 
 	// ── Gin engine (analogous to app.Build() + middleware pipeline) ───────────
 	r := gin.Default()
+	r.Use(handler.CaptureOptionalAuditUser(cfg))
+	r.Use(handler.RequireAuthenticatedAPI(cfg))
 
 	// Swagger UI - mirrors app.UseSwagger() + app.UseSwaggerUI()
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

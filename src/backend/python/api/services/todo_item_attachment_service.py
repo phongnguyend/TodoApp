@@ -21,11 +21,13 @@ class ITodoItemAttachmentService(ABC):
     def get_by_id(self, todo_item_id: int, attachment_id: int) -> TodoItemAttachmentResponse: ...
 
     @abstractmethod
-    def create(self, todo_item_id: int, request: CreateTodoItemAttachmentRequest) -> TodoItemAttachmentResponse: ...
+    def create(self, todo_item_id: int, request: CreateTodoItemAttachmentRequest,
+               actor_user_id: int | None = None) -> TodoItemAttachmentResponse: ...
 
     @abstractmethod
     def update(
-        self, todo_item_id: int, attachment_id: int, request: CreateTodoItemAttachmentRequest
+        self, todo_item_id: int, attachment_id: int, request: CreateTodoItemAttachmentRequest,
+        actor_user_id: int | None = None
     ) -> TodoItemAttachmentResponse: ...
 
     @abstractmethod
@@ -73,17 +75,21 @@ class TodoItemAttachmentService(ITodoItemAttachmentService):
         self._require_todo(todo_item_id)
         return TodoItemAttachmentResponse.model_validate(self._get_or_404(todo_item_id, attachment_id))
 
-    def create(self, todo_item_id: int, request: CreateTodoItemAttachmentRequest) -> TodoItemAttachmentResponse:
+    def create(self, todo_item_id: int, request: CreateTodoItemAttachmentRequest,
+               actor_user_id: int | None = None) -> TodoItemAttachmentResponse:
         self._require_todo(todo_item_id)
         self._require_file(request.file_id)
         existing = self._attachments.get_by_todo_item_and_file(todo_item_id, request.file_id)
         if existing is not None:
             return TodoItemAttachmentResponse.model_validate(existing)
-        created = self._attachments.add(TodoItemAttachment(todo_item_id=todo_item_id, file_id=request.file_id))
+        created = self._attachments.add(TodoItemAttachment(
+            todo_item_id=todo_item_id, file_id=request.file_id, created_by_user_id=actor_user_id
+        ))
         return TodoItemAttachmentResponse.model_validate(created)
 
     def update(
-        self, todo_item_id: int, attachment_id: int, request: CreateTodoItemAttachmentRequest
+        self, todo_item_id: int, attachment_id: int, request: CreateTodoItemAttachmentRequest,
+        actor_user_id: int | None = None
     ) -> TodoItemAttachmentResponse:
         self._require_todo(todo_item_id)
         self._require_file(request.file_id)
@@ -92,6 +98,7 @@ class TodoItemAttachmentService(ITodoItemAttachmentService):
         if existing is not None and existing.id != attachment.id:
             return TodoItemAttachmentResponse.model_validate(existing)
         attachment.file_id = request.file_id
+        attachment.updated_by_user_id = actor_user_id
         return TodoItemAttachmentResponse.model_validate(self._attachments.update(attachment))
 
     def delete(self, todo_item_id: int, attachment_id: int) -> None:

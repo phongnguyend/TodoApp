@@ -33,9 +33,15 @@ public class TodoItemAttachment {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "created_by_user_id")
+    private Long createdByUserId;
+
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @Column(name = "updated_by_user_id")
+    private Long updatedByUserId;
 
     public TodoItemAttachment(Long todoItemId, Long fileId) {
         this.todoItemId = todoItemId;

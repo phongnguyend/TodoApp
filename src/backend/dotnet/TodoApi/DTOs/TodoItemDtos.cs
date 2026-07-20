@@ -19,8 +19,15 @@ public record TodoItemResponse(
     string? Description,
     bool IsCompleted,
     DateTime CreatedAt,
-    DateTime? UpdatedAt
-);
+    int? CreatedByUserId,
+    DateTime? UpdatedAt,
+    int? UpdatedByUserId
+)
+{
+    public TodoItemResponse(int id, string title, string? description, bool isCompleted,
+        DateTime createdAt, DateTime? updatedAt)
+        : this(id, title, description, isCompleted, createdAt, null, updatedAt, null) { }
+}
 
 public record PaginatedResponse<T>(
     IEnumerable<T> Items,

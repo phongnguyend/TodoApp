@@ -34,6 +34,8 @@ class File extends Model
         'size',
         'content_type',
         'location',
+        'created_by_user_id',
+        'updated_by_user_id',
     ];
 
     /**

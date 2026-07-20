@@ -30,6 +30,8 @@ class TodoItem extends Model
         'title',
         'description',
         'is_completed',
+        'created_by_user_id',
+        'updated_by_user_id',
     ];
 
     /**

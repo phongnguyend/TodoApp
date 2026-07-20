@@ -1,0 +1,14 @@
+ALTER TABLE "todo_items" ADD COLUMN "createdByUserId" INTEGER REFERENCES "users"("id") ON DELETE SET NULL;
+ALTER TABLE "todo_items" ADD COLUMN "updatedByUserId" INTEGER REFERENCES "users"("id") ON DELETE SET NULL;
+
+ALTER TABLE "todo_item_attachments" ADD COLUMN "createdByUserId" INTEGER REFERENCES "users"("id") ON DELETE SET NULL;
+ALTER TABLE "todo_item_attachments" ADD COLUMN "updatedByUserId" INTEGER REFERENCES "users"("id") ON DELETE SET NULL;
+
+ALTER TABLE "email_logs" ADD COLUMN "createdByUserId" INTEGER REFERENCES "users"("id") ON DELETE SET NULL;
+ALTER TABLE "email_logs" ADD COLUMN "updatedByUserId" INTEGER REFERENCES "users"("id") ON DELETE SET NULL;
+
+ALTER TABLE "files" ADD COLUMN "createdByUserId" INTEGER REFERENCES "users"("id") ON DELETE SET NULL;
+ALTER TABLE "files" ADD COLUMN "updatedByUserId" INTEGER REFERENCES "users"("id") ON DELETE SET NULL;
+
+ALTER TABLE "users" ADD COLUMN "createdByUserId" INTEGER REFERENCES "users"("id") ON DELETE SET NULL;
+ALTER TABLE "users" ADD COLUMN "updatedByUserId" INTEGER REFERENCES "users"("id") ON DELETE SET NULL;

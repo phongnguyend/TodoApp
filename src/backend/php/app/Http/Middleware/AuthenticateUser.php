@@ -13,7 +13,7 @@ use Throwable;
 
 class AuthenticateUser
 {
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, string $mode = 'required'): Response
     {
         try {
             $authenticated = $request->user();
@@ -29,12 +29,18 @@ class AuthenticateUser
 
         $header = $request->header('Authorization', '');
         if (! preg_match('/^Bearer\s+(\S+)$/i', $header, $matches)) {
+            if ($mode === 'optional') {
+                return $next($request);
+            }
             return $this->unauthorized('Authentication required.');
         }
 
         $payload = $this->decodeToken($matches[1]);
         $userId = filter_var($payload['sub'] ?? null, FILTER_VALIDATE_INT);
         if ($payload === null || $userId === false || $userId < 1) {
+            if ($mode === 'optional') {
+                return $next($request);
+            }
             return $this->unauthorized('Invalid or expired token.');
         }
 

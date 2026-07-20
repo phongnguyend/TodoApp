@@ -65,11 +65,7 @@ def decode_signed_token(token: str, secret: str) -> dict:
 bearer = HTTPBearer(auto_error=False)
 
 
-def get_current_user_id(
-    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
-) -> int:
-    if credentials is None or credentials.scheme.lower() != "bearer":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+def _decode_user_id(credentials: HTTPAuthorizationCredentials) -> int:
     try:
         payload = jwt.decode(
             credentials.credentials,
@@ -86,6 +82,24 @@ def get_current_user_id(
         return user_id
     except (KeyError, TypeError, ValueError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token.")
+
+
+def get_current_user_id(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+) -> int:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+    return _decode_user_id(credentials)
+
+
+def get_optional_current_user_id(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+) -> int | None:
+    if credentials is None:
+        return None
+    if credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token.")
+    return _decode_user_id(credentials)
 
 
 CurrentUserId = Annotated[int, Depends(get_current_user_id)]

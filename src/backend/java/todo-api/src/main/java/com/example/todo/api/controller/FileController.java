@@ -1,5 +1,6 @@
 package com.example.todo.api.controller;
 
+import com.example.todo.api.config.AuditActor;
 import com.example.todo.dto.FileDownloadTarget;
 import com.example.todo.dto.FileResponse;
 import com.example.todo.dto.PaginatedResponse;
@@ -81,7 +82,8 @@ public class FileController {
             @Parameter(schema = @Schema(type = "string", format = "binary"))
             @RequestParam("file") MultipartFile file
     ) {
-        return service.upload(file);
+        Long actor = AuditActor.currentUserId();
+        return actor == null ? service.upload(file) : service.upload(file, actor);
     }
 
     @DeleteMapping("/{id}")

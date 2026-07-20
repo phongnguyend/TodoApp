@@ -29,10 +29,12 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/api/users/profile").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/api/users/profile").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/users/password/change").authenticated()
-                        .anyRequest().permitAll())
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/users/signup",
+                                "/api/users/password/reset",
+                                "/api/users/password/confirm",
+                                "/api/tokens").permitAll()
+                        .anyRequest().authenticated())
                 .oauth2ResourceServer(resourceServer -> resourceServer.jwt(jwt -> {}))
                 .build();
     }

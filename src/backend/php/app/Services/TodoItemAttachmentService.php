@@ -53,15 +53,17 @@ class TodoItemAttachmentService implements TodoItemAttachmentServiceInterface
         return $this->requireAttachment($todoItemId, $attachmentId);
     }
 
-    public function create(int $todoItemId, int $fileId): TodoItemAttachment
+    public function create(int $todoItemId, int $fileId, ?int $actorUserId = null): TodoItemAttachment
     {
         $this->requireTodo($todoItemId);
         $this->requireFile($fileId);
+        $data = ['todo_item_id' => $todoItemId, 'file_id' => $fileId];
+        if ($actorUserId !== null) $data['created_by_user_id'] = $actorUserId;
         return $this->attachments->findForTodoAndFile($todoItemId, $fileId)
-            ?? $this->attachments->create(['todo_item_id' => $todoItemId, 'file_id' => $fileId]);
+            ?? $this->attachments->create($data);
     }
 
-    public function update(int $todoItemId, int $attachmentId, int $fileId): TodoItemAttachment
+    public function update(int $todoItemId, int $attachmentId, int $fileId, ?int $actorUserId = null): TodoItemAttachment
     {
         $this->requireTodo($todoItemId);
         $this->requireFile($fileId);
@@ -70,7 +72,9 @@ class TodoItemAttachmentService implements TodoItemAttachmentServiceInterface
         if ($existing !== null && $existing->id !== $attachment->id) {
             return $existing;
         }
-        return $this->attachments->update($attachment, ['file_id' => $fileId]);
+        $data = ['file_id' => $fileId];
+        if ($actorUserId !== null) $data['updated_by_user_id'] = $actorUserId;
+        return $this->attachments->update($attachment, $data);
     }
 
     public function delete(int $todoItemId, int $attachmentId): void

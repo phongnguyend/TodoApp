@@ -12,14 +12,16 @@ Naming conventions may differ across implementations (e.g., `snake_case` vs `Pas
 
 Stores individual todo tasks.
 
-| Column         | Data Type                | Constraints                           | Notes                         |
-| -------------- | ------------------------ | ------------------------------------- | ----------------------------- |
-| `id`           | INTEGER                  | PRIMARY KEY, AUTO INCREMENT, NOT NULL | Surrogate key                 |
-| `title`        | VARCHAR(200)             | NOT NULL                              | Short description of the task |
-| `description`  | TEXT                     | NULLABLE                              | Optional longer description   |
-| `is_completed` | BOOLEAN                  | NOT NULL, DEFAULT `false`             | Completion flag               |
-| `created_at`   | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT `now()`             | Set by the database on insert |
-| `updated_at`   | TIMESTAMP WITH TIME ZONE | NULLABLE                              | Set by the database on update |
+| Column               | Data Type                | Constraints                           | Notes                                            |
+| -------------------- | ------------------------ | ------------------------------------- | ------------------------------------------------ |
+| `id`                 | INTEGER                  | PRIMARY KEY, AUTO INCREMENT, NOT NULL | Surrogate key                                    |
+| `title`              | VARCHAR(200)             | NOT NULL                              | Short description of the task                    |
+| `description`        | TEXT                     | NULLABLE                              | Optional longer description                      |
+| `is_completed`       | BOOLEAN                  | NOT NULL, DEFAULT `false`             | Completion flag                                  |
+| `created_at`         | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT `now()`             | Set by the database on insert                    |
+| `created_by_user_id` | INTEGER                  | NULLABLE, FOREIGN KEY -> `users.id`   | User who created the record; null for system use |
+| `updated_at`         | TIMESTAMP WITH TIME ZONE | NULLABLE                              | Set by the database on update                    |
+| `updated_by_user_id` | INTEGER                  | NULLABLE, FOREIGN KEY -> `users.id`   | User who last updated the record                 |
 
 ---
 
@@ -27,13 +29,15 @@ Stores individual todo tasks.
 
 Stores attachment references for a todo item. The attachment itself is not a duplicate of the file content; it only references a row in the `files` table.
 
-| Column         | Data Type                | Constraints                              | Notes                                                        |
-| -------------- | ------------------------ | ---------------------------------------- | ------------------------------------------------------------ |
-| `id`           | INTEGER                  | PRIMARY KEY, AUTO INCREMENT, NOT NULL    | Surrogate key                                                |
-| `todo_item_id` | INTEGER                  | NOT NULL, FOREIGN KEY -> `todo_items.id` | The todo item this attachment belongs to                     |
-| `file_id`      | INTEGER                  | NOT NULL, FOREIGN KEY -> `files.id`      | Reference to the uploaded file metadata in the `files` table |
-| `created_at`   | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT `now()`                | Set by the database on insert                                |
-| `updated_at`   | TIMESTAMP WITH TIME ZONE | NULLABLE                                 | Set by the database on update                                |
+| Column               | Data Type                | Constraints                              | Notes                                                        |
+| -------------------- | ------------------------ | ---------------------------------------- | ------------------------------------------------------------ |
+| `id`                 | INTEGER                  | PRIMARY KEY, AUTO INCREMENT, NOT NULL    | Surrogate key                                                |
+| `todo_item_id`       | INTEGER                  | NOT NULL, FOREIGN KEY -> `todo_items.id` | The todo item this attachment belongs to                     |
+| `file_id`            | INTEGER                  | NOT NULL, FOREIGN KEY -> `files.id`      | Reference to the uploaded file metadata in the `files` table |
+| `created_at`         | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT `now()`                | Set by the database on insert                                |
+| `created_by_user_id` | INTEGER                  | NULLABLE, FOREIGN KEY -> `users.id`      | User who created the record; null for system use             |
+| `updated_at`         | TIMESTAMP WITH TIME ZONE | NULLABLE                                 | Set by the database on update                                |
+| `updated_by_user_id` | INTEGER                  | NULLABLE, FOREIGN KEY -> `users.id`      | User who last updated the record                             |
 
 Additional constraints:
 
@@ -45,16 +49,18 @@ Additional constraints:
 
 Audit trail for every outbound email attempt. Records persist even when SMTP delivery fails.
 
-| Column          | Data Type                | Constraints                           | Notes                                       |
-| --------------- | ------------------------ | ------------------------------------- | ------------------------------------------- |
-| `id`            | INTEGER                  | PRIMARY KEY, AUTO INCREMENT, NOT NULL | Surrogate key                               |
-| `recipient`     | VARCHAR(255)             | NOT NULL                              | Destination email address                   |
-| `subject`       | VARCHAR(500)             | NOT NULL                              | Email subject line                          |
-| `body`          | TEXT                     | NOT NULL                              | Full email body content                     |
-| `status`        | VARCHAR(50)              | NOT NULL, DEFAULT `'pending'`         | Allowed values: `pending`, `sent`, `failed` |
-| `created_at`    | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT `now()`             | Set by the database on insert               |
-| `sent_at`       | TIMESTAMP WITH TIME ZONE | NULLABLE                              | Populated when delivery succeeds            |
-| `error_message` | TEXT                     | NULLABLE                              | Populated when delivery fails               |
+| Column               | Data Type                | Constraints                           | Notes                                            |
+| -------------------- | ------------------------ | ------------------------------------- | ------------------------------------------------ |
+| `id`                 | INTEGER                  | PRIMARY KEY, AUTO INCREMENT, NOT NULL | Surrogate key                                    |
+| `recipient`          | VARCHAR(255)             | NOT NULL                              | Destination email address                        |
+| `subject`            | VARCHAR(500)             | NOT NULL                              | Email subject line                               |
+| `body`               | TEXT                     | NOT NULL                              | Full email body content                          |
+| `status`             | VARCHAR(50)              | NOT NULL, DEFAULT `'pending'`         | Allowed values: `pending`, `sent`, `failed`      |
+| `created_at`         | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT `now()`             | Set by the database on insert                    |
+| `created_by_user_id` | INTEGER                  | NULLABLE, FOREIGN KEY -> `users.id`   | User who created the record; null for system use |
+| `sent_at`            | TIMESTAMP WITH TIME ZONE | NULLABLE                              | Populated when delivery succeeds                 |
+| `error_message`      | TEXT                     | NULLABLE                              | Populated when delivery fails                    |
+| `updated_by_user_id` | INTEGER                  | NULLABLE, FOREIGN KEY -> `users.id`   | User who last updated the record                 |
 
 ---
 
@@ -62,16 +68,18 @@ Audit trail for every outbound email attempt. Records persist even when SMTP del
 
 Stores metadata about uploaded files.
 
-| Column         | Data Type                | Constraints                           | Notes                                                       |
-| -------------- | ------------------------ | ------------------------------------- | ----------------------------------------------------------- |
-| `id`           | INTEGER                  | PRIMARY KEY, AUTO INCREMENT, NOT NULL | Surrogate key                                               |
-| `name`         | VARCHAR(255)             | NOT NULL                              | Original file name (without path)                           |
-| `extension`    | VARCHAR(20)              | NOT NULL                              | File extension, without the leading dot (e.g. `pdf`, `png`) |
-| `size`         | BIGINT                   | NOT NULL                              | File size in bytes                                          |
-| `content_type` | VARCHAR(100)             | NULLABLE                              | MIME type of the file                                       |
-| `location`     | VARCHAR(500)             | NOT NULL                              | Storage path or URL where the file content is stored        |
-| `created_at`   | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT `now()`             | Set by the database on insert                               |
-| `updated_at`   | TIMESTAMP WITH TIME ZONE | NULLABLE                              | Set by the database on update                               |
+| Column               | Data Type                | Constraints                           | Notes                                                       |
+| -------------------- | ------------------------ | ------------------------------------- | ----------------------------------------------------------- |
+| `id`                 | INTEGER                  | PRIMARY KEY, AUTO INCREMENT, NOT NULL | Surrogate key                                               |
+| `name`               | VARCHAR(255)             | NOT NULL                              | Original file name (without path)                           |
+| `extension`          | VARCHAR(20)              | NOT NULL                              | File extension, without the leading dot (e.g. `pdf`, `png`) |
+| `size`               | BIGINT                   | NOT NULL                              | File size in bytes                                          |
+| `content_type`       | VARCHAR(100)             | NULLABLE                              | MIME type of the file                                       |
+| `location`           | VARCHAR(500)             | NOT NULL                              | Storage path or URL where the file content is stored        |
+| `created_at`         | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT `now()`             | Set by the database on insert                               |
+| `created_by_user_id` | INTEGER                  | NULLABLE, FOREIGN KEY -> `users.id`   | User who created the record; null for system use            |
+| `updated_at`         | TIMESTAMP WITH TIME ZONE | NULLABLE                              | Set by the database on update                               |
+| `updated_by_user_id` | INTEGER                  | NULLABLE, FOREIGN KEY -> `users.id`   | User who last updated the record                            |
 
 ---
 
@@ -79,15 +87,17 @@ Stores metadata about uploaded files.
 
 Stores application users for authentication and profile-management features.
 
-| Column          | Data Type                | Constraints                           | Notes                         |
-| --------------- | ------------------------ | ------------------------------------- | ----------------------------- |
-| `id`            | INTEGER                  | PRIMARY KEY, AUTO INCREMENT, NOT NULL | Surrogate key                 |
-| `username`      | VARCHAR(50)              | NOT NULL, UNIQUE                      | Unique login or display name  |
-| `email`         | VARCHAR(255)             | NOT NULL, UNIQUE                      | Email address                 |
-| `password_hash` | VARCHAR(255)             | NOT NULL                              | Hashed password value         |
-| `is_active`     | BOOLEAN                  | NOT NULL, DEFAULT `true`              | Account active status         |
-| `created_at`    | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT `now()`             | Set by the database on insert |
-| `updated_at`    | TIMESTAMP WITH TIME ZONE | NULLABLE                              | Set by the database on update |
+| Column               | Data Type                | Constraints                           | Notes                                              |
+| -------------------- | ------------------------ | ------------------------------------- | -------------------------------------------------- |
+| `id`                 | INTEGER                  | PRIMARY KEY, AUTO INCREMENT, NOT NULL | Surrogate key                                      |
+| `username`           | VARCHAR(50)              | NOT NULL, UNIQUE                      | Unique login or display name                       |
+| `email`              | VARCHAR(255)             | NOT NULL, UNIQUE                      | Email address                                      |
+| `password_hash`      | VARCHAR(255)             | NOT NULL                              | Hashed password value                              |
+| `is_active`          | BOOLEAN                  | NOT NULL, DEFAULT `true`              | Account active status                              |
+| `created_at`         | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT `now()`             | Set by the database on insert                      |
+| `created_by_user_id` | INTEGER                  | NULLABLE, FOREIGN KEY -> `users.id`   | User who created the account; null for self-signup |
+| `updated_at`         | TIMESTAMP WITH TIME ZONE | NULLABLE                              | Set by the database on update                      |
+| `updated_by_user_id` | INTEGER                  | NULLABLE, FOREIGN KEY -> `users.id`   | User who last updated the account                  |
 
 ---
 
@@ -105,6 +115,8 @@ Stores application users for authentication and profile-management features.
 | `is_completed`          | `is_completed`          | `IsCompleted`         | `is_completed`          | `is_completed`          | `isCompleted`         | `is_completed`          |
 | `created_at`            | `created_at`            | `CreatedAt`           | `created_at`            | `created_at`            | `createdAt`           | `created_at`            |
 | `updated_at`            | `updated_at`            | `UpdatedAt`           | `updated_at`            | `updated_at`            | `updatedAt`           | `updated_at`            |
+| `created_by_user_id`    | `created_by_user_id`    | `CreatedByUserId`     | `created_by_user_id`    | `created_by_user_id`    | `createdByUserId`     | `created_by_user_id`    |
+| `updated_by_user_id`    | `updated_by_user_id`    | `UpdatedByUserId`     | `updated_by_user_id`    | `updated_by_user_id`    | `updatedByUserId`     | `updated_by_user_id`    |
 | `sent_at`               | `sent_at`               | `SentAt`              | `sent_at`               | `sent_at`               | `sentAt`              | `sent_at`               |
 | `error_message`         | `error_message`         | `ErrorMessage`        | `error_message`         | `error_message`         | `errorMessage`        | `error_message`         |
 | `content_type`          | `content_type`          | `ContentType`         | `content_type`          | `content_type`          | `contentType`         | `content_type`          |

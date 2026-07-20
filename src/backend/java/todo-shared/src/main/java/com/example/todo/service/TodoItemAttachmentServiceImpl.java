@@ -57,18 +57,34 @@ public class TodoItemAttachmentServiceImpl implements TodoItemAttachmentService 
     @Override
     @Transactional
     public TodoItemAttachmentResponse create(Long todoItemId, SaveTodoItemAttachmentRequest request) {
+        return create(todoItemId, request, null);
+    }
+
+    @Override
+    @Transactional
+    public TodoItemAttachmentResponse create(Long todoItemId, SaveTodoItemAttachmentRequest request, Long actorUserId) {
         requireTodoItem(todoItemId);
         requireFile(request.fileId());
         return repository.findByTodoItemIdAndFileId(todoItemId, request.fileId())
                 .map(TodoItemAttachmentResponse::from)
-                .orElseGet(() -> TodoItemAttachmentResponse.from(
-                        repository.save(new TodoItemAttachment(todoItemId, request.fileId()))));
+                .orElseGet(() -> {
+                    TodoItemAttachment attachment = new TodoItemAttachment(todoItemId, request.fileId());
+                    attachment.setCreatedByUserId(actorUserId);
+                    return TodoItemAttachmentResponse.from(repository.save(attachment));
+                });
     }
 
     @Override
     @Transactional
     public TodoItemAttachmentResponse update(
             Long todoItemId, Long attachmentId, SaveTodoItemAttachmentRequest request) {
+        return update(todoItemId, attachmentId, request, null);
+    }
+
+    @Override
+    @Transactional
+    public TodoItemAttachmentResponse update(
+            Long todoItemId, Long attachmentId, SaveTodoItemAttachmentRequest request, Long actorUserId) {
         requireTodoItem(todoItemId);
         requireFile(request.fileId());
         TodoItemAttachment attachment = requireAttachment(todoItemId, attachmentId);
@@ -78,6 +94,7 @@ public class TodoItemAttachmentServiceImpl implements TodoItemAttachmentService 
                 .map(TodoItemAttachmentResponse::from)
                 .orElseGet(() -> {
                     attachment.setFileId(request.fileId());
+                    attachment.setUpdatedByUserId(actorUserId);
                     return TodoItemAttachmentResponse.from(repository.save(attachment));
                 });
     }

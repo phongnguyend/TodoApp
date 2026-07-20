@@ -3,6 +3,7 @@ import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { TokenRequestDto, TokenResponseDto } from './dto/token.dto';
 import { UsersService } from './users.service';
+import { PublicEndpoint } from './users.security';
 
 @ApiTags('Tokens')
 @Controller('api/tokens')
@@ -10,6 +11,7 @@ export class TokensController {
   constructor(private readonly service: UsersService) {}
 
   @Post()
+  @PublicEndpoint()
   @HttpCode(HttpStatus.OK)
   @Header('Cache-Control', 'no-store')
   @Header('Pragma', 'no-cache')

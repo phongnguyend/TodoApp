@@ -23,7 +23,7 @@ type attachmentSvcMock struct {
 func (m *attachmentSvcMock) GetAll(id uint) ([]dto.TodoItemAttachmentResponse, error) {
 	return m.getAll(id)
 }
-func (m *attachmentSvcMock) Create(todo, file uint) (dto.TodoItemAttachmentResponse, error) {
+func (m *attachmentSvcMock) Create(todo, file uint, _ ...*uint) (dto.TodoItemAttachmentResponse, error) {
 	return m.create(todo, file)
 }
 func (m *attachmentSvcMock) Delete(todo, id uint) error { return m.delete(todo, id) }
@@ -52,7 +52,7 @@ func TestAttachmentHandlerGetAllReturns200(t *testing.T) {
 	}}
 	w := attachmentRequest(attachmentRouter(svc), http.MethodGet, "/api/todo-items/10/attachments", "")
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, `[{"id":1,"todoItemId":0,"fileId":0,"createdAt":"0001-01-01T00:00:00Z","updatedAt":null}]`, w.Body.String())
+	assert.JSONEq(t, `[{"id":1,"todoItemId":0,"fileId":0,"createdAt":"0001-01-01T00:00:00Z","createdByUserId":null,"updatedAt":null,"updatedByUserId":null}]`, w.Body.String())
 }
 func TestAttachmentHandlerCreateReturns201(t *testing.T) {
 	svc := &attachmentSvcMock{create: func(todo, file uint) (dto.TodoItemAttachmentResponse, error) {

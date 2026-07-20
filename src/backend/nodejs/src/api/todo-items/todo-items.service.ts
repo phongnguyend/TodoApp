@@ -29,7 +29,9 @@ export class TodoItemsService {
       description: item.description,
       isCompleted: item.isCompleted,
       createdAt: item.createdAt,
+      createdByUserId: item.createdByUserId,
       updatedAt: item.updatedAt,
+      updatedByUserId: item.updatedByUserId,
     };
   }
 
@@ -81,27 +83,32 @@ export class TodoItemsService {
 
   // ── Commands ──────────────────────────────────────────────────────────────────
 
-  async create(dto: CreateTodoItemDto): Promise<TodoItemResponseDto> {
+  async create(dto: CreateTodoItemDto, actorUserId?: number): Promise<TodoItemResponseDto> {
     const item = await this.repository.create({
       title: dto.title,
       description: dto.description,
+      ...(actorUserId !== undefined ? { createdByUserId: actorUserId } : {}),
     });
     return TodoItemsService.toDto(item);
   }
 
-  async update(id: number, dto: UpdateTodoItemDto): Promise<TodoItemResponseDto> {
+  async update(id: number, dto: UpdateTodoItemDto, actorUserId?: number): Promise<TodoItemResponseDto> {
     await this.getOrThrow(id);
     const item = await this.repository.update(id, {
       title: dto.title,
       description: dto.description,
       isCompleted: dto.isCompleted,
+      ...(actorUserId !== undefined ? { updatedByUserId: actorUserId } : {}),
     });
     return TodoItemsService.toDto(item);
   }
 
-  async markComplete(id: number): Promise<TodoItemResponseDto> {
+  async markComplete(id: number, actorUserId?: number): Promise<TodoItemResponseDto> {
     await this.getOrThrow(id);
-    const item = await this.repository.update(id, { isCompleted: true });
+    const item = await this.repository.update(id, {
+      isCompleted: true,
+      ...(actorUserId !== undefined ? { updatedByUserId: actorUserId } : {}),
+    });
     return TodoItemsService.toDto(item);
   }
 
@@ -112,7 +119,7 @@ export class TodoItemsService {
 
   // ── CSV import/export ──────────────────────────────────────────────────────
 
-  async importCsv(buffer: Buffer): Promise<ImportResultDto> {
+  async importCsv(buffer: Buffer, actorUserId?: number): Promise<ImportResultDto> {
     const text = buffer.toString('utf-8').replace(/^\uFEFF/, ''); // strip UTF-8 BOM
     const rows = parseCsv(text);
 
@@ -143,7 +150,8 @@ export class TodoItemsService {
       const description = (getCell(row, 'description') ?? '').trim() || null;
       const isCompleted = TodoItemsService.parseBool(getCell(row, 'is_completed'));
 
-      await this.repository.create({ title, description, isCompleted });
+      await this.repository.create({ title, description, isCompleted,
+        ...(actorUserId !== undefined ? { createdByUserId: actorUserId } : {}) });
       imported++;
     }
 
@@ -171,7 +179,7 @@ export class TodoItemsService {
 
   // ── Excel import/export ─────────────────────────────────────────────────────
 
-  async importExcel(buffer: Buffer): Promise<ImportResultDto> {
+  async importExcel(buffer: Buffer, actorUserId?: number): Promise<ImportResultDto> {
     const rows = await parseExcel(buffer);
 
     if (rows.length === 0) {
@@ -205,7 +213,8 @@ export class TodoItemsService {
       const description = String(getCell(row, 'description') ?? '').trim() || null;
       const isCompleted = TodoItemsService.parseBool(String(getCell(row, 'is_completed') ?? ''));
 
-      await this.repository.create({ title, description, isCompleted });
+      await this.repository.create({ title, description, isCompleted,
+        ...(actorUserId !== undefined ? { createdByUserId: actorUserId } : {}) });
       imported++;
     }
 

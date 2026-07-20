@@ -8,5 +8,7 @@ public class User
     public string PasswordHash { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
+    public int? CreatedByUserId { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public int? UpdatedByUserId { get; set; }
 }

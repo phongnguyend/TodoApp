@@ -6,11 +6,13 @@ import "time"
 // The internal storage `location` is intentionally not exposed to clients;
 // file content is retrieved via the dedicated download endpoint instead.
 type FileResponse struct {
-	ID          uint       `json:"id"`
-	Name        string     `json:"name"`
-	Extension   string     `json:"extension"`
-	Size        int64      `json:"size"`
-	ContentType *string    `json:"contentType"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	UpdatedAt   *time.Time `json:"updatedAt"`
+	ID              uint       `json:"id"`
+	Name            string     `json:"name"`
+	Extension       string     `json:"extension"`
+	Size            int64      `json:"size"`
+	ContentType     *string    `json:"contentType"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	CreatedByUserID *uint      `json:"createdByUserId"`
+	UpdatedAt       *time.Time `json:"updatedAt"`
+	UpdatedByUserID *uint      `json:"updatedByUserId"`
 }

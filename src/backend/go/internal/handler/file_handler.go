@@ -124,7 +124,7 @@ func (h *FileHandler) Upload(c *gin.Context) {
 		ContentType:  fileHeader.Header.Get("Content-Type"),
 		Size:         fileHeader.Size,
 		Reader:       src,
-	})
+	}, auditUserID(c))
 	if err != nil {
 		handleFileServiceError(c, err)
 		return

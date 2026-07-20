@@ -16,8 +16,12 @@ model TodoItem {
   description String?
   isCompleted Boolean   @default(false)
   createdAt   DateTime  @default(now())
+  createdByUserId Int?
   updatedAt   DateTime? @updatedAt
+  updatedByUserId Int?
   attachments TodoItemAttachment[]
+  createdByUser User? @relation("TodoItemCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("TodoItemUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   @@map("todo_items")
 }
@@ -29,8 +33,12 @@ model EmailLog {
   body         String
   status       String    @default("pending")
   createdAt    DateTime  @default(now())
+  createdByUserId Int?
   sentAt       DateTime?
   errorMessage String?
+  updatedByUserId Int?
+  createdByUser User? @relation("EmailLogCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("EmailLogUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   @@map("email_logs")
 }
@@ -43,8 +51,12 @@ model File {
   contentType String?
   location    String
   createdAt   DateTime  @default(now())
+  createdByUserId Int?
   updatedAt   DateTime? @updatedAt
+  updatedByUserId Int?
   attachments TodoItemAttachment[]
+  createdByUser User? @relation("FileCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("FileUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   @@map("files")
 }
@@ -54,9 +66,13 @@ model TodoItemAttachment {
   todoItemId Int
   fileId     Int
   createdAt  DateTime  @default(now())
+  createdByUserId Int?
   updatedAt  DateTime? @updatedAt
+  updatedByUserId Int?
   todoItem   TodoItem  @relation(fields: [todoItemId], references: [id], onDelete: Cascade)
   file       File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  createdByUser User? @relation("AttachmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("AttachmentUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   @@unique([todoItemId, fileId])
   @@index([fileId])
@@ -70,7 +86,21 @@ model User {
   passwordHash String
   isActive     Boolean   @default(true)
   createdAt    DateTime  @default(now())
+  createdByUserId Int?
   updatedAt    DateTime? @updatedAt
+  updatedByUserId Int?
+  createdByUser User? @relation("UserCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("UserUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  usersCreated User[] @relation("UserCreatedBy")
+  usersUpdated User[] @relation("UserUpdatedBy")
+  todoItemsCreated TodoItem[] @relation("TodoItemCreatedBy")
+  todoItemsUpdated TodoItem[] @relation("TodoItemUpdatedBy")
+  attachmentsCreated TodoItemAttachment[] @relation("AttachmentCreatedBy")
+  attachmentsUpdated TodoItemAttachment[] @relation("AttachmentUpdatedBy")
+  filesCreated File[] @relation("FileCreatedBy")
+  filesUpdated File[] @relation("FileUpdatedBy")
+  emailLogsCreated EmailLog[] @relation("EmailLogCreatedBy")
+  emailLogsUpdated EmailLog[] @relation("EmailLogUpdatedBy")
 
   @@map("users")
 }

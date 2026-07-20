@@ -26,6 +26,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Identity.IPasswordHasher<TodoShared.Models.User>,
     Microsoft.AspNetCore.Identity.PasswordHasher<TodoShared.Models.User>>();
 builder.Services.AddDataProtection();
+builder.Services.AddHttpContextAccessor();
 
 var jwtSecret = builder.Configuration["JWT_SECRET_KEY"]
     ?? builder.Configuration["Authentication:Secret"]
@@ -45,7 +46,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             NameClaimType = "sub"
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 // ── Controllers & OpenAPI / Swagger ────────────────────────────────────────────
 builder.Services.AddControllers();

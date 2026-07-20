@@ -33,6 +33,8 @@ class EmailLog extends Model
         'status',
         'sent_at',
         'error_message',
+        'created_by_user_id',
+        'updated_by_user_id',
     ];
 
     protected $casts = [

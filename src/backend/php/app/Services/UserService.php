@@ -47,7 +47,7 @@ class UserService implements UserServiceInterface
         return $user;
     }
 
-    public function create(CreateUserRequest $request): User
+    public function create(CreateUserRequest $request, ?int $actorUserId = null): User
     {
         $data = $request->validated();
         $username = trim($data['username']);
@@ -59,13 +59,14 @@ class UserService implements UserServiceInterface
             'email' => $email,
             'password_hash' => Hash::make($data['password']),
             'is_active' => $data['is_active'] ?? true,
+            'created_by_user_id' => $actorUserId,
         ]);
 
         /** @var User $user */
         return $user;
     }
 
-    public function update(int $id, UpdateUserRequest $request): User
+    public function update(int $id, UpdateUserRequest $request, ?int $actorUserId = null): User
     {
         $user = $this->getById($id);
         $data = $request->validated();
@@ -73,7 +74,8 @@ class UserService implements UserServiceInterface
         $email = array_key_exists('email', $data) ? $this->normalizeEmail($data['email']) : $user->email;
         $this->ensureUnique($username, $email, $id);
 
-        $changes = ['username' => $username, 'email' => $email, 'updated_at' => now()];
+        $changes = ['username' => $username, 'email' => $email, 'updated_at' => now(),
+            'updated_by_user_id' => $actorUserId];
         if (array_key_exists('password', $data)) {
             $changes['password_hash'] = Hash::make($data['password']);
         }
@@ -84,11 +86,12 @@ class UserService implements UserServiceInterface
         return $updated;
     }
 
-    public function setActive(int $id, bool $isActive): User
+    public function setActive(int $id, bool $isActive, ?int $actorUserId = null): User
     {
         $user = $this->getById($id);
         /** @var User $updated */
-        $updated = $this->repository->update($user, ['is_active' => $isActive, 'updated_at' => now()]);
+        $updated = $this->repository->update($user, ['is_active' => $isActive, 'updated_at' => now(),
+            'updated_by_user_id' => $actorUserId]);
 
         return $updated;
     }
@@ -129,6 +132,7 @@ class UserService implements UserServiceInterface
             'username' => $username,
             'email' => $email,
             'updated_at' => now(),
+            'updated_by_user_id' => $userId,
         ]);
 
         return $updated;
@@ -147,6 +151,7 @@ class UserService implements UserServiceInterface
         $this->repository->update($user, [
             'password_hash' => Hash::make($request->validated('new_password')),
             'updated_at' => now(),
+            'updated_by_user_id' => $userId,
         ]);
     }
 
@@ -195,6 +200,7 @@ class UserService implements UserServiceInterface
         $this->repository->update($user, [
             'password_hash' => Hash::make($request->validated('new_password')),
             'updated_at' => now(),
+            'updated_by_user_id' => null,
         ]);
     }
 

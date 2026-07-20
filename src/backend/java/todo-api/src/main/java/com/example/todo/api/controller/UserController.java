@@ -1,5 +1,6 @@
 package com.example.todo.api.controller;
 
+import com.example.todo.api.config.AuditActor;
 import com.example.todo.dto.*;
 import com.example.todo.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,21 +35,31 @@ public class UserController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create a user")
-    public UserResponse create(@Valid @RequestBody CreateUserRequest request) { return service.create(request); }
+    public UserResponse create(@Valid @RequestBody CreateUserRequest request) {
+        Long actor = AuditActor.currentUserId();
+        return actor == null ? service.create(request) : service.create(request, actor);
+    }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update a user")
     public UserResponse update(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
-        return service.update(id, request);
+        Long actor = AuditActor.currentUserId();
+        return actor == null ? service.update(id, request) : service.update(id, request, actor);
     }
 
     @PatchMapping("/{id}/activate")
     @Operation(summary = "Activate a user")
-    public UserResponse activate(@PathVariable Long id) { return service.setActive(id, true); }
+    public UserResponse activate(@PathVariable Long id) {
+        Long actor = AuditActor.currentUserId();
+        return actor == null ? service.setActive(id, true) : service.setActive(id, true, actor);
+    }
 
     @PatchMapping("/{id}/deactivate")
     @Operation(summary = "Deactivate a user")
-    public UserResponse deactivate(@PathVariable Long id) { return service.setActive(id, false); }
+    public UserResponse deactivate(@PathVariable Long id) {
+        Long actor = AuditActor.currentUserId();
+        return actor == null ? service.setActive(id, false) : service.setActive(id, false, actor);
+    }
 
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)

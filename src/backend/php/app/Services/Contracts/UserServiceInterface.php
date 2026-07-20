@@ -19,11 +19,11 @@ interface UserServiceInterface
 
     public function getById(int $id): User;
 
-    public function create(CreateUserRequest $request): User;
+    public function create(CreateUserRequest $request, ?int $actorUserId = null): User;
 
-    public function update(int $id, UpdateUserRequest $request): User;
+    public function update(int $id, UpdateUserRequest $request, ?int $actorUserId = null): User;
 
-    public function setActive(int $id, bool $isActive): User;
+    public function setActive(int $id, bool $isActive, ?int $actorUserId = null): User;
 
     public function signup(SignUpRequest $request): User;
 

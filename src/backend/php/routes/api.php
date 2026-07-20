@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('todo-items')->group(function () {
+Route::middleware(AuthenticateUser::class)->prefix('todo-items')->group(function () {
     Route::get('/', [TodoItemController::class, 'index']);       // GET    /api/todo-items
     Route::get('/incomplete', [TodoItemController::class, 'incomplete']);  // GET    /api/todo-items/incomplete
     Route::post('/import/csv', [TodoItemController::class, 'importCsv']);   // POST   /api/todo-items/import/csv
@@ -35,7 +35,7 @@ Route::prefix('todo-items')->group(function () {
     Route::delete('/{id}', [TodoItemController::class, 'destroy']);      // DELETE /api/todo-items/{id}
 });
 
-Route::prefix('files')->group(function () {
+Route::middleware(AuthenticateUser::class)->prefix('files')->group(function () {
     Route::get('/', [FileController::class, 'index']);    // GET    /api/files
     Route::get('/{id}/download', [FileController::class, 'download']); // GET    /api/files/{id}/download
     Route::get('/{id}', [FileController::class, 'show']);     // GET    /api/files/{id}
@@ -44,17 +44,16 @@ Route::prefix('files')->group(function () {
 });
 
 Route::prefix('users')->group(function () {
-    // Static routes must precede /{id}.
     Route::post('/signup', [UserController::class, 'signup']);
     Route::post('/password/reset', [UserController::class, 'requestPasswordReset']);
     Route::post('/password/confirm', [UserController::class, 'confirmPasswordReset']);
+});
 
-    Route::middleware(AuthenticateUser::class)->group(function () {
-        Route::post('/password/change', [UserController::class, 'changePassword']);
-        Route::get('/profile', [UserController::class, 'profile']);
-        Route::put('/profile', [UserController::class, 'updateProfile']);
-    });
-
+Route::middleware(AuthenticateUser::class)->prefix('users')->group(function () {
+    // Static routes must precede /{id}.
+    Route::post('/password/change', [UserController::class, 'changePassword']);
+    Route::get('/profile', [UserController::class, 'profile']);
+    Route::put('/profile', [UserController::class, 'updateProfile']);
     Route::get('/', [UserController::class, 'index']);
     Route::post('/', [UserController::class, 'store']);
     Route::get('/{id}', [UserController::class, 'show'])->whereNumber('id');

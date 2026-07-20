@@ -8,6 +8,7 @@ import { UserAuthGuard } from './users.security';
 import { UsersService } from './users.service';
 import { TokensController } from './tokens.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -23,6 +24,9 @@ import { JwtStrategy } from './jwt.strategy';
     }),
   ],
   controllers: [UsersController, TokensController],
-  providers: [UsersService, UsersRepository, UserAuthGuard, JwtStrategy],
+  providers: [
+    UsersService, UsersRepository, JwtStrategy,
+    { provide: APP_GUARD, useClass: UserAuthGuard },
+  ],
 })
 export class UsersModule {}

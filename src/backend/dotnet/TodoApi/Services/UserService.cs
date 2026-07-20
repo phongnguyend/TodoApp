@@ -17,14 +17,17 @@ public class UserService(
     AppDbContext db,
     IPasswordHasher<User> passwordHasher,
     IDataProtectionProvider dataProtectionProvider,
-    IConfiguration configuration) : IUserService
+    IConfiguration configuration,
+    IHttpContextAccessor? httpContextAccessor = null) : IUserService
 {
+    private int? ActorUserId => AuditActor.GetUserId(httpContextAccessor);
     private readonly string _dummyPasswordHash = passwordHasher.HashPassword(new User(), "not-a-real-password");
     private readonly IDataProtector _resetTokenProtector =
         dataProtectionProvider.CreateProtector("TodoApi.UserPasswordReset.v1");
 
     private static UserResponse ToResponse(User user) =>
-        new(user.Id, user.Username, user.Email, user.IsActive, user.CreatedAt, user.UpdatedAt);
+        new(user.Id, user.Username, user.Email, user.IsActive, user.CreatedAt,
+            user.CreatedByUserId, user.UpdatedAt, user.UpdatedByUserId);
 
     private async Task<User> GetOrThrowAsync(int id, CancellationToken ct) =>
         await repository.GetByIdAsync(id, ct) ?? throw new KeyNotFoundException($"User {id} not found.");
@@ -49,7 +52,8 @@ public class UserService(
             Username = request.Username.Trim(),
             Email = NormalizeEmail(request.Email),
             IsActive = request.IsActive,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            CreatedByUserId = ActorUserId
         };
         user.PasswordHash = passwordHasher.HashPassword(user, request.Password);
         await repository.AddAsync(user, ct);
@@ -69,6 +73,7 @@ public class UserService(
         if (request.Password is not null)
             user.PasswordHash = passwordHasher.HashPassword(user, request.Password);
         user.UpdatedAt = DateTime.UtcNow;
+        user.UpdatedByUserId = ActorUserId;
         repository.Update(user);
         await db.SaveChangesAsync(ct);
         return ToResponse(user);
@@ -79,6 +84,7 @@ public class UserService(
         var user = await GetOrThrowAsync(id, ct);
         user.IsActive = isActive;
         user.UpdatedAt = DateTime.UtcNow;
+        user.UpdatedByUserId = ActorUserId;
         repository.Update(user);
         await db.SaveChangesAsync(ct);
         return ToResponse(user);
@@ -98,6 +104,7 @@ public class UserService(
         user.Username = username;
         user.Email = email;
         user.UpdatedAt = DateTime.UtcNow;
+        user.UpdatedByUserId = userId;
         repository.Update(user);
         await db.SaveChangesAsync(ct);
         return ToResponse(user);
@@ -115,6 +122,7 @@ public class UserService(
 
         user.PasswordHash = passwordHasher.HashPassword(user, request.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;
+        user.UpdatedByUserId = userId;
         repository.Update(user);
         await db.SaveChangesAsync(ct);
     }
@@ -167,6 +175,7 @@ public class UserService(
 
         user.PasswordHash = passwordHasher.HashPassword(user, request.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;
+        user.UpdatedByUserId = null;
         repository.Update(user);
         await db.SaveChangesAsync(ct);
     }

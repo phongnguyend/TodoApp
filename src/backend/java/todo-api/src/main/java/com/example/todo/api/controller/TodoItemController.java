@@ -1,5 +1,6 @@
 package com.example.todo.api.controller;
 
+import com.example.todo.api.config.AuditActor;
 import com.example.todo.dto.CreateTodoItemRequest;
 import com.example.todo.dto.ImportResult;
 import com.example.todo.dto.PaginatedResponse;
@@ -67,7 +68,8 @@ public class TodoItemController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create a todo item")
     public TodoItemResponse create(@Valid @RequestBody CreateTodoItemRequest request) {
-        return service.create(request);
+        Long actor = AuditActor.currentUserId();
+        return actor == null ? service.create(request) : service.create(request, actor);
     }
 
     @PutMapping("/{id}")
@@ -76,14 +78,16 @@ public class TodoItemController {
     public TodoItemResponse update(
             @PathVariable Long id,
             @Valid @RequestBody UpdateTodoItemRequest request) {
-        return service.update(id, request);
+        Long actor = AuditActor.currentUserId();
+        return actor == null ? service.update(id, request) : service.update(id, request, actor);
     }
 
     @PatchMapping("/{id}/complete")
     @Operation(summary = "Mark a todo item as complete")
     @ApiResponse(responseCode = "404", description = "Todo item not found")
     public TodoItemResponse markComplete(@PathVariable Long id) {
-        return service.markComplete(id);
+        Long actor = AuditActor.currentUserId();
+        return actor == null ? service.markComplete(id) : service.markComplete(id, actor);
     }
 
     @DeleteMapping("/{id}")
@@ -99,7 +103,8 @@ public class TodoItemController {
     @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE))
     public ImportResult importCsv(
             @Parameter(schema = @Schema(type = "string", format = "binary")) @RequestParam("file") MultipartFile file) {
-        return service.importCsv(file);
+        Long actor = AuditActor.currentUserId();
+        return actor == null ? service.importCsv(file) : service.importCsv(file, actor);
     }
 
     @GetMapping("/export/csv")
@@ -117,7 +122,8 @@ public class TodoItemController {
     @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE))
     public ImportResult importExcel(
             @Parameter(schema = @Schema(type = "string", format = "binary")) @RequestParam("file") MultipartFile file) {
-        return service.importExcel(file);
+        Long actor = AuditActor.currentUserId();
+        return actor == null ? service.importExcel(file) : service.importExcel(file, actor);
     }
 
     @GetMapping("/export/excel")

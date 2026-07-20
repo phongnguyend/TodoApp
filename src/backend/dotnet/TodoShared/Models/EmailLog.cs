@@ -8,6 +8,8 @@ public class EmailLog
     public string Body { get; set; } = string.Empty;
     public string Status { get; set; } = "pending";
     public DateTime CreatedAt { get; set; }
+    public int? CreatedByUserId { get; set; }
     public DateTime? SentAt { get; set; }
     public string? ErrorMessage { get; set; }
+    public int? UpdatedByUserId { get; set; }
 }

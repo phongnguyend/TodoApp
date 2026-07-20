@@ -15,7 +15,7 @@ interface FileServiceInterface
 
     public function getById(int $id): File;
 
-    public function upload(UploadedFile $uploadedFile): File;
+    public function upload(UploadedFile $uploadedFile, ?int $actorUserId = null): File;
 
     /**
      * Returns ['path' => string, 'name' => string, 'content_type' => string] for streaming

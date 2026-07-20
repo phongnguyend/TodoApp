@@ -51,7 +51,7 @@ class FileService implements FileServiceInterface
 
     // ── Commands ──────────────────────────────────────────────────────────────
 
-    public function upload(UploadedFile $uploadedFile): File
+    public function upload(UploadedFile $uploadedFile, ?int $actorUserId = null): File
     {
         // Strip any directory components from the client-supplied name to prevent path traversal.
         $originalName = basename($uploadedFile->getClientOriginalName());
@@ -69,13 +69,15 @@ class FileService implements FileServiceInterface
         $storedName = uniqid('', true) . '_' . $originalName;
         $movedFile = $uploadedFile->move($storageDir, $storedName);
 
-        return $this->repository->create([
+        $data = [
             'name'         => $originalName,
             'extension'    => $extension,
             'size'         => $movedFile->getSize(),
             'content_type' => $uploadedFile->getClientMimeType(),
             'location'     => $movedFile->getPathname(),
-        ]);
+        ];
+        if ($actorUserId !== null) $data['created_by_user_id'] = $actorUserId;
+        return $this->repository->create($data);
     }
 
     public function getDownloadTarget(int $id): array

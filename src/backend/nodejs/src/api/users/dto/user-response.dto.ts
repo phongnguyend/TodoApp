@@ -6,5 +6,7 @@ export class UserResponseDto {
   @ApiProperty() email!: string;
   @ApiProperty() isActive!: boolean;
   @ApiProperty() createdAt!: Date;
+  @ApiProperty({ nullable: true }) createdByUserId!: number | null;
   @ApiProperty({ nullable: true }) updatedAt!: Date | null;
+  @ApiProperty({ nullable: true }) updatedByUserId!: number | null;
 }

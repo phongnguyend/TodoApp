@@ -14,8 +14,15 @@ public record TodoItemResponse(
         String description,
         boolean isCompleted,
         Instant createdAt,
-        Instant updatedAt
+        Long createdByUserId,
+        Instant updatedAt,
+        Long updatedByUserId
 ) {
+    public TodoItemResponse(Long id, String title, String description, boolean isCompleted,
+            Instant createdAt, Instant updatedAt) {
+        this(id, title, description, isCompleted, createdAt, null, updatedAt, null);
+    }
+
     public static TodoItemResponse from(TodoItem entity) {
         return new TodoItemResponse(
                 entity.getId(),
@@ -23,7 +30,9 @@ public record TodoItemResponse(
                 entity.getDescription(),
                 entity.isCompleted(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getCreatedByUserId(),
+                entity.getUpdatedAt(),
+                entity.getUpdatedByUserId()
         );
     }
 }

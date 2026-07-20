@@ -13,7 +13,9 @@ const makeResponseDto = (overrides: Partial<FileResponseDto> = {}): FileResponse
   size: 1024,
   contentType: 'application/pdf',
   createdAt: new Date('2024-01-01T00:00:00Z'),
+  createdByUserId: null,
   updatedAt: null,
+  updatedByUserId: null,
   ...overrides,
 });
 

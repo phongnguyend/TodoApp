@@ -10,7 +10,7 @@ class TodoItemAttachment extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['todo_item_id', 'file_id'];
+    protected $fillable = ['todo_item_id', 'file_id', 'created_by_user_id', 'updated_by_user_id'];
 
     public function todoItem(): BelongsTo
     {

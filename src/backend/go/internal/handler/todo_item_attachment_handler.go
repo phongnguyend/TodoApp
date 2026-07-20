@@ -78,7 +78,7 @@ func (h *TodoItemAttachmentHandler) Create(c *gin.Context) {
 	if !ok {
 		return
 	}
-	result, err := h.svc.Create(todoID, request.FileID)
+	result, err := h.svc.Create(todoID, request.FileID, auditUserID(c))
 	if err != nil {
 		handleAttachmentError(c, err)
 		return
@@ -98,7 +98,7 @@ func (h *TodoItemAttachmentHandler) Update(c *gin.Context) {
 	if !ok {
 		return
 	}
-	result, err := h.svc.Update(todoID, id, request.FileID)
+	result, err := h.svc.Update(todoID, id, request.FileID, auditUserID(c))
 	if err != nil {
 		handleAttachmentError(c, err)
 		return

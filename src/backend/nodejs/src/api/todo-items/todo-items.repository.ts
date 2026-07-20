@@ -40,11 +40,11 @@ export class TodoItemRepository {
     return this.prisma.todoItem.findMany({ orderBy: { createdAt: 'desc' } });
   }
 
-  async create(data: Prisma.TodoItemCreateInput): Promise<TodoItem> {
+  async create(data: Prisma.TodoItemUncheckedCreateInput): Promise<TodoItem> {
     return this.prisma.todoItem.create({ data });
   }
 
-  async update(id: number, data: Prisma.TodoItemUpdateInput): Promise<TodoItem> {
+  async update(id: number, data: Prisma.TodoItemUncheckedUpdateInput): Promise<TodoItem> {
     return this.prisma.todoItem.update({ where: { id }, data });
   }
 

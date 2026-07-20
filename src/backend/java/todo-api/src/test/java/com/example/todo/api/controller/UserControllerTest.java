@@ -43,25 +43,25 @@ class UserControllerTest {
         when(service.update(eq(1L), any())).thenReturn(response());
         when(service.setActive(eq(1L), anyBoolean())).thenReturn(response());
 
-        mockMvc.perform(get("/api/users")).andExpect(status().isOk()).andExpect(jsonPath("$.items[0].email").value("alice@example.com"));
-        mockMvc.perform(get("/api/users/1")).andExpect(status().isOk());
-        mockMvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(get("/api/users").with(jwt())).andExpect(status().isOk()).andExpect(jsonPath("$.items[0].email").value("alice@example.com"));
+        mockMvc.perform(get("/api/users/1").with(jwt())).andExpect(status().isOk());
+        mockMvc.perform(post("/api/users").with(jwt()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"alice\",\"email\":\"alice@example.com\",\"password\":\"password123\"}"))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.password").doesNotExist());
-        mockMvc.perform(put("/api/users/1").contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"new-name\"}"))
+        mockMvc.perform(put("/api/users/1").with(jwt()).contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"new-name\"}"))
                 .andExpect(status().isOk());
-        mockMvc.perform(patch("/api/users/1/activate")).andExpect(status().isOk());
-        mockMvc.perform(patch("/api/users/1/deactivate")).andExpect(status().isOk());
+        mockMvc.perform(patch("/api/users/1/activate").with(jwt())).andExpect(status().isOk());
+        mockMvc.perform(patch("/api/users/1/deactivate").with(jwt())).andExpect(status().isOk());
     }
 
     @Test
     void createValidationAndConflictAreMapped() throws Exception {
-        mockMvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/users").with(jwt()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"\",\"email\":\"bad\",\"password\":\"short\"}"))
                 .andExpect(status().isBadRequest());
 
         when(service.create(any())).thenThrow(new UserConflictException("Email is already in use."));
-        mockMvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/users").with(jwt()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"alice\",\"email\":\"alice@example.com\",\"password\":\"password123\"}"))
                 .andExpect(status().isConflict());
     }
@@ -101,6 +101,8 @@ class UserControllerTest {
     @Test
     void profileWithoutValidBearerTokenReturnsUnauthorized() throws Exception {
         mockMvc.perform(get("/api/users/profile"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/users"))
                 .andExpect(status().isUnauthorized());
         verifyNoInteractions(service);
     }

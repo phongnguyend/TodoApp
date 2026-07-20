@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  Req,
   Res,
   UploadedFile,
   UseInterceptors,
@@ -29,6 +30,7 @@ import { Response } from 'express';
 import { PaginatedResponseDto } from '../../shared/common/dto/paginated-response.dto';
 import { FileResponseDto } from './dto/file-response.dto';
 import { FilesService } from './files.service';
+import { AuditRequest } from '../users/users.security';
 
 /**
  * FilesController - mirrors a [ApiController] / [Route("api/files")] controller in ASP.NET Core.
@@ -79,11 +81,12 @@ export class FilesController {
   })
   @ApiCreatedResponse({ type: FileResponseDto })
   @ApiPayloadTooLargeResponse({ description: 'File exceeds the maximum allowed size' })
-  create(@UploadedFile() file?: Express.Multer.File): Promise<FileResponseDto> {
+  create(@UploadedFile() file?: Express.Multer.File, @Req() request?: AuditRequest): Promise<FileResponseDto> {
     if (!file) {
       throw new BadRequestException('file is required.');
     }
-    return this.service.upload(file);
+    const actor = request?.user?.userId;
+    return actor === undefined ? this.service.upload(file) : this.service.upload(file, actor);
   }
 
   @Delete(':id')

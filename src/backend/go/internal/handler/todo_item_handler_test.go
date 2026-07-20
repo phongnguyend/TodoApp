@@ -47,25 +47,25 @@ func (m *mockSvc) GetIncomplete(page, pageSize int) (dto.PaginatedResponse[dto.T
 func (m *mockSvc) GetByID(id uint) (dto.TodoItemResponse, error) {
 	return m.getByIDFn(id)
 }
-func (m *mockSvc) Create(req dto.CreateTodoItemRequest) (dto.TodoItemResponse, error) {
+func (m *mockSvc) Create(req dto.CreateTodoItemRequest, _ ...*uint) (dto.TodoItemResponse, error) {
 	return m.createFn(req)
 }
-func (m *mockSvc) Update(id uint, req dto.UpdateTodoItemRequest) (dto.TodoItemResponse, error) {
+func (m *mockSvc) Update(id uint, req dto.UpdateTodoItemRequest, _ ...*uint) (dto.TodoItemResponse, error) {
 	return m.updateFn(id, req)
 }
-func (m *mockSvc) MarkComplete(id uint) (dto.TodoItemResponse, error) {
+func (m *mockSvc) MarkComplete(id uint, _ ...*uint) (dto.TodoItemResponse, error) {
 	return m.markCompleteFn(id)
 }
 func (m *mockSvc) Delete(id uint) error {
 	return m.deleteFn(id)
 }
-func (m *mockSvc) ImportCSV(r io.Reader) (dto.ImportResult, error) {
+func (m *mockSvc) ImportCSV(r io.Reader, _ ...*uint) (dto.ImportResult, error) {
 	return m.importCSVFn(r)
 }
 func (m *mockSvc) ExportCSV() (string, error) {
 	return m.exportCSVFn()
 }
-func (m *mockSvc) ImportExcel(r io.Reader) (dto.ImportResult, error) {
+func (m *mockSvc) ImportExcel(r io.Reader, _ ...*uint) (dto.ImportResult, error) {
 	return m.importExcelFn(r)
 }
 func (m *mockSvc) ExportExcel() ([]byte, error) {

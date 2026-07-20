@@ -96,6 +96,12 @@ public class FileServiceImpl implements FileService {
     @Override
     @Transactional
     public FileResponse upload(MultipartFile file) {
+        return upload(file, null);
+    }
+
+    @Override
+    @Transactional
+    public FileResponse upload(MultipartFile file, Long actorUserId) {
         if (file.getSize() > maxUploadSizeBytes) {
             throw new PayloadTooLargeException(
                     "File exceeds the maximum allowed size of " + maxUploadSizeBytes + " bytes.");
@@ -118,6 +124,7 @@ public class FileServiceImpl implements FileService {
             file.transferTo(location);
 
             FileEntity entity = new FileEntity(originalName, extension, file.getSize(), file.getContentType(), location.toString());
+            entity.setCreatedByUserId(actorUserId);
             return FileResponse.from(repository.save(entity));
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to store uploaded file.", e);

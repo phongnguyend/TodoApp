@@ -11,7 +11,9 @@ const attachment = (overrides: Partial<TodoItemAttachment> = {}): TodoItemAttach
   todoItemId: 10,
   fileId: 5,
   createdAt: new Date('2026-07-18T00:00:00Z'),
+  createdByUserId: null,
   updatedAt: null,
+  updatedByUserId: null,
   ...overrides,
 });
 

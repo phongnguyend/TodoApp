@@ -39,24 +39,24 @@ class UserController extends Controller
 
     public function store(CreateUserRequest $request): JsonResponse
     {
-        return (new UserResource($this->service->create($request)))
+        return (new UserResource($this->service->create($request, $this->actorUserId($request))))
             ->response()
             ->setStatusCode(201);
     }
 
     public function update(UpdateUserRequest $request, int $id): UserResource
     {
-        return new UserResource($this->service->update($id, $request));
+        return new UserResource($this->service->update($id, $request, $this->actorUserId($request)));
     }
 
     public function activate(int $id): UserResource
     {
-        return new UserResource($this->service->setActive($id, true));
+        return new UserResource($this->service->setActive($id, true, $this->actorUserId()));
     }
 
     public function deactivate(int $id): UserResource
     {
-        return new UserResource($this->service->setActive($id, false));
+        return new UserResource($this->service->setActive($id, false, $this->actorUserId()));
     }
 
     public function signup(SignUpRequest $request): JsonResponse
@@ -115,5 +115,12 @@ class UserController extends Controller
     private function currentUserId(Request $request): int
     {
         return (int) $request->attributes->get('authenticated_user_id');
+    }
+
+    private function actorUserId(?Request $request = null): ?int
+    {
+        $request ??= request();
+        $value = $request->attributes->get('authenticated_user_id');
+        return is_int($value) && $value > 0 ? $value : null;
     }
 }
